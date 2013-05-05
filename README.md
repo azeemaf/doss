@@ -40,8 +40,8 @@ try (DataStore ds = DOSS.openLocalStore("/doss-devel")) {
 ```java
 try (DataStore ds = DOSS.openLocalStore("/doss-devel");
      DataTxn tx = ds.begin()) {    
-    Blob blob1 = tx.create(Paths.get("/tmp/myimage.jpg"));
-    Blob blob2 = tx.create(Paths.get("/tmp/mytext.txt"));
+    Blob blob1 = tx.put(Paths.get("/tmp/myimage.jpg"));
+    Blob blob2 = tx.put(Paths.get("/tmp/mytext.txt"));
     blob2.verifyDigest("SHA1", "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed");
     tx.commit();
     return blob1.getId();
@@ -53,7 +53,7 @@ try (DataStore ds = DOSS.openLocalStore("/doss-devel");
 ```java
 try (DataStore ds = DOSS.openLocalStore("/doss-devel"); 
      DataTxn tx = ds.begin()) {
-    Blob blob = tx.create();
+    Blob blob = tx.put();
 
     try (WritableByteChannel out = blob.openWriteChannel();
          FileChannel in = FileChannel.open(Paths.get("/tmp/myimage.jpg"))) {
