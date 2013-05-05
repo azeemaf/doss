@@ -81,54 +81,62 @@ try (DataTxn tx = ds.begin()) {
     // finish uploading data and ensure everything is green
     tx.prepare();
 
-    database.inTransaction(new TransactionCallback<Integer>() {
-        public Integer inTransaction(Handle h, TransactionStatus status) {
- 
-            // record some metadata about this file
-            h.createStatement("insert into pictures (desc, id) values (:desc, :id)"
-                .bind(0, "my cool picture")
-                .bind(1, blob.getId())
-                .execute();
- 
-            // update journal to commit on crash recovery
-            h.createStatement("update journal set action = 'commit' where tx_id = :tx")
-                .bind(0, tx.getId())
-                .execute();
+    try {
+        database.inTransaction(new TransactionCallback<Integer>() {
+            public Integer inTransaction(Handle h, TransactionStatus status) {
+     
+                // record some metadata about this file
+                h.createStatement("insert into pictures (desc, id) values (:desc, :id)"
+                    .bind(0, "my cool picture")
+                    .bind(1, blob.getId())
+                    .execute();
+     
+                // update journal to commit on crash recovery
+                h.createStatement("update journal set action = 'commit' where tx_id = :tx")
+                    .bind(0, tx.getId())
+                    .execute();
+            }
         }
+    } finally {
+        finish(tx);
+    }
+}
+```
+
+Finishing the transaction should be done by reading the journal entry.
+This ensures that even if an exception is thrown we finish based
+solely on the outcome of the SQL transaction (ie no false rollbacks).
+
+```java
+void finish(DataTxn tx) {
+    String action = db.createQuery("select action from journal where tx_id = :tx")
+        .bind("tx", tx.getId())
+        .map(StringMapper.FIRST)
+        .first();
+
+    if (action == null) {
+        return; // someone else's transaction
+    } else if (action.equals("commit")) {
+        tx.commit();
+    } else {
+        tx.rollback();
     }
 
-    // FIXME: rollback in the non-crash scenario?  perhaps we should
-    // actually apply the journal action in a finally block.
-
-    tx.commit();
-
-    // we're done now so we can remove the journal entry
     h.createStatement("delete from journal where tx_id = :tx")
-        .bind(0, tx.getId())
+        .bind("tx", tx.getId())
         .execute();
 }
 ```
 
-On startup the application must recover any interrupted transactions
-that were recorded in the journal.
+On startup or connection re-establishment after a database/datastore
+outage the application should recover and finish any interrupted
+transactions:
 
 ```java
-List<JournalEntry> journal = db.createQuery("select tx_id, action from journal").execute();
-for (JournalEntry entry : journal) {
-    DataTxn tx = ds.recover(entry.getTxId());
-    if (tx != null) {
-        if (entry.getAction().equals("commit")) {
-            tx.commit();
-        } else {
-            tx.rollback();
-        }
-        h.createStatement("delete from journal where tx_id = :tx")
-            .bind(0, tx.getId())
-            .execute();
-    }
+for (DataTxn tx : ds.recover()) {
+    finish(tx);
 }
 ```
-
 
 ### dossfs
 
