@@ -48,19 +48,35 @@ try (DataStore ds = DOSS.openLocalStore("/doss-devel");
 }
 ```
 
-### Ingesting via a channel
+### Ingesting using a channel
+
+You may want to ingest from somewhere other than the local filesystem
+such as a socket or a serialized document that's constructed on the
+fly.  The `put(ChannelOutput)` method allows you to write to a blob
+using a channel.
 
 ```java
-try (DataStore ds = DOSS.openLocalStore("/doss-devel"); 
-     DataTxn tx = ds.begin()) {
-    Blob blob = tx.put();
+try (DataTxn tx = ds.begin()) {
 
-    try (WritableByteChannel out = blob.openWriteChannel();
-         FileChannel in = FileChannel.open(Paths.get("/tmp/myimage.jpg"))) {
-        in.transferTo(out, 0, Long.MAX_VALUE);
-    }
+    Blob blob = tx.put(new ChannelOutput() {
+
+        void write(WritableByteChannel out) {
+            XMLOutputFactory factory = XMLOutputFactory.newInstance();
+            try (OutputStream outStream = Channels.newOutputStream(out);
+                 XMLStreamWriter xml = factory.createXMLStreamWriter(outStream)) {
+                xml.writeStartDocument();
+                xml.writeStartElement("h1");
+                xml.writeCharacters("hello world");
+                xml.writeEndElement();
+                xml.writeEndDocument();
+                xml.flush();
+            }
+        }
+
+    });
 
     tx.commit();
+
     return blob.getId();
 }
 ```
