@@ -1,11 +1,17 @@
 DOSS 2
 ======
 
-Usage
------
+Java API
+--------
 
 The interface hasn't been written yet, but here's roughly what it
 should look like.
+
+These examples use `DOSS.openLocalStore` which opens a local directory
+as a read-write data store.  In a large-scale production system the
+majoriy of clients would only have read-only access and writes would
+be performed via a remote privileged daemon that authenticates the
+clients.
 
 ### Reading sequentially
 
@@ -138,7 +144,10 @@ for (DataTxn tx : ds.recover()) {
 }
 ```
 
-### dossfs
+Non-java read access
+--------------------
+
+See [doc/native-interface.md](doc/native-interface.md).
 
 ```sh
 dossfs /doss-devel /mnt
