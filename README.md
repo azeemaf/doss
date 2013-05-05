@@ -16,9 +16,9 @@ clients.
 ### Reading sequentially
 
 ```java
-try (DataStore ds = DOSS.openLocalStore("/doss-devel")) {
-    Blob blob = ds.get("962b6910-b3eb-11e2-9e96-0800200c9a66");
-    try (InputStream steam = ds.openStream()) {
+try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
+    Blob blob = bs.get("962b6910-b3eb-11e2-9e96-0800200c9a66");
+    try (InputStream steam = bs.openStream()) {
         return ImageIO.read(stream);
     }
 }
@@ -27,9 +27,9 @@ try (DataStore ds = DOSS.openLocalStore("/doss-devel")) {
 ### Random access
 
 ```java
-try (DataStore ds = DOSS.openLocalStore("/doss-devel")) {
-    Blob blob = ds.get("962b6910-b3eb-11e2-9e96-0800200c9a66");
-    try (Channel channel = ds.openChannel()) {
+try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
+    Blob blob = bs.get("962b6910-b3eb-11e2-9e96-0800200c9a66");
+    try (Channel channel = bs.openChannel()) {
         // do something with the channel
     }
 }
@@ -38,8 +38,8 @@ try (DataStore ds = DOSS.openLocalStore("/doss-devel")) {
 ### Ingesting files
 
 ```java
-try (DataStore ds = DOSS.openLocalStore("/doss-devel");
-     DataTxn tx = ds.begin()) {    
+try (BlobStore bs = DOSS.openLocalStore("/doss-devel");
+     BlobTx tx = bs.begin()) {    
     Blob blob1 = tx.put(Paths.get("/tmp/myimage.jpg"));
     Blob blob2 = tx.put(Paths.get("/tmp/mytext.txt"));
     blob2.verifyDigest("SHA1", "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed");
@@ -56,7 +56,7 @@ fly.  The `put(ChannelOutput)` method allows you to stream output to a
 blob using a channel.
 
 ```java
-try (DataTxn tx = ds.begin()) {
+try (BlobTx tx = bs.begin()) {
 
     Blob blob = tx.put(new ChannelOutput() {
 
@@ -85,14 +85,14 @@ try (DataTxn tx = ds.begin()) {
 
 The [two-phase commit protocol](https://en.wikipedia.org/wiki/Two-phase_commit_protocol)
 enables DOSS to participate in distributed transactions.  There are
-other uses for this but the primary goal is that a DOSS datastore can
+other uses for this but the primary goal is that a DOSS blobstore can
 be kept in lockstep with an SQL database storing object metadata.
 
 This is an example of how that could be implemented using an extra
 journal table in the SQL database.
 
 ```java
-try (DataTxn tx = ds.begin()) {    
+try (BlobTx tx = bs.begin()) {    
 
     Blob blob = tx.put(Paths.get("/tmp/myimage.jpg"));
 
@@ -130,7 +130,7 @@ This ensures that even if an exception is thrown we finish based
 solely on the outcome of the SQL transaction (ie no false rollbacks).
 
 ```java
-void finish(DataTxn tx) {
+void finish(BlobTx tx) {
     String action = db.createQuery("select action from journal where tx_id = :tx")
         .bind("tx", tx.getId())
         .map(StringMapper.FIRST)
@@ -150,12 +150,12 @@ void finish(DataTxn tx) {
 }
 ```
 
-On startup or connection re-establishment after a database/datastore
+On startup or connection re-establishment after a database/blobstore
 outage the application should recover and finish any interrupted
 transactions:
 
 ```java
-for (DataTxn tx : ds.recover()) {
+for (BlobTx tx : bs.recover()) {
     finish(tx);
 }
 ```
