@@ -1,6 +1,27 @@
 DOSS 2
 ======
 
+DOSS 2 will be an object storage abstraction layer with transactional
+write-once semantics.  Objects are uniquely and persistently
+identified and can never be overwritten only created and (soft)
+deleted.
+
+Status
+------
+
+Nothing to see yet but some design notes.
+
+Feature Goals
+-------------
+
+* write once blob storage semantics
+* concurrent distributed random read access
+* multiple storage pools and devices (with different policies)
+* two-phase commit write transactions
+* soft deletes ("rubbish bin")
+* consistency and integrity checks
+* packs small files into containers for efficient bulk processing
+
 Java API
 --------
 
@@ -160,7 +181,7 @@ for (BlobTx tx : bs.recover()) {
 }
 ```
 
-Non-java read access
+Non-Java read access
 --------------------
 
 See [doc/native-interface.md](doc/native-interface.md).
