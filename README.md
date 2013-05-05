@@ -78,7 +78,7 @@ journal table in the SQL database.
 ```java
 try (DataTxn tx = ds.begin()) {    
 
-    Blob blob = tx.create(Paths.get("/tmp/myimage.jpg"));
+    Blob blob = tx.put(Paths.get("/tmp/myimage.jpg"));
 
     // add data transaction to SQL journal for rollback on crash recovery
     db.createStatement("insert into journal(tx_id) values (:tx, 'rollback')")
