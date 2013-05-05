@@ -52,8 +52,8 @@ try (DataStore ds = DOSS.openLocalStore("/doss-devel");
 
 You may want to ingest from somewhere other than the local filesystem
 such as a socket or a serialized document that's constructed on the
-fly.  The `put(ChannelOutput)` method allows you to write to a blob
-using a channel.
+fly.  The `put(ChannelOutput)` method allows you to stream output to a
+blob using a channel.
 
 ```java
 try (DataTxn tx = ds.begin()) {
@@ -62,8 +62,8 @@ try (DataTxn tx = ds.begin()) {
 
         void write(WritableByteChannel out) {
             XMLOutputFactory factory = XMLOutputFactory.newInstance();
-            try (OutputStream outStream = Channels.newOutputStream(out);
-                 XMLStreamWriter xml = factory.createXMLStreamWriter(outStream)) {
+            try (OutputStream outputStream = Channels.newOutputStream(out);
+                 XMLStreamWriter xml = factory.createXMLStreamWriter(outputStream)) {
                 xml.writeStartDocument();
                 xml.writeStartElement("h1");
                 xml.writeCharacters("hello world");
