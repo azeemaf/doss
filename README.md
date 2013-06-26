@@ -39,7 +39,7 @@ clients.
 ```java
 try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
     Blob blob = bs.get("962b6910-b3eb-11e2-9e96-0800200c9a66");
-    try (InputStream steam = bs.openStream()) {
+    try (InputStream stream = blob.openStream()) {
         return ImageIO.read(stream);
     }
 }
@@ -50,7 +50,7 @@ try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
 ```java
 try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
     Blob blob = bs.get("962b6910-b3eb-11e2-9e96-0800200c9a66");
-    try (Channel channel = bs.openChannel()) {
+    try (Channel channel = blob.openChannel()) {
         // do something with the channel
     }
 }
