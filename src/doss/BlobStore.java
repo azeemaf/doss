@@ -1,6 +1,6 @@
 package doss;
 
-import java.io.FileNotFoundException;
+import java.nio.file.NoSuchFileException;
 
 public interface BlobStore extends AutoCloseable {
 
@@ -11,7 +11,7 @@ public interface BlobStore extends AutoCloseable {
      * @return the target blob
      * @throws FileNotFoundException if the blob does not exist 
      */
-    Blob get(String blobId) throws FileNotFoundException;
+    Blob get(String blobId) throws NoSuchFileException;
 
     /**
      * Begins a new write transaction.

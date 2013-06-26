@@ -1,9 +1,8 @@
 package doss.local;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import doss.Blob;
@@ -29,12 +28,12 @@ public class LocalBlobStore implements BlobStore {
     }
 
     @Override
-    public LocalBlob get(String blobId) throws FileNotFoundException {
-        if (Files.exists(pathFor(blobId))) {
+    public LocalBlob get(String blobId) throws NoSuchFileException {
+        Path path = pathFor(blobId);
+        if (Files.exists(path)) {
             return new LocalBlob(this, blobId);
         } else {
-            throw new FileNotFoundException("blob " + blobId
-                    + " does not exist");
+            throw new NoSuchFileException(path.toString());
         }
     }
 

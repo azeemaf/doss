@@ -1,6 +1,6 @@
 package doss.local;
 
-import java.io.FileNotFoundException;
+import java.nio.file.NoSuchFileException;
 
 import doss.BlobStore;
 import doss.IdGenerator;
@@ -26,7 +26,7 @@ public class BruteForceIdGenerator implements IdGenerator {
             while (blobStore.get(id.toString()) != null) {                
                 id++;
             }
-        } catch (FileNotFoundException e) {
+        } catch (NoSuchFileException e) {
             // found one
         }
         return id.toString();

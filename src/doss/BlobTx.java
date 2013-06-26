@@ -51,4 +51,11 @@ public interface BlobTx extends AutoCloseable {
      */
     void commit() throws IOException;
 
+    /**
+     * Rolls back transaction, purging any newly written objects.
+     * 
+     * @throws IOException if an I/O error occurs
+     */
+    void rollback() throws IOException;
+
 }

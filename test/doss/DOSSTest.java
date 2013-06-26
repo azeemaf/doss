@@ -5,15 +5,13 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
-
-import doss.output.ChannelOutput;
 
 public class DOSSTest {
     static final String TEST_STRING = "test\nstring\0a\r\nwith\tstrange\u2603characters";
@@ -24,7 +22,7 @@ public class DOSSTest {
 
     private BlobStore blobStore;
     
-    @Test(expected = FileNotFoundException.class)
+    @Test(expected = NoSuchFileException.class)
     public void bogusBlobsShouldNotBeFound() throws Exception {
         blobStore.get("999");
     }
@@ -87,7 +85,29 @@ public class DOSSTest {
         assertNotNull(blobId);        
         assertEquals(TEST_STRING, blobStore.get(blobId).slurp());
     }
+    
+    @Test(expected = NoSuchFileException.class)
+    public void testRollback() throws Exception {
+        String blobId;
+        try (BlobTx tx = blobStore.begin()) {
+            blobId = tx.put(TEST_STRING).getId();
+            tx.rollback();
+        }
+        
+        blobStore.get(blobId);
+    }
 
+    @Test(expected = NoSuchFileException.class)
+    public void testImplicitRollback() throws Exception {
+        String blobId;
+        try (BlobTx tx = blobStore.begin()) {
+            blobId = tx.put(TEST_STRING).getId();
+        }
+        
+        blobStore.get(blobId);
+    }
+
+    
     @Before
     public void openBlobStore() throws IOException {
         blobStore = DOSS.openLocalStore(folder.newFolder().toPath());
