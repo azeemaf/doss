@@ -49,7 +49,7 @@ public class DOSSTest {
         String blobId;
         
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_BYTES).getId();
+            blobId = tx.put(TEST_BYTES);
             tx.commit();
         }
         
@@ -78,7 +78,7 @@ public class DOSSTest {
         String blobId;
         
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_STRING).getId();
+            blobId = tx.put(TEST_STRING);
             tx.commit();
         }
         
@@ -90,7 +90,7 @@ public class DOSSTest {
     public void testRollback() throws Exception {
         String blobId;
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_STRING).getId();
+            blobId = tx.put(TEST_STRING);
             tx.rollback();
         }
         
@@ -101,7 +101,7 @@ public class DOSSTest {
     public void testImplicitRollback() throws Exception {
         String blobId;
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_STRING).getId();
+            blobId = tx.put(TEST_STRING);
         }
         
         blobStore.get(blobId);
@@ -122,7 +122,7 @@ public class DOSSTest {
     private String writeTempBlob(BlobStore store, String testString) throws IOException, Exception {
         String id;
         try (BlobTx tx = store.begin()) {
-            id = tx.put(makeTempFile(testString)).getId();
+            id = tx.put(makeTempFile(testString));
             tx.commit();
         }
         return id;

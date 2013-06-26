@@ -3,7 +3,6 @@ package doss;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.Path;
 
 public interface Blob {
     /**

@@ -1,5 +1,6 @@
 package doss.local;
 
+import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 
 import doss.BlobStore;
@@ -20,7 +21,7 @@ public class BruteForceIdGenerator implements IdGenerator {
     }
 
     @Override
-    public String generate() {
+    public long generate() throws IOException {
         Long id = 0L;
         try {
             while (blobStore.get(id.toString()) != null) {                
@@ -29,7 +30,7 @@ public class BruteForceIdGenerator implements IdGenerator {
         } catch (NoSuchFileException e) {
             // found one
         }
-        return id.toString();
+        return id;
     }
 
 }

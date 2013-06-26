@@ -14,7 +14,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs
      */
-    Blob put(ChannelOutput output) throws IOException;
+    String put(ChannelOutput output) throws IOException;
     
     /**
      * Store a local file as a new blob.
@@ -23,7 +23,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs 
      */
-    Blob put(Path source) throws IOException;
+    String put(Path source) throws IOException;
     
     /**
      * Store the contents of a byte array as a new blob.
@@ -32,7 +32,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs
      */
-    Blob put(byte[] bytes) throws IOException;
+    String put(byte[] bytes) throws IOException;
     
     /**
      * Store the contents of a string as a new blob. The String will be encoded with UTF-8.
@@ -41,7 +41,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs 
      */
-    Blob put(String contents) throws IOException;
+    String put(String contents) throws IOException;
     
     /**
      * Commits the transaction, ensuring all blobs written in this transaction
