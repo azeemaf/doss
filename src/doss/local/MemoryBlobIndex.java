@@ -1,11 +1,16 @@
-package doss.db;
+package doss.local;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MemoryDb implements DALDb {
+import doss.NoSuchBlobException;
+
+/**
+ * An in-memory BlobIndex that just uses HashMaps.  Useful for testing.
+ */
+public class MemoryBlobIndex implements BlobIndex {
     Map<Long,Long> map = new ConcurrentHashMap<Long,Long>();
     Set<Long> deleted = Collections.newSetFromMap(new ConcurrentHashMap<Long,Boolean>());
     

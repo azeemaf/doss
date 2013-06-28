@@ -39,8 +39,8 @@ public class DOSSTest {
   
     @Test
     public void blobIdsShouldBeUnique() throws Exception {
-        String id1 = writeTempBlob(blobStore, "one");
-        String id2 = writeTempBlob(blobStore, "one");
+        String id1 = writeTempBlob(blobStore, "one").getId();
+        String id2 = writeTempBlob(blobStore, "one").getId();
         assertNotEquals(id1, id2);
     }
     
@@ -49,7 +49,7 @@ public class DOSSTest {
         String blobId;
         
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_BYTES);
+            blobId = tx.put(TEST_BYTES).getId();
             tx.commit();
         }
         
@@ -62,7 +62,7 @@ public class DOSSTest {
     
     @Test(timeout = 1000)
     public void testStreamIO() throws Exception {
-        String id = writeTempBlob(blobStore, TEST_STRING);
+        String id = writeTempBlob(blobStore, TEST_STRING).getId();
         assertNotNull(id);
 
         Blob blob = blobStore.get(id);
@@ -75,36 +75,36 @@ public class DOSSTest {
 
     @Test(timeout = 1000)
     public void testStringIO() throws Exception {
-        String blobId;
+        Blob blob;
         
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_STRING);
+            blob = tx.put(TEST_STRING);
             tx.commit();
         }
         
-        assertNotNull(blobId);        
-        assertEquals(TEST_STRING, blobStore.get(blobId).slurp());
+        assertNotNull(blob.getId());        
+        assertEquals(TEST_STRING, blobStore.get(blob.getId()).slurp());
     }
     
     @Test(expected = NoSuchFileException.class)
     public void testRollback() throws Exception {
-        String blobId;
+        Blob blob;
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_STRING);
+            blob = tx.put(TEST_STRING);
             tx.rollback();
         }
         
-        blobStore.get(blobId);
+        blobStore.get(blob.getId());
     }
 
     @Test(expected = NoSuchFileException.class)
     public void testImplicitRollback() throws Exception {
-        String blobId;
+        Blob blob;
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_STRING);
+            blob = tx.put(TEST_STRING);
         }
         
-        blobStore.get(blobId);
+        blobStore.get(blob.getId());
     }
 
     
@@ -119,13 +119,12 @@ public class DOSSTest {
         blobStore = null;
     }
 
-    private String writeTempBlob(BlobStore store, String testString) throws IOException, Exception {
-        String id;
+    private Blob writeTempBlob(BlobStore store, String testString) throws IOException, Exception {
         try (BlobTx tx = store.begin()) {
-            id = tx.put(makeTempFile(testString));
+            Blob blob = tx.put(makeTempFile(testString));
             tx.commit();
+            return blob;
         }
-        return id;
     }
 
     private Path makeTempFile(String contents) throws IOException {

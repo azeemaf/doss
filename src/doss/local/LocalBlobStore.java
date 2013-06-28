@@ -3,17 +3,15 @@ package doss.local;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
-import doss.IdGenerator;
-import doss.db.DALDb;
-import doss.db.MemoryDb;
 
 public class LocalBlobStore implements BlobStore {
 
     private final IdGenerator idGenerator;
-    final DirectoryContainer container;
-    final DALDb db = new MemoryDb();
+    final Container container;
+    final BlobIndex db = new MemoryBlobIndex();
 
     public LocalBlobStore(Path rootDir) throws IOException {
         idGenerator = new BruteForceIdGenerator(this);
@@ -22,10 +20,11 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public void close() throws Exception {
+        container.close();
     }
 
     @Override
-    public LocalBlob get(String blobId) throws IOException {
+    public Blob get(String blobId) throws IOException {
         long offset = db.locate(parseId(blobId));
         return container.get(offset);
     }

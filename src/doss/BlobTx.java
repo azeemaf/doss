@@ -3,7 +3,6 @@ package doss;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import doss.output.ChannelOutput;
 
 public interface BlobTx extends AutoCloseable {
 
@@ -14,7 +13,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs
      */
-    String put(ChannelOutput output) throws IOException;
+    Blob put(Writable output) throws IOException;
     
     /**
      * Store a local file as a new blob.
@@ -23,7 +22,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs 
      */
-    String put(Path source) throws IOException;
+    Blob put(Path source) throws IOException;
     
     /**
      * Store the contents of a byte array as a new blob.
@@ -32,7 +31,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs
      */
-    String put(byte[] bytes) throws IOException;
+    Blob put(byte[] bytes) throws IOException;
     
     /**
      * Store the contents of a string as a new blob. The String will be encoded with UTF-8.
@@ -41,7 +40,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs 
      */
-    String put(String contents) throws IOException;
+    Blob put(String contents) throws IOException;
     
     /**
      * Commits the transaction, ensuring all blobs written in this transaction

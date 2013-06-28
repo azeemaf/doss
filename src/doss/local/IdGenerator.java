@@ -1,4 +1,4 @@
-package doss;
+package doss.local;
 
 import java.io.IOException;
 

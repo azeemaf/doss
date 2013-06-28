@@ -1,4 +1,4 @@
-package doss.db;
+package doss;
 
 import java.nio.file.NoSuchFileException;
 

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 
 import doss.BlobStore;
-import doss.IdGenerator;
 
 /**
  * An exceedingly slow and silly id generator that just repeatedly increments an

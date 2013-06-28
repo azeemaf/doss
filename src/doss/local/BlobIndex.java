@@ -1,6 +1,14 @@
-package doss.db;
+package doss.local;
 
-public interface DALDb {
+import doss.NoSuchBlobException;
+
+
+/**
+ * A index that maps blob ids to offsets within containers.
+ * 
+ * TODO: currently assumes there is a single universal container :)
+ */
+public interface BlobIndex {
 
     /**
      * Locates a blob in the container
@@ -14,15 +22,15 @@ public interface DALDb {
     /**
      * Remembers the location of a blob.
      * 
-     * @param blobId
-     * @param offset
+     * @param blobId the blob to remember
+     * @param offset the offset within the container to remember
      */
     void remember(long blobId, long offset);
 
     /**
      * Marks this blob as deleted.
      * 
-     * @param blobId
+     * @param blobId the blob to delete
      */
     void delete(long blobId);
 

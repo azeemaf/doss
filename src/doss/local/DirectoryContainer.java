@@ -5,14 +5,15 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import doss.Writable;
 import static java.nio.file.StandardOpenOption.*;
 
-import doss.output.ChannelOutput;
 
 /**
  * A very simple container that just stores blobs in a directory.
  */
-public class DirectoryContainer {
+public class DirectoryContainer implements Container {
     Path dir;
 
     DirectoryContainer(Path dir) throws IOException {
@@ -24,12 +25,14 @@ public class DirectoryContainer {
         }
     }
 
+    @Override
     public LocalBlob get(long offset) throws IOException {
         String id = new String(Files.readAllBytes(idPathFor(offset)), "UTF-8");
         return new LocalBlob(id, dataPathFor(offset));
     }
 
-    public long put(String id, ChannelOutput output) throws IOException {
+    @Override
+    public long put(String id, Writable output) throws IOException {
         Long offset = 0L;
         while (true) {
             try (WritableByteChannel channel = Files.newByteChannel(
@@ -50,6 +53,10 @@ public class DirectoryContainer {
 
     protected Path idPathFor(Long offset) {
         return dir.resolve(offset.toString() + ".id");
+    }
+
+    @Override
+    public void close() {
     }
 
 }
