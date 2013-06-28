@@ -39,8 +39,8 @@ public class DOSSTest {
   
     @Test
     public void blobIdsShouldBeUnique() throws Exception {
-        String id1 = writeTempBlob(blobStore, "one").getId();
-        String id2 = writeTempBlob(blobStore, "one").getId();
+        String id1 = writeTempBlob(blobStore, "one").id();
+        String id2 = writeTempBlob(blobStore, "one").id();
         assertNotEquals(id1, id2);
     }
     
@@ -49,7 +49,7 @@ public class DOSSTest {
         String blobId;
         
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_BYTES).getId();
+            blobId = tx.put(TEST_BYTES).id();
             tx.commit();
         }
         
@@ -62,7 +62,7 @@ public class DOSSTest {
     
     @Test(timeout = 1000)
     public void testStreamIO() throws Exception {
-        String id = writeTempBlob(blobStore, TEST_STRING).getId();
+        String id = writeTempBlob(blobStore, TEST_STRING).id();
         assertNotNull(id);
 
         Blob blob = blobStore.get(id);
@@ -82,8 +82,8 @@ public class DOSSTest {
             tx.commit();
         }
         
-        assertNotNull(blob.getId());        
-        assertEquals(TEST_STRING, blobStore.get(blob.getId()).slurp());
+        assertNotNull(blob.id());        
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
     }
     
     @Test(expected = NoSuchFileException.class)
@@ -94,7 +94,7 @@ public class DOSSTest {
             tx.rollback();
         }
         
-        blobStore.get(blob.getId());
+        blobStore.get(blob.id());
     }
 
     @Test(expected = NoSuchFileException.class)
@@ -104,7 +104,7 @@ public class DOSSTest {
             blob = tx.put(TEST_STRING);
         }
         
-        blobStore.get(blob.getId());
+        blobStore.get(blob.id());
     }
 
     

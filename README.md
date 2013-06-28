@@ -65,7 +65,7 @@ try (BlobStore bs = DOSS.openLocalStore("/doss-devel");
     Blob blob2 = tx.put(Paths.get("/tmp/mytext.txt"));
     blob2.verifyDigest("SHA1", "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed");
     tx.commit();
-    return blob1.getId();
+    return blob1.id();
 }
 ```
 
@@ -98,7 +98,7 @@ try (BlobTx tx = bs.begin()) {
 
     tx.commit();
 
-    return blob.getId();
+    return blob.id();
 }
 ```
 
@@ -119,7 +119,7 @@ try (BlobTx tx = bs.begin()) {
 
     // add data transaction to SQL journal for rollback on crash recovery
     db.createStatement("insert into journal(tx_id) values (:tx, 'rollback')")
-        .bind(0, tx.getId()).execute();
+        .bind(0, tx.id()).execute();
 
     // finish uploading data and ensure everything is green
     tx.prepare();
@@ -131,12 +131,12 @@ try (BlobTx tx = bs.begin()) {
                 // record some metadata about this file
                 h.createStatement("insert into pictures (desc, id) values (:desc, :id)"
                     .bind(0, "my cool picture")
-                    .bind(1, blob.getId())
+                    .bind(1, blob.id())
                     .execute();
      
                 // update journal to commit on crash recovery
                 h.createStatement("update journal set action = 'commit' where tx_id = :tx")
-                    .bind(0, tx.getId())
+                    .bind(0, tx.id())
                     .execute();
             }
         }
@@ -153,7 +153,7 @@ solely on the outcome of the SQL transaction (ie no false rollbacks).
 ```java
 void finish(BlobTx tx) {
     String action = db.createQuery("select action from journal where tx_id = :tx")
-        .bind("tx", tx.getId())
+        .bind("tx", tx.id())
         .map(StringMapper.FIRST)
         .first();
 
@@ -166,7 +166,7 @@ void finish(BlobTx tx) {
     }
 
     h.createStatement("delete from journal where tx_id = :tx")
-        .bind("tx", tx.getId())
+        .bind("tx", tx.id())
         .execute();
 }
 ```

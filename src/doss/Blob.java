@@ -10,7 +10,7 @@ public interface Blob {
      * 
      * @return the storage identifier
      */
-    public String getId();
+    public String id();
     
     /**
      * Opens the blob for reading and returns an InputStream.

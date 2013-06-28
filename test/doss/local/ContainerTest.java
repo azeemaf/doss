@@ -42,7 +42,7 @@ public abstract class ContainerTest {
     public void readAndWrite() throws Exception {
         long offset = container.put(TEST_ID, stringOutput(TEST_DATA));
         Blob blob = container.get(offset);
-        assertEquals(TEST_ID, blob.getId());
+        assertEquals(TEST_ID, blob.id());
         assertEquals(TEST_DATA, blob.slurp());   
     }
 

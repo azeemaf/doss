@@ -21,7 +21,7 @@ public class LocalBlob implements Blob {
     }
 
     @Override
-    public String getId() {
+    public String id() {
         return id;
     }
       
