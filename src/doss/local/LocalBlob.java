@@ -39,4 +39,9 @@ public class LocalBlob implements Blob {
     public String slurp() throws IOException {
         return new String(Files.readAllBytes(path), Charset.forName("UTF-8"));
     }
+
+    @Override
+    public long size() throws IOException {
+        return Files.size(path);
+    }
 }

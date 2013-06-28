@@ -4,14 +4,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.SeekableByteChannel;
 
-public interface Blob {
+/**
+ * A named byte stream of known length that supports random read access.
+ */
+public interface Blob extends Sized {
+
     /**
      * Gets the storage identifier for this blob.
      * 
      * @return the storage identifier
      */
     public String id();
-    
+
     /**
      * Opens the blob for reading and returns an InputStream.
      * 
@@ -28,7 +32,6 @@ public interface Blob {
      */
     public SeekableByteChannel openChannel() throws IOException;
 
-    
     /**
      * Reads the contents of the blob into a string (decodes with UTF-8).
      * 
@@ -36,4 +39,5 @@ public interface Blob {
      * @throws IOException if an I/O error occurs
      */
     public String slurp() throws IOException;
+
 }

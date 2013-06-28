@@ -6,7 +6,7 @@ import java.nio.channels.WritableByteChannel;
 /**
  * An object of known size that can be written to a byte channel.
  */
-public interface Writable {
+public interface Writable extends Sized {
 
     /**
      * Writes this object to a byte channel.
@@ -15,11 +15,5 @@ public interface Writable {
      * @throws IOException if I/O error occurrs
      */
     void writeTo(WritableByteChannel channel) throws IOException;
-
-    /**
-     * Returns the size in bytes of the output to be written.
-     * 
-     * @throws IOException if an I/O occurs 
-     */
-    long size() throws IOException;
+    
 }

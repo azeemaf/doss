@@ -38,10 +38,18 @@ public class DOSSTest {
     }
   
     @Test
-    public void blobIdsShouldBeUnique() throws Exception {
+    public void blobsHaveAUniqueId() throws Exception {
         String id1 = writeTempBlob(blobStore, "one").id();
-        String id2 = writeTempBlob(blobStore, "one").id();
+        String id2 = writeTempBlob(blobStore, "two").id();
+        assertNotNull(id1);
         assertNotEquals(id1, id2);
+    }
+
+    @Test
+    public void blobsHaveASize() throws Exception {
+        try (BlobTx tx = blobStore.begin()) {
+            assertEquals(TEST_BYTES.length, tx.put(TEST_BYTES).size());
+        }
     }
     
     @Test(timeout = 1000)
