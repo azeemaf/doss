@@ -2,19 +2,22 @@ package doss.local;
 
 import java.io.IOException;
 import java.nio.file.Path;
-
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
+import doss.NoSuchBlobTxException;
 
 public class LocalBlobStore implements BlobStore {
 
-    private final IdGenerator idGenerator;
+    final RunningNumber blobNumber = new RunningNumber();
+    final RunningNumber txNumber = new RunningNumber();
     final Container container;
     final BlobIndex db = new MemoryBlobIndex();
+    final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
 
     public LocalBlobStore(Path rootDir) throws IOException {
-        idGenerator = new BruteForceIdGenerator(this);
         container = new DirectoryContainer(rootDir.resolve("data"));
     }
 
@@ -31,11 +34,18 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public BlobTx begin() {
-        return new LocalBlobTx(this);
+        BlobTx tx = new LocalBlobTx(Long.toString(txNumber.next()), this);
+        txs.put(tx.id(), tx);
+        return tx;
     }
 
-    long generateBlobId() throws IOException {
-        return idGenerator.generate();
+    @Override
+    public BlobTx resume(String txId) throws NoSuchBlobTxException {
+        BlobTx tx = txs.get(txId);
+        if (tx == null) {
+            throw new NoSuchBlobTxException(txId);
+        }
+        return tx;
     }
 
     protected long parseId(String blobId) {

@@ -18,7 +18,7 @@ public class MemoryBlobIndex implements BlobIndex {
     public long locate(long blobId) throws NoSuchBlobException {
         Long offset = map.get(blobId);
         if (offset == null || deleted.contains(blobId)) {
-            throw new NoSuchBlobException(blobId);
+            throw new NoSuchBlobException(Long.toString(blobId));
         } else {
             return offset;
         }

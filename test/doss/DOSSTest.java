@@ -22,7 +22,7 @@ public class DOSSTest {
 
     private BlobStore blobStore;
     
-    @Test(expected = NoSuchFileException.class)
+    @Test(expected = NoSuchBlobException.class)
     public void bogusBlobsShouldNotBeFound() throws Exception {
         blobStore.get("999");
     }
@@ -83,7 +83,7 @@ public class DOSSTest {
 
     @Test(timeout = 1000)
     public void testStringIO() throws Exception {
-        Blob blob;
+        Named blob;
         
         try (BlobTx tx = blobStore.begin()) {
             blob = tx.put(TEST_STRING);
@@ -94,9 +94,9 @@ public class DOSSTest {
         assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
     }
     
-    @Test(expected = NoSuchFileException.class)
+    @Test(expected = NoSuchBlobException.class)
     public void testRollback() throws Exception {
-        Blob blob;
+        Named blob;
         try (BlobTx tx = blobStore.begin()) {
             blob = tx.put(TEST_STRING);
             tx.rollback();
@@ -105,9 +105,9 @@ public class DOSSTest {
         blobStore.get(blob.id());
     }
 
-    @Test(expected = NoSuchFileException.class)
+    @Test(expected = NoSuchBlobException.class)
     public void testImplicitRollback() throws Exception {
-        Blob blob;
+        Named blob;
         try (BlobTx tx = blobStore.begin()) {
             blob = tx.put(TEST_STRING);
         }
@@ -115,7 +115,23 @@ public class DOSSTest {
         blobStore.get(blob.id());
     }
 
-    
+    @Test
+    public void transactionsAreResumable() throws Exception {
+        try (BlobTx tx = blobStore.begin()) {
+            BlobTx tx2 = blobStore.resume(tx.id());
+            assertEquals(tx, tx2);
+        }
+    }
+
+    @Test(expected = NoSuchBlobTxException.class)
+    public void closedTransactionsArentResumable() throws Exception {
+        String txId;
+        try (BlobTx tx = blobStore.begin()) {
+            txId = tx.id();
+        }
+        blobStore.resume(txId);
+    }
+
     @Before
     public void openBlobStore() throws IOException {
         blobStore = DOSS.openLocalStore(folder.newFolder().toPath());
@@ -127,9 +143,9 @@ public class DOSSTest {
         blobStore = null;
     }
 
-    private Blob writeTempBlob(BlobStore store, String testString) throws IOException, Exception {
+    private Named writeTempBlob(BlobStore store, String testString) throws IOException, Exception {
         try (BlobTx tx = store.begin()) {
-            Blob blob = tx.put(makeTempFile(testString));
+            Named blob = tx.put(makeTempFile(testString));
             tx.commit();
             return blob;
         }

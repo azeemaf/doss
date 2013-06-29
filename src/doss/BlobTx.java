@@ -3,8 +3,10 @@ package doss;
 import java.io.IOException;
 import java.nio.file.Path;
 
-
-public interface BlobTx extends AutoCloseable {
+/**
+ * A transaction for writing to a BlobStore.
+ */
+public interface BlobTx extends Named, AutoCloseable {
 
     /**
      * Store a new blob.

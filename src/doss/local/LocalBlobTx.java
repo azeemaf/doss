@@ -16,12 +16,14 @@ import doss.BlobTx;
 import doss.Writable;
 
 public class LocalBlobTx implements BlobTx {
-    protected final LocalBlobStore blobStore;
+    final String id;
+    final LocalBlobStore blobStore;
     final List<Long> addedBlobs = new ArrayList<Long>();
     boolean committed;
 
-    public LocalBlobTx(LocalBlobStore store) {
-        this.blobStore = store;
+    public LocalBlobTx(String id, LocalBlobStore blobStore) {
+        this.id = id;
+        this.blobStore = blobStore;
     }
 
     @Override
@@ -29,6 +31,7 @@ public class LocalBlobTx implements BlobTx {
         if (!committed) {
             rollback();
         }
+        blobStore.txs.remove(id());
     }
 
     @Override
@@ -75,7 +78,7 @@ public class LocalBlobTx implements BlobTx {
 
     @Override
     public Blob put(Writable output) throws IOException {
-        long blobId = blobStore.generateBlobId();
+        long blobId = blobStore.blobNumber.next();
         long offset = blobStore.container.put(Long.toString(blobId), output);
         blobStore.db.remember(blobId, offset);
         addedBlobs.add(blobId);
@@ -87,6 +90,11 @@ public class LocalBlobTx implements BlobTx {
         for (Long blobId: addedBlobs) {
             blobStore.db.delete(blobId);
         }
+    }
+
+    @Override
+    public String id() {
+        return id;
     }
 
 }
