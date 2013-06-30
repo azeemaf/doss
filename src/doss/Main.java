@@ -3,8 +3,7 @@ package doss;
 import static java.lang.System.*;
 
 import java.util.Arrays;
-import java.util.Deque;
-import java.util.LinkedList;
+import java.util.List;
 
 /**
  * DOSS command-line interface
@@ -24,11 +23,11 @@ public class Main {
                 }                
             }
 
-            void execute(Deque<String> args) {
+            void execute(Arguments args) {
                 if (args.isEmpty()) {
                     listCommands();
                 } else {
-                    Command.get(args.pop()).usage();
+                    Command.get(args.first()).usage();
                 } 
             }
 
@@ -41,7 +40,7 @@ public class Main {
             this.descrption = description;
         }
         
-        abstract void execute(Deque<String> args);
+        abstract void execute(Arguments args);
         
         String description() {
             return this.descrption;
@@ -63,11 +62,11 @@ public class Main {
         
     public static void main(String[] arguments) {
         try {
-            Deque<String> args = new LinkedList<>(Arrays.asList(arguments));
+            Arguments args = new Arguments(Arrays.asList(arguments));
             if (args.isEmpty()) {
                 Command.help.execute(args);
             } else {
-                Command.get(args.pop()).execute(args);
+                Command.get(args.first()).execute(args.rest());
             }
         } catch (CommandLineException e) {
             err.println("doss: " + e.getLocalizedMessage());
@@ -83,6 +82,26 @@ public class Main {
     static class NoSuchCommandException extends CommandLineException {
         NoSuchCommandException(String command) {
             super(String.format("'%s' is not a doss command", command));
+        }
+    }
+    
+    static class Arguments {
+        final List<String> list;
+        
+        Arguments(List<String> list) {
+            this.list = list;
+        }
+        
+        boolean isEmpty() {
+            return list.isEmpty();
+        }
+
+        String first() {
+            return list.get(0);
+        }
+
+        Arguments rest() {
+            return new Arguments(list.subList(1, list.size()));
         }
     }
 }
