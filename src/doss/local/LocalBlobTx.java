@@ -63,7 +63,7 @@ public class LocalBlobTx implements BlobTx {
     }
 
     @Override
-    public Blob put(Writable output) throws IOException {
+    public synchronized Blob put(Writable output) throws IOException {
         state.mustBeOpen();
         long blobId = blobStore.blobNumber.next();
         long offset = blobStore.container.put(Long.toString(blobId), output);
@@ -121,9 +121,9 @@ public class LocalBlobTx implements BlobTx {
 
     State state = State.OPEN;
 
-    public void close()    { state = state.close   (this); }
-    public void commit()   { state = state.commit  (this); }
-    public void rollback() { state = state.rollback(this); }
-    public void prepare()  { state = state.prepare (this); }
+    public synchronized void close()    { state = state.close   (this); }
+    public synchronized void commit()   { state = state.commit  (this); }
+    public synchronized void rollback() { state = state.rollback(this); }
+    public synchronized void prepare()  { state = state.prepare (this); }
 
 }
