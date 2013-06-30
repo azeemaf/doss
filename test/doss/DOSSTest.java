@@ -22,6 +22,10 @@ public class DOSSTest {
 
     private BlobStore blobStore;
     
+    /*
+     * Blobs
+     */
+    
     @Test(expected = NoSuchBlobException.class)
     public void bogusBlobsShouldNotBeFound() throws Exception {
         blobStore.get("999");
@@ -51,6 +55,10 @@ public class DOSSTest {
             assertEquals(TEST_BYTES.length, tx.put(TEST_BYTES).size());
         }
     }
+    
+    /*
+     * I/O
+     */
     
     @Test(timeout = 1000)
     public void testChannelIO() throws Exception {
@@ -93,6 +101,10 @@ public class DOSSTest {
         assertNotNull(blob.id());        
         assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
     }
+
+    /*
+     * Transactions
+     */
     
     @Test(expected = NoSuchBlobException.class)
     public void testRollback() throws Exception {
@@ -131,6 +143,60 @@ public class DOSSTest {
         }
         blobStore.resume(txId);
     }
+    
+    @Test
+    public void preparedTransactionsStayOpen() throws Exception {
+        String txId;
+        try (BlobTx tx = blobStore.begin()) {
+            txId = tx.id();
+            tx.prepare();
+        }
+        try (BlobTx tx = blobStore.resume(txId)) {
+            tx.rollback();
+        }
+    }
+
+    @Test(expected = NoSuchBlobTxException.class)
+    public void preparedTransactionsAreClosedOnRollback() throws Exception {
+        String txId;
+        try (BlobTx tx = blobStore.begin()) {
+            txId = tx.id();
+            tx.prepare();
+            tx.rollback();
+        }
+        blobStore.resume(txId);
+    }
+    
+    @Test(expected = NoSuchBlobTxException.class)
+    public void preparedTransactionsAreClosedOnCommit() throws Exception {
+        String txId;
+        try (BlobTx tx = blobStore.begin()) {
+            txId = tx.id();
+            tx.prepare();
+            tx.commit();
+        }
+        blobStore.resume(txId);
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void cantPutAfterCommit() throws Exception {
+        try (BlobTx tx = blobStore.begin()) {
+            tx.commit();
+            tx.put(TEST_BYTES);
+        }
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void cantPutAfterRollback() throws Exception {
+        try (BlobTx tx = blobStore.begin()) {
+            tx.rollback();
+            tx.put(TEST_BYTES);
+        }
+    }
+    
+    /*
+     * Misc
+     */
 
     @Before
     public void openBlobStore() throws IOException {
