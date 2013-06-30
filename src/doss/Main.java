@@ -3,7 +3,8 @@ package doss;
 import static java.lang.System.*;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.Deque;
+import java.util.LinkedList;
 
 /**
  * DOSS command-line interface
@@ -23,12 +24,12 @@ public class Main {
                 }                
             }
 
-            void execute(List<String> args) {
-                if (args.size() > 0) {
-                    Command.get(args.get(0)).usage();
-                } else {
+            void execute(Deque<String> args) {
+                if (args.isEmpty()) {
                     listCommands();
-                }
+                } else {
+                    Command.get(args.pop()).usage();
+                } 
             }
 
         };
@@ -40,7 +41,7 @@ public class Main {
             this.descrption = description;
         }
         
-        abstract void execute(List<String> args);
+        abstract void execute(Deque<String> args);
         
         String description() {
             return this.descrption;
@@ -62,13 +63,11 @@ public class Main {
         
     public static void main(String[] arguments) {
         try {
-            List<String> args = Arrays.asList(arguments);
-            if (args.size() > 0) {
-                String cmd = args.get(0);
-                List<String> options = args.subList(1, args.size());
-                Command.get(cmd).execute(options);
+            Deque<String> args = new LinkedList<>(Arrays.asList(arguments));
+            if (args.isEmpty()) {
+                Command.help.execute(args);
             } else {
-                Command.help.execute(args.subList(0, 0));
+                Command.get(args.pop()).execute(args);
             }
         } catch (CommandLineException e) {
             err.println("doss: " + e.getLocalizedMessage());
