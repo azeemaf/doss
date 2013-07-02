@@ -210,3 +210,15 @@ Requirements:
 Compile by typing:
 
     mvn package
+
+License
+-------
+
+Copyright 2013 National Library of Australia
+
+DOSS 2 is free software; you can redistribute it and/or modify it under
+the terms of the Apache License, Version 2.0:
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+See the file `LICENSE` for details.
