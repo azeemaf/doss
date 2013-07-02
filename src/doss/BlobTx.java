@@ -59,4 +59,15 @@ public interface BlobTx extends Named, AutoCloseable {
      */
     void rollback() throws IOException;
 
+    /**
+     * Ensure all data has hit disk and the transaction can be committed without
+     * error. Used in two-phase commit.
+     * 
+     * Note: Once a transaction has been prepared it will not automatically be
+     * committed or rolled-back. It MUST be explicitly rolled-back or
+     * committed. Applications can recover lost transactions using 
+     * {@link BlobStore.recover()}
+     */
+    void prepare();
+
 }
