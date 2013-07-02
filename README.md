@@ -6,10 +6,17 @@ write-once semantics.  Objects are uniquely and persistently
 identified and can never be overwritten only created and (soft)
 deleted.
 
+[![Build Status](https://travis-ci.org/nla/doss.png)](https://travis-ci.org/nla/doss)
+
 Status
 ------
 
-Nothing to see yet but some design notes.
+* Java API: unstable
+* Local backend: incomplete
+* Network backend: to be started
+* CLI frontend: to be started
+* [FUSE frontend](doc/native-interface.md): to be started
+* [Container support](doc/archive-formats.md): to be started
 
 Feature Goals
 -------------
