@@ -1,19 +1,19 @@
-package doss.output;
+package doss;
 
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 
 /**
- * An object that can be written to a byte channel.
+ * An object of known size that can be written to a byte channel.
  */
-public interface ChannelOutput {
+public interface Writable extends Sized {
 
     /**
-     * Writes this output to a byte channel.
+     * Writes this object to a byte channel.
      * 
      * @param channel the channel to write to
      * @throws IOException if I/O error occurrs
      */
     void writeTo(WritableByteChannel channel) throws IOException;
-
+    
 }

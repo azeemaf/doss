@@ -5,15 +5,13 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
-
-import doss.output.ChannelOutput;
 
 public class DOSSTest {
     static final String TEST_STRING = "test\nstring\0a\r\nwith\tstrange\u2603characters";
@@ -24,7 +22,7 @@ public class DOSSTest {
 
     private BlobStore blobStore;
     
-    @Test(expected = FileNotFoundException.class)
+    @Test(expected = NoSuchBlobException.class)
     public void bogusBlobsShouldNotBeFound() throws Exception {
         blobStore.get("999");
     }
@@ -40,10 +38,18 @@ public class DOSSTest {
     }
   
     @Test
-    public void blobIdsShouldBeUnique() throws Exception {
-        String id1 = writeTempBlob(blobStore, "one");
-        String id2 = writeTempBlob(blobStore, "one");
+    public void blobsHaveAUniqueId() throws Exception {
+        String id1 = writeTempBlob(blobStore, "one").id();
+        String id2 = writeTempBlob(blobStore, "two").id();
+        assertNotNull(id1);
         assertNotEquals(id1, id2);
+    }
+
+    @Test
+    public void blobsHaveASize() throws Exception {
+        try (BlobTx tx = blobStore.begin()) {
+            assertEquals(TEST_BYTES.length, tx.put(TEST_BYTES).size());
+        }
     }
     
     @Test(timeout = 1000)
@@ -51,7 +57,7 @@ public class DOSSTest {
         String blobId;
         
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_BYTES).getId();
+            blobId = tx.put(TEST_BYTES).id();
             tx.commit();
         }
         
@@ -64,7 +70,7 @@ public class DOSSTest {
     
     @Test(timeout = 1000)
     public void testStreamIO() throws Exception {
-        String id = writeTempBlob(blobStore, TEST_STRING);
+        String id = writeTempBlob(blobStore, TEST_STRING).id();
         assertNotNull(id);
 
         Blob blob = blobStore.get(id);
@@ -77,15 +83,53 @@ public class DOSSTest {
 
     @Test(timeout = 1000)
     public void testStringIO() throws Exception {
-        String blobId;
+        Named blob;
         
         try (BlobTx tx = blobStore.begin()) {
-            blobId = tx.put(TEST_STRING).getId();
+            blob = tx.put(TEST_STRING);
             tx.commit();
         }
         
-        assertNotNull(blobId);        
-        assertEquals(TEST_STRING, blobStore.get(blobId).slurp());
+        assertNotNull(blob.id());        
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+    }
+    
+    @Test(expected = NoSuchBlobException.class)
+    public void testRollback() throws Exception {
+        Named blob;
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_STRING);
+            tx.rollback();
+        }
+        
+        blobStore.get(blob.id());
+    }
+
+    @Test(expected = NoSuchBlobException.class)
+    public void testImplicitRollback() throws Exception {
+        Named blob;
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_STRING);
+        }
+        
+        blobStore.get(blob.id());
+    }
+
+    @Test
+    public void transactionsAreResumable() throws Exception {
+        try (BlobTx tx = blobStore.begin()) {
+            BlobTx tx2 = blobStore.resume(tx.id());
+            assertEquals(tx, tx2);
+        }
+    }
+
+    @Test(expected = NoSuchBlobTxException.class)
+    public void closedTransactionsArentResumable() throws Exception {
+        String txId;
+        try (BlobTx tx = blobStore.begin()) {
+            txId = tx.id();
+        }
+        blobStore.resume(txId);
     }
 
     @Before
@@ -99,13 +143,12 @@ public class DOSSTest {
         blobStore = null;
     }
 
-    private String writeTempBlob(BlobStore store, String testString) throws IOException, Exception {
-        String id;
+    private Named writeTempBlob(BlobStore store, String testString) throws IOException, Exception {
         try (BlobTx tx = store.begin()) {
-            id = tx.put(makeTempFile(testString)).getId();
+            Named blob = tx.put(makeTempFile(testString));
             tx.commit();
+            return blob;
         }
-        return id;
     }
 
     private Path makeTempFile(String contents) throws IOException {

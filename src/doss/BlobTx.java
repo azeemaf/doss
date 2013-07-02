@@ -3,9 +3,10 @@ package doss;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import doss.output.ChannelOutput;
-
-public interface BlobTx extends AutoCloseable {
+/**
+ * A transaction for writing to a BlobStore.
+ */
+public interface BlobTx extends Named, AutoCloseable {
 
     /**
      * Store a new blob.
@@ -14,7 +15,7 @@ public interface BlobTx extends AutoCloseable {
      * @return the new blob
      * @throws IOException if an I/O error occurs
      */
-    Blob put(ChannelOutput output) throws IOException;
+    Blob put(Writable output) throws IOException;
     
     /**
      * Store a local file as a new blob.
@@ -50,5 +51,12 @@ public interface BlobTx extends AutoCloseable {
      * @throws IOException if an I/O error occurs
      */
     void commit() throws IOException;
+
+    /**
+     * Rolls back transaction, purging any newly written objects.
+     * 
+     * @throws IOException if an I/O error occurs
+     */
+    void rollback() throws IOException;
 
 }

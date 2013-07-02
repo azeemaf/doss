@@ -1,60 +1,56 @@
 package doss.local;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
-import doss.IdGenerator;
+import doss.NoSuchBlobTxException;
 
 public class LocalBlobStore implements BlobStore {
 
-    private final Path rootDir, dataDir;
-    private final IdGenerator idGenerator;
+    final RunningNumber blobNumber = new RunningNumber();
+    final RunningNumber txNumber = new RunningNumber();
+    final Container container;
+    final BlobIndex db = new MemoryBlobIndex();
+    final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
 
     public LocalBlobStore(Path rootDir) throws IOException {
-        this.rootDir = rootDir;
-
-        idGenerator = new BruteForceIdGenerator(this);
-        dataDir = rootDir.resolve("data");
-        Files.createDirectory(dataDir);
+        container = new DirectoryContainer(rootDir.resolve("data"));
     }
 
     @Override
     public void close() throws Exception {
+        container.close();
     }
 
     @Override
-    public LocalBlob get(String blobId) throws FileNotFoundException {
-        if (Files.exists(pathFor(blobId))) {
-            return new LocalBlob(this, blobId);
-        } else {
-            throw new FileNotFoundException("blob " + blobId
-                    + " does not exist");
-        }
+    public Blob get(String blobId) throws IOException {
+        long offset = db.locate(parseId(blobId));
+        return container.get(offset);
     }
 
     @Override
     public BlobTx begin() {
-        return new LocalBlobTx(this);
+        BlobTx tx = new LocalBlobTx(Long.toString(txNumber.next()), this);
+        txs.put(tx.id(), tx);
+        return tx;
     }
 
-    String generateBlobId() {
-        return idGenerator.generate();
+    @Override
+    public BlobTx resume(String txId) throws NoSuchBlobTxException {
+        BlobTx tx = txs.get(txId);
+        if (tx == null) {
+            throw new NoSuchBlobTxException(txId);
+        }
+        return tx;
     }
 
-    Path pathFor(String blobId) {
-        validateBlobId(blobId);
-        return dataDir.resolve(blobId);
-    }
-
-    protected void validateBlobId(String blobId) {
+    protected long parseId(String blobId) {
         try {
-            Long.parseLong(blobId);
+            return Long.parseLong(blobId);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("invalid blob id: "
                     + blobId, e);            
