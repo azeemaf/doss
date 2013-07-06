@@ -1,6 +1,8 @@
 DOSS 2
 ======
 
+<a href="https://secure.flickr.com/photos/ubclibrary/3676876746/"><img src="https://farm3.staticflickr.com/2626/3676876746_7b20ff04ed.jpg" align="right" alt="UBC Library Robot"></a>
+
 DOSS 2 will be an object storage abstraction layer with transactional
 write-once semantics.  Objects are uniquely and persistently
 identified and can never be overwritten only created and (soft)
@@ -8,8 +10,7 @@ deleted.
 
 [![Build Status](https://travis-ci.org/nla/doss.png)](https://travis-ci.org/nla/doss)
 
-Status
-------
+**Status**
 
 * Java API: unstable
 * Local backend: incomplete
