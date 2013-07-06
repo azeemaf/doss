@@ -1,7 +1,7 @@
 DOSS 2
 ======
 
-<a href="https://secure.flickr.com/photos/ubclibrary/3676876746/"><img src="https://farm3.staticflickr.com/2626/3676876746_7b20ff04ed.jpg" align="right" alt="UBC Library Robot"></a>
+<a href="https://secure.flickr.com/photos/ubclibrary/3676876746/"><img src="https://farm3.staticflickr.com/2626/3676876746_7b20ff04ed_n.jpg" align="right" alt="UBC Library Robot"></a>
 
 DOSS 2 will be an object storage abstraction layer with transactional
 write-once semantics.  Objects are uniquely and persistently
