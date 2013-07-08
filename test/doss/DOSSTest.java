@@ -83,9 +83,9 @@ public class DOSSTest {
 
         Blob blob = blobStore.get(id);
         try (InputStream stream = blob.openStream()) {
-            byte[] buffer = new byte[TEST_STRING.getBytes().length];
+            byte[] buffer = new byte[TEST_STRING.getBytes("UTF-8").length];
             stream.read(buffer);
-            assertEquals(TEST_STRING, new String(buffer));
+            assertEquals(TEST_STRING, new String(buffer, "UTF-8"));
         }
     }
 
