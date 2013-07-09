@@ -4,7 +4,8 @@ import static java.lang.System.err;
 import static java.lang.System.out;
 
 import java.io.File;
-import java.io.InputStream;
+import java.nio.channels.*;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -51,14 +52,20 @@ public class Main {
                 
                 try (BlobStore bs = DOSS.openLocalStore(path)) {
                     Blob blob = bs.get(blobId);
-                    InputStream stream = blob.openStream();
+                    ReadableByteChannel channel = blob.openChannel();
+                    WritableByteChannel dest = Channels.newChannel(out);
                     
-                    byte[] bytes = new byte[50];
+                    final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
                     
-                    while ( stream.read(bytes) > 0 ) {
-                        out.write(bytes);
+                    while (channel.read(buffer) != -1) {
+                        buffer.flip();
+                        dest.write(buffer);
+                        buffer.compact();                        
                     }
-                        
+                    buffer.flip();
+                    while (buffer.hasRemaining()) {
+                        dest.write(buffer);
+                    }
                     
                 } catch (Exception e1) {
                     // TODO Auto-generated catch block
