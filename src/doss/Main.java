@@ -39,7 +39,7 @@ public class Main {
             }
 
         },        
-        get("<command> <blobId>", "Prints a blob to standard output.") {
+        cat("<command> <blobId>", "Prints blob to standard output.") {
           
             void outputBlob(String blobId) throws IOException {
                 if (System.getenv("DOSS_HOME") == null) {
