@@ -4,6 +4,7 @@ import static java.lang.System.err;
 import static java.lang.System.out;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -40,39 +41,29 @@ public class Main {
         },        
         get("<command> <blobId>", "Prints a blob to standard output.") {
           
-            void outputBlob(String blobId) throws Exception {
-                out.println(blobId);
-                
+            void outputBlob(String blobId) throws IOException {
                 if (System.getenv("DOSS_HOME") == null) {
-                    throw new Exception();
+                    throw new IOException();
                 };
-                
                 
                 Path path = new File(System.getenv("DOSS_HOME")).toPath();
                 
-                try (BlobStore bs = DOSS.openLocalStore(path)) {
-                    Blob blob = bs.get(blobId);
-                    ReadableByteChannel channel = blob.openChannel();
-                    WritableByteChannel dest = Channels.newChannel(out);
-                    
-                    final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
-                    
-                    while (channel.read(buffer) != -1) {
-                        buffer.flip();
-                        dest.write(buffer);
-                        buffer.compact();                        
-                    }
+                BlobStore bs = DOSS.openLocalStore(path);
+                Blob blob = bs.get(blobId);
+                ReadableByteChannel channel = blob.openChannel();
+                WritableByteChannel dest = Channels.newChannel(out);
+
+                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
+
+                while (channel.read(buffer) != -1) {
                     buffer.flip();
-                    while (buffer.hasRemaining()) {
-                        dest.write(buffer);
-                    }
-                    
-                } catch (Exception e1) {
-                    // TODO Auto-generated catch block
-                    e1.printStackTrace();
+                    dest.write(buffer);
+                    buffer.compact();                        
                 }
-                    
-                
+                buffer.flip();
+                while (buffer.hasRemaining()) {
+                    dest.write(buffer);
+                }
             }
 
             void execute(Arguments args) {
@@ -81,7 +72,7 @@ public class Main {
                 } else {
                     try {
                         outputBlob(args.first());
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
