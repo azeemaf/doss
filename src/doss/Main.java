@@ -1,9 +1,14 @@
 package doss;
 
-import static java.lang.System.*;
+import static java.lang.System.err;
+import static java.lang.System.out;
 
+import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+
 
 /**
  * DOSS command-line interface
@@ -29,6 +34,41 @@ public class Main {
                 } else {
                     Command.get(args.first()).usage();
                 } 
+            }
+
+        },        
+        get("<command> <blobId>", "Prints a blob to standard output.") {
+          
+            void outputBlob(String blobId) {
+                out.println(blobId);
+                
+                Path path = new File("/doss-devel").toPath();
+                
+                try (BlobStore bs = DOSS.openLocalStore(path)) {
+                    Blob blob = bs.get(blobId);
+                    InputStream stream = blob.openStream();
+                    
+                    byte[] bytes = new byte[50];
+                    
+                    while ( stream.read(bytes) > 0 ) {
+                        out.write(bytes);
+                    }
+                        
+                    
+                } catch (Exception e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
+                    
+                
+            }
+
+            void execute(Arguments args) {
+                if (args.size() != 1) {
+                    usage();
+                } else {
+                    outputBlob(args.first());
+                }
             }
 
         };
@@ -94,6 +134,10 @@ public class Main {
         
         boolean isEmpty() {
             return list.isEmpty();
+        }
+        
+        int size() {
+          return list.size();
         }
 
         String first() {
