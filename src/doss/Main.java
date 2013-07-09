@@ -66,16 +66,11 @@ public class Main {
                 }
             }
 
-            void execute(Arguments args) {
+            void execute(Arguments args) throws IOException {
                 if (args.size() != 1) {
                     usage();
                 } else {
-                    try {
-                        outputBlob(args.first());
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
+                    outputBlob(args.first());
                 }
             }
 
@@ -88,7 +83,7 @@ public class Main {
             this.descrption = description;
         }
         
-        abstract void execute(Arguments args);
+        abstract void execute(Arguments args) throws IOException;
         
         String description() {
             return this.descrption;
