@@ -43,7 +43,7 @@ public class Main {
           
             void outputBlob(String blobId) throws IOException {
                 if (System.getenv("DOSS_HOME") == null) {
-                    throw new IOException();
+                    throw new CommandLineException("the DOSS_HOME environment variable must be set");
                 };
                 
                 Path path = new File(System.getenv("DOSS_HOME")).toPath();
@@ -111,7 +111,7 @@ public class Main {
             } else {
                 Command.get(args.first()).execute(args.rest());
             }
-        } catch (CommandLineException e) {
+        } catch (CommandLineException | IOException e) {
             err.println("doss: " + e.getLocalizedMessage());
         }
     }
