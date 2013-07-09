@@ -39,10 +39,15 @@ public class Main {
         },        
         get("<command> <blobId>", "Prints a blob to standard output.") {
           
-            void outputBlob(String blobId) {
+            void outputBlob(String blobId) throws Exception {
                 out.println(blobId);
                 
-                Path path = new File("/doss-devel").toPath();
+                if (System.getenv("DOSS_HOME") == null) {
+                    throw new Exception();
+                };
+                
+                
+                Path path = new File(System.getenv("DOSS_HOME")).toPath();
                 
                 try (BlobStore bs = DOSS.openLocalStore(path)) {
                     Blob blob = bs.get(blobId);
@@ -67,7 +72,12 @@ public class Main {
                 if (args.size() != 1) {
                     usage();
                 } else {
-                    outputBlob(args.first());
+                    try {
+                        outputBlob(args.first());
+                    } catch (Exception e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
                 }
             }
 
