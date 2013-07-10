@@ -71,8 +71,7 @@ public class Main {
                 if (args.size() < 1) {
                     usage();
                 } else {
-                    for (Iterator<String> i = args.iterator(); i.hasNext();) {
-                        String arg = i.next();
+                    for (String arg: args) {                        
                         outputBlob(arg);
                     }
                 }
@@ -132,7 +131,7 @@ public class Main {
         }
     }
     
-    static class Arguments {
+    static class Arguments implements Iterable<String> {
         final List<String> list;
         
         Arguments(List<String> list) {
