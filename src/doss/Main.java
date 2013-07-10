@@ -43,11 +43,11 @@ public class Main {
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
-                if (System.getenv("DOSS_HOME") == null) {
+                if (System.getProperty("doss.home") == null) {
                     throw new CommandLineException("the DOSS_HOME environment variable must be set");
                 };
-                
-                Path path = new File(System.getenv("DOSS_HOME")).toPath();
+                                
+                Path path = new File(System.getProperty("doss.home")).toPath();
                 
                 BlobStore bs = DOSS.openLocalStore(path);
                 Blob blob = bs.get(blobId);
@@ -105,7 +105,11 @@ public class Main {
             }
         }
     }
-        
+    
+    public static void main(String string) {
+        main(string.split(" "));
+    }
+    
     public static void main(String[] arguments) {
         try {
             Arguments args = new Arguments(Arrays.asList(arguments));
@@ -158,4 +162,6 @@ public class Main {
             return new Arguments(list.subList(1, list.size()));
         }
     }
+
+
 }
