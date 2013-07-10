@@ -9,6 +9,7 @@ import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -39,7 +40,7 @@ public class Main {
             }
 
         },        
-        cat("<command> <blobId>", "Prints blob to standard output.") {
+        cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
                 if (System.getenv("DOSS_HOME") == null) {
@@ -67,10 +68,13 @@ public class Main {
             }
 
             void execute(Arguments args) throws IOException {
-                if (args.size() != 1) {
+                if (args.size() < 1) {
                     usage();
                 } else {
-                    outputBlob(args.first());
+                    for (Iterator<String> i = args.iterator(); i.hasNext();) {
+                        String arg = i.next();
+                        outputBlob(arg);
+                    }
                 }
             }
 
@@ -135,6 +139,10 @@ public class Main {
             this.list = list;
         }
         
+        public Iterator<String> iterator() {
+            return list.iterator();
+        }
+
         boolean isEmpty() {
             return list.isEmpty();
         }
