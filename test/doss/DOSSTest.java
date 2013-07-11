@@ -250,7 +250,7 @@ public class DOSSTest {
      */
     
     @Test
-    public void cliGet() throws Exception {
+    public void cliCat() throws Exception {
         Path path = folder.newFolder().toPath();
         blobStore = DOSS.openLocalStore(path);
         
