@@ -9,6 +9,8 @@ identified and can never be overwritten only created and (soft)
 deleted.
 
 [![Build Status](https://travis-ci.org/nla/doss.png?branch=master)](https://travis-ci.org/nla/doss)
+(Huboard: [Tasks](http://huboard.com/nla/doss/board),
+[Backlog](http://huboard.com/nla/doss/backlog))
 
 **Status**
 
