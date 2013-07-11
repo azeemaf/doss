@@ -3,11 +3,11 @@ package doss;
 import static java.lang.System.err;
 import static java.lang.System.out;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -47,7 +47,7 @@ public class Main {
                     throw new CommandLineException("the DOSS_HOME environment variable must be set");
                 };
                                 
-                Path path = new File(System.getProperty("doss.home")).toPath();
+                Path path = Paths.get( System.getProperty("doss.home") );
                 
                 BlobStore bs = DOSS.openLocalStore(path);
                 Blob blob = bs.get(blobId);
@@ -68,7 +68,7 @@ public class Main {
             }
 
             void execute(Arguments args) throws IOException {
-                if (args.size() < 1) {
+                if (args.isEmpty()) {
                     usage();
                 } else {
                     for (String arg: args) {                        
@@ -106,11 +106,7 @@ public class Main {
         }
     }
     
-    public static void main(String string) {
-        main(string.split(" "));
-    }
-    
-    public static void main(String[] arguments) {
+    public static void main(String... arguments) {
         try {
             Arguments args = new Arguments(Arrays.asList(arguments));
             if (args.isEmpty()) {
@@ -150,10 +146,6 @@ public class Main {
             return list.isEmpty();
         }
         
-        int size() {
-          return list.size();
-        }
-
         String first() {
             return list.get(0);
         }
