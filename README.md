@@ -15,7 +15,7 @@ deleted.
 * Java API: unstable
 * Local backend: incomplete
 * Network backend: to be started
-* CLI frontend: to be started
+* [CLI frontend](https://github.com/nla/doss/issues/5): incomplete
 * [FUSE frontend](doc/native-interface.md): to be started
 * [Container support](doc/archive-formats.md): to be started
 
