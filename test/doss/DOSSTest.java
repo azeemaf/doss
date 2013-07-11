@@ -49,13 +49,32 @@ public class DOSSTest {
         assertNotEquals(id1, id2);
     }
 
-    
-    
     @Test
     public void blobsHaveASize() throws Exception {
         try (BlobTx tx = blobStore.begin()) {
             assertEquals(TEST_BYTES.length, tx.put(TEST_BYTES).size());
         }
+    }
+    
+    @Test
+    public void blobStoresReopenable() throws Exception {
+        Path path = folder.newFolder().toPath();
+        blobStore = DOSS.openLocalStore(path);
+        
+        Blob blob = null;
+        
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_BYTES);
+            tx.commit();
+        }
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+        
+        blobStore.close();
+        
+        blobStore = DOSS.openLocalStore(path);
+        
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+
     }
     
     /*
@@ -241,6 +260,8 @@ public class DOSSTest {
             blob = tx.put(TEST_BYTES);
             tx.commit();
         }
+        assertNotNull("Blob is not null", blob);
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
         
         PrintStream oldOut = System.out;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
