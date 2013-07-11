@@ -30,8 +30,7 @@ public class SqlBlobIndexTest {
         killemall();
 
         // DDL is going to commit the transaction in a h2 db no matter what,
-        // FYI (unless you use TEMPORARY, which would mean having a schema
-        // definition specific to the tests).
+        // FYI (unless you use TEMPORARY).
         BlobIndexSchemaDAO schema = dbi.onDemand(BlobIndexSchemaDAO.class);
         schema.createSchema();
     }
