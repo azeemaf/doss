@@ -8,7 +8,7 @@ write-once semantics.  Objects are uniquely and persistently
 identified and can never be overwritten only created and (soft)
 deleted.
 
-[![Build Status](https://travis-ci.org/nla/doss.png)](https://travis-ci.org/nla/doss)
+[![Build Status](https://travis-ci.org/nla/doss.png?branch=master)](https://travis-ci.org/nla/doss)
 
 **Status**
 
