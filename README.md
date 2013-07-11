@@ -14,7 +14,7 @@ deleted.
 
 **Status**
 
-* Java API: unstable
+* [Java API](doc/java-api.md): unstable
 * Local backend: incomplete
 * Network backend: to be started
 * [CLI frontend](https://github.com/nla/doss/issues/5): incomplete
@@ -35,7 +35,7 @@ Feature Goals
 Java API
 --------
 
-See [java-api.md](doc/java-api.md) for more examples.
+See [java-api.md]for more examples.
 
 ### Ingesting files
 
