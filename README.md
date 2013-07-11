@@ -35,7 +35,7 @@ Feature Goals
 Java API
 --------
 
-See [java-api.md]for more examples.
+See [java-api.md](doc/java-api.md) for more examples.
 
 ### Ingesting files
 
