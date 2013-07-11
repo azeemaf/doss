@@ -28,7 +28,8 @@ public class SqlBlobIndex implements BlobIndex {
      *            The jDBI instance to access the database through
      */
     public SqlBlobIndex(final IDBI dbi) {
-        this.dao = dbi.onDemand(BlobIndexDAO.class);
+        dbi.onDemand(BlobIndexSchemaDAO.class).createSchema();
+    	this.dao = dbi.onDemand(BlobIndexDAO.class);
     }
 
     /**
@@ -45,6 +46,7 @@ public class SqlBlobIndex implements BlobIndex {
      *            database.
      */
     public SqlBlobIndex(final Handle h) {
+    	h.attach(BlobIndexSchemaDAO.class).createSchema();
         this.dao = h.attach(BlobIndexDAO.class);
     }
 

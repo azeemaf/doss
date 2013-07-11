@@ -56,6 +56,27 @@ public class DOSSTest {
         }
     }
     
+    @Test
+    public void blobStoresReopenable() throws Exception {
+        Path path = folder.newFolder().toPath();
+        blobStore = DOSS.openLocalStore(path);
+        
+        Blob blob = null;
+        
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_BYTES);
+            tx.commit();
+        }
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+        
+        blobStore.close();
+        
+        blobStore = DOSS.openLocalStore(path);
+        
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+
+    }
+    
     /*
      * I/O
      */
@@ -222,4 +243,5 @@ public class DOSSTest {
         Files.write(path, contents.getBytes());
         return path;
     }
+
 }
