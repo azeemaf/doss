@@ -1,9 +1,19 @@
 package doss.local;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.activation.DataSource;
+
+import org.h2.jdbcx.JdbcConnectionPool;
+import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.Handle;
+import org.skife.jdbi.v2.logging.PrintStreamLog;
+import org.skife.jdbi.v2.tweak.SQLLog;
+
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
@@ -14,11 +24,23 @@ public class LocalBlobStore implements BlobStore {
     final RunningNumber blobNumber = new RunningNumber();
     final RunningNumber txNumber = new RunningNumber();
     final Container container;
-    final BlobIndex db = new MemoryBlobIndex();
+    final BlobIndex db;
     final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
 
     public LocalBlobStore(Path rootDir) throws IOException {
         container = new DirectoryContainer(rootDir.resolve("data"));
+        String connectionString = "jdbc:h2:file:" + rootDir.resolve("sql")+";AUTO_SERVER=TRUE";
+        JdbcConnectionPool ds = JdbcConnectionPool.create(connectionString,
+                "username",
+                "password");
+        DBI dbi = new DBI(ds);
+        SQLLog sqlLog = new PrintStreamLog(new PrintStream(System.out));
+        dbi.setSQLLog(sqlLog);
+        BlobIndexSchemaDAO schema = dbi.onDemand(BlobIndexSchemaDAO.class);
+        schema.createSchema();
+        Handle h = dbi.open();
+        db = new SqlBlobIndex(h);
+
     }
 
     @Override
