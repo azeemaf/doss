@@ -22,7 +22,7 @@ public class LocalBlobStore implements BlobStore {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         container.close();
     }
 

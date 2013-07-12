@@ -51,21 +51,23 @@ public class Main {
                                 
                 Path path = Paths.get( System.getProperty("doss.home") );
                 
-                BlobStore bs = DOSS.openLocalStore(path);
-                Blob blob = bs.get(blobId);
-                ReadableByteChannel channel = blob.openChannel();
-                WritableByteChannel dest = Channels.newChannel(out);
+                try (BlobStore bs = DOSS.openLocalStore(path);
+                     ReadableByteChannel channel = bs.get(blobId).openChannel();
+                     WritableByteChannel dest = Channels.newChannel(out)) { 
+                 
+                    final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
 
-                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
-
-                while (channel.read(buffer) != -1) {
+                    while (channel.read(buffer) != -1) {
+                        buffer.flip();
+                        dest.write(buffer);
+                        buffer.compact();                        
+                    }
                     buffer.flip();
-                    dest.write(buffer);
-                    buffer.compact();                        
-                }
-                buffer.flip();
-                while (buffer.hasRemaining()) {
-                    dest.write(buffer);
+                    while (buffer.hasRemaining()) {
+                        dest.write(buffer);
+                    }
+                    
+                    
                 }
             }
 
@@ -87,16 +89,18 @@ public class Main {
                     throw new CommandLineException("the DOSS_HOME environment variable must be set");
                 };
 
-                BlobStore bs = DOSS.openLocalStore(Paths.get( System.getProperty("doss.home") ));
-                Blob blob = bs.get(blobId);
-                ReadableByteChannel channel = blob.openChannel();
+                try (BlobStore bs = DOSS.openLocalStore(Paths.get( System.getProperty("doss.home") ))) {
+                    Blob blob = bs.get(blobId);
+                    ReadableByteChannel channel = blob.openChannel();
                 
-                Path outputFile = Files.createFile(Paths.get(blob.id()));
-                FileChannel dest = FileChannel.open(outputFile);
+                    Path outputFile = Files.createFile(Paths.get(blobId));
+                    FileChannel dest = FileChannel.open(outputFile);
                 
-                long bytesTransferred = dest.transferFrom(channel, 0, blob.size());
+                    long bytesTransferred = dest.transferFrom(channel, 0, Long.MAX_VALUE);
                 
-                out.println("Got " + bytesTransferred + "B of " + blob.size() + "B from blob " + blob.id());
+                    out.println("Got " + bytesTransferred + "B of " + blob.size() + "B from blob " + blobId);
+                
+                }
             }
 
             void execute(Arguments args) throws IOException {
