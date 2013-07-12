@@ -91,20 +91,12 @@ public class Main {
                 Blob blob = bs.get(blobId);
                 ReadableByteChannel channel = blob.openChannel();
                 
-                Path outputFile = Files.createFile(Paths.get(System.getProperty("user.dir") + "/" + blob.id()));
-                WritableByteChannel dest = FileChannel.open(outputFile);
-                        
-                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
-
-                while (channel.read(buffer) != -1) {
-                    buffer.flip();
-                    dest.write(buffer);
-                    buffer.compact();                        
-                }
-                buffer.flip();
-                while (buffer.hasRemaining()) {
-                    dest.write(buffer);
-                }
+                Path outputFile = Files.createFile(Paths.get(blob.id()));
+                FileChannel dest = FileChannel.open(outputFile);
+                
+                long bytesTransferred = dest.transferFrom(channel, 0, blob.size());
+                
+                out.println("Got " + bytesTransferred + "B of " + blob.size() + "B from blob " + blob.id());
             }
 
             void execute(Arguments args) throws IOException {
