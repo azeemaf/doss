@@ -6,8 +6,10 @@ import static java.lang.System.out;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -54,6 +56,44 @@ public class Main {
                 ReadableByteChannel channel = blob.openChannel();
                 WritableByteChannel dest = Channels.newChannel(out);
 
+                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
+
+                while (channel.read(buffer) != -1) {
+                    buffer.flip();
+                    dest.write(buffer);
+                    buffer.compact();                        
+                }
+                buffer.flip();
+                while (buffer.hasRemaining()) {
+                    dest.write(buffer);
+                }
+            }
+
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    for (String arg: args) {                        
+                        outputBlob(arg);
+                    }
+                }
+            }
+
+        },        
+        get("<blobId ...>", "Copy blobs to the current working directory.") {
+          
+            void outputBlob(String blobId) throws IOException {
+                if (System.getProperty("doss.home") == null) {
+                    throw new CommandLineException("the DOSS_HOME environment variable must be set");
+                };
+
+                BlobStore bs = DOSS.openLocalStore(Paths.get( System.getProperty("doss.home") ));
+                Blob blob = bs.get(blobId);
+                ReadableByteChannel channel = blob.openChannel();
+                
+                Path outputFile = Files.createFile(Paths.get(System.getProperty("user.dir") + "/" + blob.id()));
+                WritableByteChannel dest = FileChannel.open(outputFile);
+                        
                 final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
 
                 while (channel.read(buffer) != -1) {
