@@ -278,4 +278,24 @@ public class DOSSTest {
         assertEquals(TEST_STRING, outputStream.toString("UTF-8"));  
     }
     
+    @Test
+    public void cliGet() throws Exception {
+        Path path = folder.newFolder().toPath();
+        blobStore = DOSS.openLocalStore(path);
+        
+        Blob blob = null;
+        
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_BYTES);
+            tx.commit();
+        }
+        assertNotNull("Blob is not null", blob);
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+        
+        System.setProperty("doss.home", path.toString());
+        Main.main("get", blob.id());
+        
+        
+    }
+    
 }
