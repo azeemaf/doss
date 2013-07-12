@@ -6,8 +6,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.activation.DataSource;
-
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
@@ -29,7 +27,7 @@ public class LocalBlobStore implements BlobStore {
 
     public LocalBlobStore(Path rootDir) throws IOException {
         container = new DirectoryContainer(rootDir.resolve("data"));
-        String connectionString = "jdbc:h2:file:" + rootDir.resolve("sql")+";AUTO_SERVER=TRUE";
+        String connectionString = "jdbc:h2:file:" + rootDir.resolve("index/index")+";AUTO_SERVER=TRUE";
         JdbcConnectionPool ds = JdbcConnectionPool.create(connectionString,
                 "username",
                 "password");
