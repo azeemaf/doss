@@ -270,7 +270,7 @@ public class DOSSTest {
         try {
             System.setOut(out);
             System.setProperty("doss.home", path.toString());
-            Main.main("cat " + blob.id());
+            Main.main("cat", blob.id());
         } finally {
             System.setOut(oldOut);
         }
