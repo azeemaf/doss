@@ -126,9 +126,13 @@ public class Main {
         String description() {
             return this.descrption;
         }
+
+        String parameters() {
+            return this.parameters;
+        }
         
         void usage() {
-            out.println("usage: doss " + name());
+            out.println("usage: doss " + name() + " " + parameters());
             out.println(description());
         }
         

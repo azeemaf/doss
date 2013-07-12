@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.skife.jdbi.v2.DBI;
+
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
@@ -14,11 +17,13 @@ public class LocalBlobStore implements BlobStore {
     final RunningNumber blobNumber = new RunningNumber();
     final RunningNumber txNumber = new RunningNumber();
     final Container container;
-    final BlobIndex db = new MemoryBlobIndex();
+    final BlobIndex db;
     final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
 
     public LocalBlobStore(Path rootDir) throws IOException {
         container = new DirectoryContainer(rootDir.resolve("data"));
+        DBI dbi = new DBI("jdbc:h2:file:" + rootDir.resolve("index/index")+";AUTO_SERVER=TRUE");
+        db = new SqlBlobIndex(dbi.open());
     }
 
     @Override
