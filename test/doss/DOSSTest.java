@@ -9,6 +9,7 @@ import java.nio.charset.Charset;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
@@ -295,7 +296,7 @@ public class DOSSTest {
         System.setProperty("doss.home", path.toString());
         Main.main("get", blob.id());
         
-        
+        assertEquals(TEST_BYTES, Files.readAllLines(Paths.get(blob.id()), Charset.forName("UTF-8")));
     }
     
 }

@@ -93,8 +93,7 @@ public class Main {
                     Blob blob = bs.get(blobId);
                     ReadableByteChannel channel = blob.openChannel();
                 
-                    Path outputFile = Files.createFile(Paths.get(blobId));
-                    FileChannel dest = FileChannel.open(outputFile);
+                    FileChannel dest = FileChannel.open(Files.createFile(Paths.get(blobId)));
                 
                     long bytesTransferred = dest.transferFrom(channel, 0, Long.MAX_VALUE);
                 
