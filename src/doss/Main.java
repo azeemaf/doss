@@ -1,9 +1,17 @@
 package doss;
 
-import static java.lang.System.*;
+import static java.lang.System.err;
+import static java.lang.System.out;
 
+import java.io.IOException;
+import java.nio.channels.*;
+import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+
 
 /**
  * DOSS command-line interface
@@ -31,6 +39,44 @@ public class Main {
                 } 
             }
 
+        },        
+        cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
+          
+            void outputBlob(String blobId) throws IOException {
+                if (System.getProperty("doss.home") == null) {
+                    throw new CommandLineException("the DOSS_HOME environment variable must be set");
+                };
+                                
+                Path path = Paths.get( System.getProperty("doss.home") );
+                
+                BlobStore bs = DOSS.openLocalStore(path);
+                Blob blob = bs.get(blobId);
+                ReadableByteChannel channel = blob.openChannel();
+                WritableByteChannel dest = Channels.newChannel(out);
+
+                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
+
+                while (channel.read(buffer) != -1) {
+                    buffer.flip();
+                    dest.write(buffer);
+                    buffer.compact();                        
+                }
+                buffer.flip();
+                while (buffer.hasRemaining()) {
+                    dest.write(buffer);
+                }
+            }
+
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    for (String arg: args) {                        
+                        outputBlob(arg);
+                    }
+                }
+            }
+
         };
         
         final String descrption, parameters;
@@ -40,7 +86,7 @@ public class Main {
             this.descrption = description;
         }
         
-        abstract void execute(Arguments args);
+        abstract void execute(Arguments args) throws IOException;
         
         String description() {
             return this.descrption;
@@ -63,8 +109,8 @@ public class Main {
             }
         }
     }
-        
-    public static void main(String[] arguments) {
+    
+    public static void main(String... arguments) {
         try {
             Arguments args = new Arguments(Arrays.asList(arguments));
             if (args.isEmpty()) {
@@ -72,7 +118,7 @@ public class Main {
             } else {
                 Command.get(args.first()).execute(args.rest());
             }
-        } catch (CommandLineException e) {
+        } catch (CommandLineException | IOException e) {
             err.println("doss: " + e.getLocalizedMessage());
         }
     }
@@ -89,17 +135,21 @@ public class Main {
         }
     }
     
-    static class Arguments {
+    static class Arguments implements Iterable<String> {
         final List<String> list;
         
         Arguments(List<String> list) {
             this.list = list;
         }
         
+        public Iterator<String> iterator() {
+            return list.iterator();
+        }
+
         boolean isEmpty() {
             return list.isEmpty();
         }
-
+        
         String first() {
             return list.get(0);
         }
@@ -108,4 +158,6 @@ public class Main {
             return new Arguments(list.subList(1, list.size()));
         }
     }
+
+
 }

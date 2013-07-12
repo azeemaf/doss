@@ -6,8 +6,8 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.Charset;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import org.junit.*;
@@ -243,5 +243,38 @@ public class DOSSTest {
         Files.write(path, contents.getBytes());
         return path;
     }
-
+    
+    /*
+     * CLI
+     */
+    
+    @Test
+    public void cliCat() throws Exception {
+        Path path = folder.newFolder().toPath();
+        blobStore = DOSS.openLocalStore(path);
+        
+        Blob blob = null;
+        
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_BYTES);
+            tx.commit();
+        }
+        assertNotNull("Blob is not null", blob);
+        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+        
+        PrintStream oldOut = System.out;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(outputStream);
+        
+        try {
+            System.setOut(out);
+            System.setProperty("doss.home", path.toString());
+            Main.main("cat", blob.id());
+        } finally {
+            System.setOut(oldOut);
+        }
+        
+        assertEquals(TEST_STRING, outputStream.toString("UTF-8"));  
+    }
+    
 }
