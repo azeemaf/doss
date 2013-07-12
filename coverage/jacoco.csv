@@ -1,0 +1,24 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+doss,doss,DOSS,3,5,0,0,1,1,1,1,1,1
+doss,doss,NoSuchBlobTxException,19,4,0,0,8,2,4,1,4,1
+doss,doss,Main.Command,33,51,0,0,7,8,3,5,3,5
+doss,doss,Main,19,17,1,1,5,5,2,1,1,1
+doss,doss,NoSuchBlobException,19,4,0,0,8,2,4,1,4,1
+doss,doss,Main.Command.new Main.Command() {...},53,8,4,0,10,1,4,1,2,1
+doss,doss,Main.Command.new Main.Command() {...},13,74,3,7,3,20,3,5,0,3
+doss,doss,Main.NoSuchCommandException,11,0,0,0,2,0,1,0,1,0
+doss,doss,Main.CommandLineException,4,0,0,0,2,0,1,0,1,0
+doss,doss,BlobException,19,4,0,0,8,2,4,1,4,1
+doss,doss,Main.Arguments,0,31,0,0,0,7,0,5,0,5
+doss,doss.local,LocalBlobTx.new Writable() {...},25,36,7,1,1,6,5,2,1,2
+doss,doss.local,DirectoryContainer,13,118,6,2,0,20,4,6,0,6
+doss,doss.local,SqlBlobIndex,0,69,0,4,0,18,0,7,0,5
+doss,doss.local,LocalBlobTx.new Writable() {...},5,16,0,0,1,4,1,2,1,2
+doss,doss.local,LocalBlobStore,0,115,0,2,0,22,0,7,0,6
+doss,doss.local,RunningNumber,0,12,0,0,0,3,0,2,0,2
+doss,doss.local,MemoryBlobIndex,0,54,0,4,0,11,0,6,0,4
+doss,doss.local,LocalBlobTx.State,43,64,0,0,5,8,6,4,6,4
+doss,doss.local,LocalBlob,0,41,0,0,0,9,0,6,0,6
+doss,doss.local,LocalBlobTx.State.new LocalBlobTx.State() {...},2,26,0,0,1,6,1,6,1,6
+doss,doss.local,LocalBlobTx.State.new LocalBlobTx.State() {...},2,14,0,0,1,3,1,3,1,3
+doss,doss.local,LocalBlobTx,0,139,0,2,0,29,0,15,0,14

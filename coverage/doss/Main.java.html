@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Main.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss</a> &gt; <span class="el_source">Main.java</span></div><h1>Main.java</h1><pre class="source lang-java linenums">package doss;
+
+import static java.lang.System.err;
+import static java.lang.System.out;
+
+import java.io.IOException;
+import java.nio.channels.*;
+import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
+
+/**
+ * DOSS command-line interface
+ */
+@SuppressWarnings(&quot;serial&quot;)
+<span class="nc" id="L20">public class Main {</span>
+    
+<span class="fc" id="L22">    enum Command {</span>
+<span class="fc" id="L23">        help(&quot;&lt;command&gt;&quot;, &quot;Display a list of commands or help for a given command.&quot;) {</span>
+            
+            void listCommands() {
+<span class="nc" id="L26">                out.println(&quot;usage: doss &lt;command&gt; [&lt;args&gt;]&quot;);</span>
+<span class="nc" id="L27">                out.println(&quot;&quot;);</span>
+<span class="nc" id="L28">                out.println(&quot;Available commands:&quot;);</span>
+<span class="nc bnc" id="L29" title="All 2 branches missed.">                for (Command command: Command.values()) {</span>
+<span class="nc" id="L30">                    out.println(String.format(&quot;  %-10s%s&quot;, command.name(), command.description()));</span>
+                }                
+<span class="nc" id="L32">            }</span>
+
+            void execute(Arguments args) {
+<span class="nc bnc" id="L35" title="All 2 branches missed.">                if (args.isEmpty()) {</span>
+<span class="nc" id="L36">                    listCommands();</span>
+                } else {
+<span class="nc" id="L38">                    Command.get(args.first()).usage();</span>
+                } 
+<span class="nc" id="L40">            }</span>
+
+        },        
+<span class="fc" id="L43">        cat(&quot;&lt;blobId ...&gt;&quot;, &quot;Concatinate and print blobs (like unix cat).&quot;) {</span>
+          
+            void outputBlob(String blobId) throws IOException {
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">                if (System.getProperty(&quot;doss.home&quot;) == null) {</span>
+<span class="nc" id="L47">                    throw new CommandLineException(&quot;the DOSS_HOME environment variable must be set&quot;);</span>
+                };
+                                
+<span class="fc" id="L50">                Path path = Paths.get( System.getProperty(&quot;doss.home&quot;) );</span>
+                
+<span class="fc" id="L52">                BlobStore bs = DOSS.openLocalStore(path);</span>
+<span class="fc" id="L53">                Blob blob = bs.get(blobId);</span>
+<span class="fc" id="L54">                ReadableByteChannel channel = blob.openChannel();</span>
+<span class="fc" id="L55">                WritableByteChannel dest = Channels.newChannel(out);</span>
+
+<span class="fc" id="L57">                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);</span>
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">                while (channel.read(buffer) != -1) {</span>
+<span class="fc" id="L60">                    buffer.flip();</span>
+<span class="fc" id="L61">                    dest.write(buffer);</span>
+<span class="fc" id="L62">                    buffer.compact();                        </span>
+                }
+<span class="fc" id="L64">                buffer.flip();</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">                while (buffer.hasRemaining()) {</span>
+<span class="nc" id="L66">                    dest.write(buffer);</span>
+                }
+<span class="fc" id="L68">            }</span>
+
+            void execute(Arguments args) throws IOException {
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">                if (args.isEmpty()) {</span>
+<span class="nc" id="L72">                    usage();</span>
+                } else {
+<span class="fc bfc" id="L74" title="All 2 branches covered.">                    for (String arg: args) {                        </span>
+<span class="fc" id="L75">                        outputBlob(arg);</span>
+<span class="fc" id="L76">                    }</span>
+                }
+<span class="fc" id="L78">            }</span>
+
+        };
+        
+        final String descrption, parameters;
+        
+<span class="fc" id="L84">        Command(String parameters, String description) {</span>
+<span class="fc" id="L85">            this.parameters = parameters;</span>
+<span class="fc" id="L86">            this.descrption = description;</span>
+<span class="fc" id="L87">        }</span>
+        
+        abstract void execute(Arguments args) throws IOException;
+        
+        String description() {
+<span class="nc" id="L92">            return this.descrption;</span>
+        }
+
+        String parameters() {
+<span class="nc" id="L96">            return this.parameters;</span>
+        }
+        
+        void usage() {
+<span class="nc" id="L100">            out.println(&quot;usage: doss &quot; + name() + &quot; &quot; + parameters());</span>
+<span class="nc" id="L101">            out.println(description());</span>
+<span class="nc" id="L102">        }</span>
+        
+        static Command get(String name) {
+            try {
+<span class="fc" id="L106">                return valueOf(name);</span>
+<span class="nc" id="L107">            } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L108">                throw new NoSuchCommandException(name);</span>
+            }
+        }
+    }
+    
+    public static void main(String... arguments) {
+        try {
+<span class="fc" id="L115">            Arguments args = new Arguments(Arrays.asList(arguments));</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">            if (args.isEmpty()) {</span>
+<span class="nc" id="L117">                Command.help.execute(args);</span>
+            } else {
+<span class="fc" id="L119">                Command.get(args.first()).execute(args.rest());</span>
+            }
+<span class="nc" id="L121">        } catch (CommandLineException | IOException e) {</span>
+<span class="nc" id="L122">            err.println(&quot;doss: &quot; + e.getLocalizedMessage());</span>
+<span class="fc" id="L123">        }</span>
+<span class="fc" id="L124">    }</span>
+
+    static class CommandLineException extends RuntimeException {
+        CommandLineException(String message) {
+<span class="nc" id="L128">            super(message);</span>
+<span class="nc" id="L129">        }        </span>
+    }
+
+    static class NoSuchCommandException extends CommandLineException {
+        NoSuchCommandException(String command) {
+<span class="nc" id="L134">            super(String.format(&quot;'%s' is not a doss command&quot;, command));</span>
+<span class="nc" id="L135">        }</span>
+    }
+    
+<span class="nc" id="L138">    static class Arguments implements Iterable&lt;String&gt; {</span>
+        final List&lt;String&gt; list;
+        
+<span class="fc" id="L141">        Arguments(List&lt;String&gt; list) {</span>
+<span class="fc" id="L142">            this.list = list;</span>
+<span class="fc" id="L143">        }</span>
+        
+        public Iterator&lt;String&gt; iterator() {
+<span class="fc" id="L146">            return list.iterator();</span>
+        }
+
+        boolean isEmpty() {
+<span class="fc" id="L150">            return list.isEmpty();</span>
+        }
+        
+        String first() {
+<span class="fc" id="L154">            return list.get(0);</span>
+        }
+
+        Arguments rest() {
+<span class="fc" id="L158">            return new Arguments(list.subList(1, list.size()));</span>
+        }
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

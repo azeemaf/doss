@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>SqlBlobIndex.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.local</a> &gt; <span class="el_source">SqlBlobIndex.java</span></div><h1>SqlBlobIndex.java</h1><pre class="source lang-java linenums">package doss.local;
+
+import org.skife.jdbi.v2.Handle;
+import org.skife.jdbi.v2.IDBI;
+
+import doss.NoSuchBlobException;
+
+/**
+ * BlobIndex backed by a SQL database using jDBI.
+ * 
+ * This class does not own any jDBI resources and is not responsible for any
+ * jDBI resource management.
+ */
+public class SqlBlobIndex implements BlobIndex {
+
+    final BlobIndexDAO dao;
+
+    /**
+     * Connects to the database using the supplied DBI instance. This
+     * constructor results in all method calls being committed as soon as
+     * possible by jDBI.
+     * 
+     * The jDBI is a bit vague on making a guarantee that the transaction will
+     * be committed. This SqlBlobIndex does not make use of any of the access
+     * patterns that would cause the transaction to be held open.
+     * 
+     * @param dbi
+     *            The jDBI instance to access the database through
+     */
+<span class="fc" id="L30">    public SqlBlobIndex(final IDBI dbi) {</span>
+<span class="fc" id="L31">        dbi.onDemand(BlobIndexSchemaDAO.class).createSchema();</span>
+<span class="fc" id="L32">    	this.dao = dbi.onDemand(BlobIndexDAO.class);</span>
+<span class="fc" id="L33">    }</span>
+
+    /**
+     * Connects to the database using a supplied jDBI Handle instance. This
+     * constructor allows transaction management to be done by the owner of the
+     * Handle.
+     * 
+     * SqlBlobIndex will not attempt to modify the handle's transaction at all,
+     * ie it will not call any methods on
+     * org.skife.jdbi.v2.tweak.TransactionHandler
+     * 
+     * @param h
+     *            The connection Handle that will be used to connect to the
+     *            database.
+     */
+<span class="fc" id="L48">    public SqlBlobIndex(final Handle h) {</span>
+<span class="fc" id="L49">    	h.attach(BlobIndexSchemaDAO.class).createSchema();</span>
+<span class="fc" id="L50">        this.dao = h.attach(BlobIndexDAO.class);</span>
+<span class="fc" id="L51">    }</span>
+
+    @Override
+    public long locate(final long blobId) throws NoSuchBlobException {
+<span class="fc" id="L55">        Long offset = dao.locate(blobId);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (offset == null) {</span>
+<span class="fc" id="L57">            throw new NoSuchBlobException(new Long(blobId).toString());</span>
+        }
+<span class="fc" id="L59">        return offset;</span>
+    }
+
+    @Override
+    public void remember(final long blobId, final long offset) {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (dao.locate(blobId) != null) {</span>
+<span class="fc" id="L65">            dao.update(blobId, offset);</span>
+        } else {
+<span class="fc" id="L67">            dao.insert(blobId, offset);</span>
+        }
+<span class="fc" id="L69">    }</span>
+
+    @Override
+    public void delete(final long blobId) {
+<span class="fc" id="L73">        dao.delete(blobId);</span>
+<span class="fc" id="L74">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
