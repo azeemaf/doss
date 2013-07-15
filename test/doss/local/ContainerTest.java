@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
 import org.junit.After;
@@ -43,7 +44,13 @@ public abstract class ContainerTest {
         long offset = container.put(TEST_ID, stringOutput(TEST_DATA));
         Blob blob = container.get(offset);
         assertEquals(TEST_ID, blob.id());
-        assertEquals(TEST_DATA, blob.slurp());   
+        
+        byte[] buf = new byte[(int) blob.size()];
+        try (SeekableByteChannel channel = blob.openChannel()) {
+            channel.read(ByteBuffer.wrap(buf));
+        }
+        
+        assertEquals(TEST_DATA, new String(buf, "UTF-8"));    
     }
 
     protected Writable stringOutput(String s) {
