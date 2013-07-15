@@ -305,7 +305,7 @@ public class DOSSTest {
             tx.commit();
         }
         assertNotNull("Blob is not null", blob);
-        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+        assertEquals(TEST_STRING, slurp(blob));
         
         System.setProperty("doss.home", path.toString());
         Main.main("get", blob.id());
