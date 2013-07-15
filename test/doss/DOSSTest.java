@@ -15,17 +15,18 @@ import org.junit.rules.TemporaryFolder;
 
 public class DOSSTest {
     static final String TEST_STRING = "test\nstring\0a\r\nwith\tstrange\u2603characters";
-    static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset.forName("UTF-8"));
-            
+    static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset
+            .forName("UTF-8"));
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
     private BlobStore blobStore;
-    
+
     /*
      * Blobs
      */
-    
+
     @Test(expected = NoSuchBlobException.class)
     public void bogusBlobsShouldNotBeFound() throws Exception {
         blobStore.get("999");
@@ -40,7 +41,7 @@ public class DOSSTest {
     public void blankIdsShouldBeIllegal() throws Exception {
         blobStore.get("");
     }
-  
+
     @Test
     public void blobsHaveAUniqueId() throws Exception {
         String id1 = writeTempBlob(blobStore, "one").id();
@@ -53,50 +54,51 @@ public class DOSSTest {
     public void blobsHaveASize() throws Exception {
         try (BlobTx tx = blobStore.begin()) {
             assertEquals(TEST_BYTES.length, tx.put(TEST_BYTES).size());
+            tx.rollback();
         }
     }
-    
+
     @Test
     public void blobStoresReopenable() throws Exception {
         Path path = folder.newFolder().toPath();
         blobStore = DOSS.openLocalStore(path);
-        
+
         Blob blob = null;
-        
+
         try (BlobTx tx = blobStore.begin()) {
             blob = tx.put(TEST_BYTES);
             tx.commit();
         }
         assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
-        
+
         blobStore.close();
-        
+
         blobStore = DOSS.openLocalStore(path);
-        
+
         assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
 
     }
-    
+
     /*
      * I/O
      */
-    
+
     @Test(timeout = 1000)
     public void testChannelIO() throws Exception {
         String blobId;
-        
+
         try (BlobTx tx = blobStore.begin()) {
             blobId = tx.put(TEST_BYTES).id();
             tx.commit();
         }
-        
+
         byte[] buf = new byte[TEST_BYTES.length];
         try (SeekableByteChannel channel = blobStore.get(blobId).openChannel()) {
             channel.read(ByteBuffer.wrap(buf));
         }
         assertEquals(TEST_STRING, new String(buf, "UTF-8"));
     }
-    
+
     @Test(timeout = 1000)
     public void testStreamIO() throws Exception {
         String id = writeTempBlob(blobStore, TEST_STRING).id();
@@ -113,20 +115,20 @@ public class DOSSTest {
     @Test(timeout = 1000)
     public void testStringIO() throws Exception {
         Named blob;
-        
+
         try (BlobTx tx = blobStore.begin()) {
             blob = tx.put(TEST_STRING);
             tx.commit();
         }
-        
-        assertNotNull(blob.id());        
+
+        assertNotNull(blob.id());
         assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
     }
 
     /*
      * Transactions
      */
-    
+
     @Test(expected = NoSuchBlobException.class)
     public void testRollback() throws Exception {
         Named blob;
@@ -134,17 +136,19 @@ public class DOSSTest {
             blob = tx.put(TEST_STRING);
             tx.rollback();
         }
-        
+
         blobStore.get(blob.id());
     }
 
     @Test(expected = NoSuchBlobException.class)
     public void testImplicitRollback() throws Exception {
-        Named blob;
+        Named blob = null;
         try (BlobTx tx = blobStore.begin()) {
             blob = tx.put(TEST_STRING);
+        } catch (IllegalStateException e) {
+            // ignore - not part of test
         }
-        
+        assertNotNull("Got a blob", blob);
         blobStore.get(blob.id());
     }
 
@@ -153,6 +157,7 @@ public class DOSSTest {
         try (BlobTx tx = blobStore.begin()) {
             BlobTx tx2 = blobStore.resume(tx.id());
             assertEquals(tx, tx2);
+            tx2.rollback();
         }
     }
 
@@ -161,10 +166,11 @@ public class DOSSTest {
         String txId;
         try (BlobTx tx = blobStore.begin()) {
             txId = tx.id();
+            tx.commit();
         }
         blobStore.resume(txId);
     }
-    
+
     @Test
     public void preparedTransactionsStayOpen() throws Exception {
         String txId;
@@ -187,7 +193,7 @@ public class DOSSTest {
         }
         blobStore.resume(txId);
     }
-    
+
     @Test(expected = NoSuchBlobTxException.class)
     public void preparedTransactionsAreClosedOnCommit() throws Exception {
         String txId;
@@ -198,7 +204,7 @@ public class DOSSTest {
         }
         blobStore.resume(txId);
     }
-    
+
     @Test(expected = IllegalStateException.class)
     public void cantPutAfterCommit() throws Exception {
         try (BlobTx tx = blobStore.begin()) {
@@ -206,7 +212,7 @@ public class DOSSTest {
             tx.put(TEST_BYTES);
         }
     }
-    
+
     @Test(expected = IllegalStateException.class)
     public void cantPutAfterRollback() throws Exception {
         try (BlobTx tx = blobStore.begin()) {
@@ -214,7 +220,7 @@ public class DOSSTest {
             tx.put(TEST_BYTES);
         }
     }
-    
+
     /*
      * Misc
      */
@@ -223,14 +229,15 @@ public class DOSSTest {
     public void openBlobStore() throws IOException {
         blobStore = DOSS.openLocalStore(folder.newFolder().toPath());
     }
-    
+
     @After
     public void closeBlobStore() throws Exception {
         blobStore.close();
         blobStore = null;
     }
 
-    private Named writeTempBlob(BlobStore store, String testString) throws IOException, Exception {
+    private Named writeTempBlob(BlobStore store, String testString)
+            throws IOException, Exception {
         try (BlobTx tx = store.begin()) {
             Named blob = tx.put(makeTempFile(testString));
             tx.commit();
@@ -243,29 +250,29 @@ public class DOSSTest {
         Files.write(path, contents.getBytes());
         return path;
     }
-    
+
     /*
      * CLI
      */
-    
+
     @Test
     public void cliCat() throws Exception {
         Path path = folder.newFolder().toPath();
         blobStore = DOSS.openLocalStore(path);
-        
+
         Blob blob = null;
-        
+
         try (BlobTx tx = blobStore.begin()) {
             blob = tx.put(TEST_BYTES);
             tx.commit();
         }
         assertNotNull("Blob is not null", blob);
         assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
-        
+
         PrintStream oldOut = System.out;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(outputStream);
-        
+
         try {
             System.setOut(out);
             System.setProperty("doss.home", path.toString());
@@ -273,8 +280,8 @@ public class DOSSTest {
         } finally {
             System.setOut(oldOut);
         }
-        
-        assertEquals(TEST_STRING, outputStream.toString("UTF-8"));  
+
+        assertEquals(TEST_STRING, outputStream.toString("UTF-8"));
     }
-    
+
 }
