@@ -14,7 +14,7 @@ import java.util.List;
 import doss.Blob;
 import doss.BlobTx;
 import doss.Transaction;
-import doss.TransactionStateMachine;
+import doss.TransactionState;
 import doss.Writable;
 
 public class LocalBlobTx implements BlobTx {
@@ -23,7 +23,7 @@ public class LocalBlobTx implements BlobTx {
     final LocalBlobStore blobStore;
     final List<Long> addedBlobs = new ArrayList<Long>();
 
-    private TransactionStateMachine state = TransactionStateMachine.OPEN;
+    private TransactionState state = TransactionState.OPEN;
 
     public LocalBlobTx(String id, LocalBlobStore blobStore) {
         this.id = id;
@@ -72,7 +72,7 @@ public class LocalBlobTx implements BlobTx {
 
     @Override
     public synchronized Blob put(Writable output) throws IOException {
-        if (state != TransactionStateMachine.OPEN) {
+        if (state != TransactionState.OPEN) {
             throw new IllegalStateException(
                     "can only put() to an open transaction");
         }

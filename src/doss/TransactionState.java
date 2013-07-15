@@ -11,53 +11,53 @@ import doss.Transaction;
  * instance through those states. Passes all exceptions from the managed
  * transaction through to the caller.
  */
-public enum TransactionStateMachine {
+public enum TransactionState {
 
     OPEN {
-        public TransactionStateMachine close(Transaction t)
+        public TransactionState close(Transaction t)
                 throws IllegalStateException, IOException {
             rollback(t);
             return assertPreparedCommittedOrRolledback();
         }
 
-        public TransactionStateMachine prepare(Transaction t)
+        public TransactionState prepare(Transaction t)
                 throws IOException {
             t.prepare();
             return PREPARED;
         }
 
-        public TransactionStateMachine commit(Transaction t) throws IOException {
+        public TransactionState commit(Transaction t) throws IOException {
             return prepare(t).commit(t);
         }
 
-        public TransactionStateMachine rollback(Transaction t)
+        public TransactionState rollback(Transaction t)
                 throws IOException {
             t.rollback();
             return ROLLEDBACK;
         }
 
-        TransactionStateMachine assertOpen() {
+        TransactionState assertOpen() {
             return this;
         }
 
-        TransactionStateMachine assertOpenOrPrepared() {
+        TransactionState assertOpenOrPrepared() {
             return this;
         }
     },
 
     PREPARED {
-        public TransactionStateMachine commit(Transaction t) throws IOException {
+        public TransactionState commit(Transaction t) throws IOException {
             t.commit();
             return COMMITTED;
         }
 
-        public TransactionStateMachine rollback(Transaction t)
+        public TransactionState rollback(Transaction t)
                 throws IOException {
             t.rollback();
             return ROLLEDBACK;
         }
 
-        TransactionStateMachine assertOpenOrPrepared() {
+        TransactionState assertOpenOrPrepared() {
             return this;
         }
     },
@@ -65,33 +65,33 @@ public enum TransactionStateMachine {
     COMMITTED, ROLLEDBACK;
 
     // defaults
-    public TransactionStateMachine close(Transaction t) throws IOException {
+    public TransactionState close(Transaction t) throws IOException {
         t.close();
         return this;
     }
 
-    public TransactionStateMachine prepare(Transaction t) throws IOException {
+    public TransactionState prepare(Transaction t) throws IOException {
         return assertOpen();
     }
 
-    public TransactionStateMachine commit(Transaction t) throws IOException {
+    public TransactionState commit(Transaction t) throws IOException {
         return assertOpenOrPrepared();
     }
 
-    public TransactionStateMachine rollback(Transaction t) throws IOException {
+    public TransactionState rollback(Transaction t) throws IOException {
         return assertOpenOrPrepared();
     }
 
     // helpers
-    TransactionStateMachine assertOpen() {
+    TransactionState assertOpen() {
         throw new IllegalStateException(name() + "; must be OPEN");
     }
 
-    TransactionStateMachine assertOpenOrPrepared() {
+    TransactionState assertOpenOrPrepared() {
         throw new IllegalStateException(name() + "; must be OPEN or PREPARED");
     }
 
-    TransactionStateMachine assertPreparedCommittedOrRolledback() {
+    TransactionState assertPreparedCommittedOrRolledback() {
         throw new IllegalStateException(name()
                 + "; must be PREPARED, COMMITTED or ROLLEDBACK");
     }

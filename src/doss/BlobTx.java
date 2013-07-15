@@ -97,7 +97,7 @@ public interface BlobTx extends Named, Transaction {
      * {@link IllegalStateException} will be thrown and the transaction will be
      * rolled back.
      * 
-     * Implementors should look at {@link TransactionStateMachine} for how to
+     * Implementors should look at {@link TransactionState} for how to
      * get this behaviour.
      * 
      * @throws IllegalStateException
