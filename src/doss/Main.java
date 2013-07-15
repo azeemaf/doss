@@ -3,11 +3,13 @@ package doss;
 import static java.lang.System.err;
 import static java.lang.System.out;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -42,12 +44,8 @@ public class Main {
         },        
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
-            void outputBlob(String blobId) throws IOException {
-                if (System.getProperty("doss.home") == null) {
-                    throw new CommandLineException("the DOSS_HOME environment variable must be set");
-                };
-                                
-                Path path = Paths.get( System.getProperty("doss.home") );
+            void outputBlob(String blobId) throws IOException {           
+                Path path = basedir();
                 
                 BlobStore bs = DOSS.openLocalStore(path);
                 Blob blob = bs.get(blobId);
@@ -77,6 +75,42 @@ public class Main {
                 }
             }
 
+        },
+        put("<fileName ...>", "Create blobs for all the given filenames in the one transaction (like unix cpio??).") {
+
+            void putFiles(List<String> fileNames) throws IOException {
+                StringBuffer sb = new StringBuffer();
+                BlobStore store = DOSS.openLocalStore(basedir());
+                BlobTx tx = store.begin();
+                
+                try {
+                    for (String fileName : fileNames) {
+                       File src = new File(fileName);
+                       if (!src.exists()) {
+                           throw new IOException(String.format("File %s does not exist.", fileName));
+                       }
+                       Blob tgt = tx.put(src.toPath());
+                       sb.append(String.format("blob %s %dMB %s\n", tgt.id(), tgt.size(), fileName));
+                    }
+                    tx.commit();
+                    
+                    out.println(String.format("Created %d blobs:", fileNames.size()));
+                    out.println(sb);
+                } catch (IOException e) {
+                    out.println(String.format("Failed to store requested files due to: %s.", e.getMessage()));
+                    tx.rollback();
+                }                
+            }
+            
+            @Override
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    putFiles(args.list);
+                }
+            }
+            
         };
         
         final String descrption, parameters;
@@ -87,6 +121,14 @@ public class Main {
         }
         
         abstract void execute(Arguments args) throws IOException;
+        
+        Path basedir() throws CommandLineException {
+            if (System.getProperty("doss.home") == null) {
+                throw new CommandLineException("the DOSS_HOME environment variable must be set");
+            };
+                            
+            return Paths.get( System.getProperty("doss.home") );
+        }
         
         String description() {
             return this.descrption;
