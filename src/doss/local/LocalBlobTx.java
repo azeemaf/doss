@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.WritableByteChannel;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -43,11 +42,6 @@ public class LocalBlobTx implements BlobTx {
                 return Files.size(source);
             }
         });
-    }
-
-    @Override
-    public Blob put(String contents) throws IOException {
-        return put(contents.getBytes(Charset.forName("UTF-8")));
     }
 
     @Override

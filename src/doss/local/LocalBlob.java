@@ -3,7 +3,6 @@ package doss.local;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -33,11 +32,6 @@ public class LocalBlob implements Blob {
     @Override
     public SeekableByteChannel openChannel() throws IOException {
         return Files.newByteChannel(path, StandardOpenOption.READ);
-    }
-
-    @Override
-    public String slurp() throws IOException {
-        return new String(Files.readAllBytes(path), Charset.forName("UTF-8"));
     }
 
     @Override
