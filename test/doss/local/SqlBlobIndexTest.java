@@ -73,8 +73,8 @@ public class SqlBlobIndexTest {
         assertEquals("Second blob position is OK", sharedPosition,
                 index.locate(secondBlob));
 
-        assertEquals("Third blob position is OK", sharedPosition,
-                index.locate(secondBlob));
+        assertEquals("Third blob position is OK", differentPosition,
+                index.locate(thirdBlob));
     }
 
     @Test
