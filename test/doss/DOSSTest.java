@@ -23,6 +23,21 @@ public class DOSSTest {
 
     private BlobStore blobStore;
     
+    
+    /**
+     * Reads the contents of the blob into a string (decodes with UTF-8).
+     * 
+     * @throws IOException if an I/O occurs
+     */
+    private String slurp(Blob blob) throws IOException {
+        byte[] buf = new byte[TEST_BYTES.length];
+        try (SeekableByteChannel channel = blob.openChannel()) {
+            channel.read(ByteBuffer.wrap(buf));
+        }
+        return new String(buf, "UTF-8");
+    }
+    
+    
     /*
      * Blobs
      */
@@ -68,13 +83,13 @@ public class DOSSTest {
             blob = tx.put(TEST_BYTES);
             tx.commit();
         }
-        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+        assertEquals(TEST_STRING, slurp(blobStore.get(blob.id())));
         
         blobStore.close();
         
         blobStore = DOSS.openLocalStore(path);
         
-        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+        assertEquals(TEST_STRING, slurp(blobStore.get(blob.id())));
 
     }
     
@@ -112,16 +127,17 @@ public class DOSSTest {
     }
 
     @Test(timeout = 1000)
-    public void testStringIO() throws Exception {
+    public void testBytesIO() throws Exception {
         Named blob;
         
         try (BlobTx tx = blobStore.begin()) {
-            blob = tx.put(TEST_STRING);
+            blob = tx.put(TEST_BYTES);
             tx.commit();
         }
         
-        assertNotNull(blob.id());        
-        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
+        assertNotNull(blob.id());
+        
+        assertEquals(TEST_STRING, slurp(blobStore.get(blob.id())));
     }
 
     /*
@@ -132,7 +148,7 @@ public class DOSSTest {
     public void testRollback() throws Exception {
         Named blob;
         try (BlobTx tx = blobStore.begin()) {
-            blob = tx.put(TEST_STRING);
+            blob = tx.put(TEST_BYTES);
             tx.rollback();
         }
         
@@ -143,7 +159,7 @@ public class DOSSTest {
     public void testImplicitRollback() throws Exception {
         Named blob;
         try (BlobTx tx = blobStore.begin()) {
-            blob = tx.put(TEST_STRING);
+            blob = tx.put(TEST_BYTES);
         }
         
         blobStore.get(blob.id());
@@ -261,7 +277,6 @@ public class DOSSTest {
             tx.commit();
         }
         assertNotNull("Blob is not null", blob);
-        assertEquals(TEST_STRING, blobStore.get(blob.id()).slurp());
         
         PrintStream oldOut = System.out;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

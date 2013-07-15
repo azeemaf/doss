@@ -24,13 +24,4 @@ public interface Blob extends Named, Sized {
      * @throws IOException if an I/O occurs
      */
     public SeekableByteChannel openChannel() throws IOException;
-
-    /**
-     * Reads the contents of the blob into a string (decodes with UTF-8).
-     * 
-     * @return the contents of the blob
-     * @throws IOException if an I/O error occurs
-     */
-    public String slurp() throws IOException;
-
 }

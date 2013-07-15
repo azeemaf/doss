@@ -36,15 +36,6 @@ public interface BlobTx extends Named, AutoCloseable {
     Blob put(byte[] bytes) throws IOException;
     
     /**
-     * Store the contents of a string as a new blob. The String will be encoded with UTF-8.
-     * 
-     * @param source contents to store
-     * @return the new blob
-     * @throws IOException if an I/O error occurs 
-     */
-    Blob put(String contents) throws IOException;
-    
-    /**
      * Commits the transaction, ensuring all blobs written in this transaction
      * are persisted in permanent storage.
      * 
