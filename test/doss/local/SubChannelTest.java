@@ -160,13 +160,14 @@ public class SubChannelTest{
                 EnumSet.of(StandardOpenOption.READ))) {
             
             channel1 = new SubChannel(sbt, 25, 25);
-            SeekableByteChannel sbt1 =  channel1.position(32);
+            SeekableByteChannel sbt1 =  channel1.position(15);
             ByteBuffer buffer = ByteBuffer.allocate(7);
             String encoding = System.getProperty("file.encoding");
             int r1 = channel1.read(buffer);
             buffer.flip();
             String s1 = Charset.forName(encoding).decode(buffer).toString();
-            assertEquals("Checking if we are reading from the correct position ", "the men", s1);
+            System.out.println(s1);
+            assertEquals("Checking if we are reading from the correct position ", "and wom", s1);
             
   
 
@@ -184,7 +185,7 @@ public class SubChannelTest{
                 EnumSet.of(StandardOpenOption.READ))) {
             
             channel1 = new SubChannel(sbt, 25, 25);
-            SeekableByteChannel sbt1 =  channel1.position(20);
+            SeekableByteChannel sbt1 =  channel1.position(-20);
            
   
 

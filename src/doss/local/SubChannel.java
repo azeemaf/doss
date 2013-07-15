@@ -71,10 +71,10 @@ public class SubChannel implements SeekableByteChannel{
     @Override
     //input parameter new position is constrained by the size and offset,
     public SeekableByteChannel position(long newPosition) throws IOException {
-    	if((newPosition < offset) || (newPosition > offset + length)){
+    	if((newPosition < 0) || (newPosition > length)){
     		throw new IllegalArgumentException();
     	}
-        return containerChannel.position(newPosition);
+        return containerChannel.position( offset + newPosition);
     }
 
     @Override
