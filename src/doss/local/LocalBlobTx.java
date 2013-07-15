@@ -87,7 +87,7 @@ public class LocalBlobTx implements BlobTx {
 
         @Override
         public void commit() throws IOException {
-            close();
+            blobStore.txs.remove(id());
         }
 
         @Override
@@ -95,7 +95,7 @@ public class LocalBlobTx implements BlobTx {
             for (Long blobId : addedBlobs) {
                 blobStore.db.delete(blobId);
             }
-            close();
+            blobStore.txs.remove(id());
         }
 
         @Override
@@ -106,7 +106,6 @@ public class LocalBlobTx implements BlobTx {
 
         @Override
         public void close() throws IllegalStateException {
-            blobStore.txs.remove(id());
         }
 
     };
