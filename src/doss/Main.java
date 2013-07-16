@@ -79,16 +79,18 @@ public class Main {
                     BlobStore bs = openBlobStore();
                     
                     try (BlobTx tx = bs.begin()) {
-
-                        out.println("ID\tfilename\tsize");
-
+                        
+                        out.println("ID\tFilename\tSize");
+                        
                         for (String filename: args) {
                             Blob blob = tx.put(Paths.get(filename));
                             out.println(blob.id() + '\t' + filename + '\t' + blob.size() + "B");
                         }
-
+                        
                         tx.commit();
                     }
+                    
+                    out.println("Created " + args.list.size() + " blobs.");
                 }
             }
         };
