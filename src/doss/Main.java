@@ -6,7 +6,6 @@ import static java.lang.System.out;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -43,7 +42,7 @@ public class Main {
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
-                BlobStore bs = DOSS.openLocalStore(basedir());
+                BlobStore bs = openBlobStore();
                 Blob blob = bs.get(blobId);
                 ReadableByteChannel channel = blob.openChannel();
                 WritableByteChannel dest = Channels.newChannel(out);
@@ -77,8 +76,8 @@ public class Main {
                 if (args.isEmpty()) {
                     usage();
                 } else {
-                    BlobStore bs = DOSS.openLocalStore(basedir());
-
+                    BlobStore bs = openBlobStore();
+                    
                     try (BlobTx tx = bs.begin()) {
 
                         out.println("ID\tfilename\tsize");
@@ -103,12 +102,13 @@ public class Main {
         
         abstract void execute(Arguments args) throws IOException;
         
-        Path basedir() throws CommandLineException {
-            if (System.getProperty("doss.home") == null) {
+        BlobStore openBlobStore() throws CommandLineException, IOException {
+            String dir = System.getProperty("doss.home");
+            if (dir == null) {
                 throw new CommandLineException("The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss ");
             };
                             
-            return Paths.get( System.getProperty("doss.home") );
+            return DOSS.openLocalStore(Paths.get(dir));
         }
         
         String description() {
