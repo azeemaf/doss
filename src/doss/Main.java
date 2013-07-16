@@ -135,7 +135,7 @@ public class Main {
         }
     }
     
-    public static void main(String... arguments) {
+    public static void main(String... arguments) throws IOException {
         try {
             Arguments args = new Arguments(Arrays.asList(arguments));
             if (args.isEmpty()) {
@@ -143,9 +143,8 @@ public class Main {
             } else {
                 Command.get(args.first()).execute(args.rest());
             }
-        } catch (CommandLineException | IOException e) {
+        } catch (CommandLineException e) {
             err.println("doss: " + e.getLocalizedMessage());
-            e.printStackTrace();
         }
     }
 
