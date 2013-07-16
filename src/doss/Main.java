@@ -88,19 +88,19 @@ public class Main {
                     };
 
                     BlobStore bs = DOSS.openLocalStore(Paths.get(System.getProperty("doss.home")));
-                    BlobTx tx = bs.begin();
 
-                    out.println("ID\tfilename\tsize");
+                    try (BlobTx tx = bs.begin()) {
 
-                    for (String filename: args) {
-                        Blob blob = tx.put(Paths.get(filename));
-                        out.println(blob.id() + '\t' + filename + '\t' + blob.size() + "B");
+                        out.println("ID\tfilename\tsize");
+
+                        for (String filename: args) {
+                            Blob blob = tx.put(Paths.get(filename));
+                            out.println(blob.id() + '\t' + filename + '\t' + blob.size() + "B");
+                        }
+
+                        tx.commit();
                     }
-
-                    tx.commit();
-                    tx.close();
                 }
-
             }
         };
         
