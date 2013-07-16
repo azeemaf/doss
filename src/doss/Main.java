@@ -95,6 +95,9 @@ public class Main {
                         }
                         
                         tx.commit();
+                    } catch (Exception e) {
+                        err.println("Aborting, rolling back all changes...");
+                        throw e;
                     }
                     
                     out.println("Created " + args.list.size() + " blobs.");
@@ -116,7 +119,7 @@ public class Main {
             if (dir == null) {
                 throw new CommandLineException("The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss ");
             };
-                            
+            
             return DOSS.openLocalStore(Paths.get(dir));
         }
         
