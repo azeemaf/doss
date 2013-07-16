@@ -44,9 +44,9 @@ public class Main {
           
             void outputBlob(String blobId) throws IOException {
                 if (System.getProperty("doss.home") == null) {
-                    throw new CommandLineException("the DOSS_HOME environment variable must be set");
+                    throw new NoDOSSException();
                 };
-                                
+                
                 Path path = Paths.get( System.getProperty("doss.home") );
                 
                 BlobStore bs = DOSS.openLocalStore(path);
@@ -59,7 +59,7 @@ public class Main {
                 while (channel.read(buffer) != -1) {
                     buffer.flip();
                     dest.write(buffer);
-                    buffer.compact();                        
+                    buffer.compact();
                 }
                 buffer.flip();
                 while (buffer.hasRemaining()) {
@@ -71,12 +71,37 @@ public class Main {
                 if (args.isEmpty()) {
                     usage();
                 } else {
-                    for (String arg: args) {                        
+                    for (String arg: args) {
                         outputBlob(arg);
                     }
                 }
             }
+        },
+        put("<file ...>", "Stores files as blobs.") {
 
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    if (System.getProperty("doss.home") == null) {
+                        throw new NoDOSSException();
+                    };
+
+                    BlobStore bs = DOSS.openLocalStore(Paths.get(System.getProperty("doss.home")));
+                    BlobTx tx = bs.begin();
+
+                    out.println("ID\tfilename\tsize");
+
+                    for (String filename: args) {
+                        Blob blob = tx.put(Paths.get(filename));
+                        out.println(blob.id() + '\t' + filename + '\t' + blob.size() + "B");
+                    }
+
+                    tx.commit();
+                    tx.close();
+                }
+
+            }
         };
         
         final String descrption, parameters;
@@ -120,13 +145,20 @@ public class Main {
             }
         } catch (CommandLineException | IOException e) {
             err.println("doss: " + e.getLocalizedMessage());
+            e.printStackTrace();
         }
     }
 
     static class CommandLineException extends RuntimeException {
         CommandLineException(String message) {
             super(message);
-        }        
+        }
+    }
+    
+    static class NoDOSSException extends CommandLineException {
+        NoDOSSException() {
+            super("The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss ");
+        }
     }
 
     static class NoSuchCommandException extends CommandLineException {
