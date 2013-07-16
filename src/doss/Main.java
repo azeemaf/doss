@@ -43,13 +43,7 @@ public class Main {
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
-                if (System.getProperty("doss.home") == null) {
-                    throw new NoDOSSException();
-                };
-                
-                Path path = Paths.get( System.getProperty("doss.home") );
-                
-                BlobStore bs = DOSS.openLocalStore(path);
+                BlobStore bs = DOSS.openLocalStore(basedir());
                 Blob blob = bs.get(blobId);
                 ReadableByteChannel channel = blob.openChannel();
                 WritableByteChannel dest = Channels.newChannel(out);
@@ -83,11 +77,7 @@ public class Main {
                 if (args.isEmpty()) {
                     usage();
                 } else {
-                    if (System.getProperty("doss.home") == null) {
-                        throw new NoDOSSException();
-                    };
-
-                    BlobStore bs = DOSS.openLocalStore(Paths.get(System.getProperty("doss.home")));
+                    BlobStore bs = DOSS.openLocalStore(basedir());
 
                     try (BlobTx tx = bs.begin()) {
 
@@ -112,6 +102,14 @@ public class Main {
         }
         
         abstract void execute(Arguments args) throws IOException;
+        
+        Path basedir() throws CommandLineException {
+            if (System.getProperty("doss.home") == null) {
+                throw new CommandLineException("The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss ");
+            };
+                            
+            return Paths.get( System.getProperty("doss.home") );
+        }
         
         String description() {
             return this.descrption;
@@ -152,12 +150,6 @@ public class Main {
     static class CommandLineException extends RuntimeException {
         CommandLineException(String message) {
             super(message);
-        }
-    }
-    
-    static class NoDOSSException extends CommandLineException {
-        NoDOSSException() {
-            super("The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss ");
         }
     }
 
