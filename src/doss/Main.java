@@ -6,6 +6,8 @@ import static java.lang.System.out;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -83,8 +85,13 @@ public class Main {
                         out.println("ID\tFilename\tSize");
                         
                         for (String filename: args) {
-                            Blob blob = tx.put(Paths.get(filename));
-                            out.println(blob.id() + '\t' + filename + '\t' + blob.size() + "B");
+                            Path p = Paths.get(filename);
+                            if (!Files.exists(p)) {
+                                throw new CommandLineException("no such file: " + filename);
+                            }
+                            
+                            Blob blob = tx.put(p);
+                            out.println(blob.id() + '\t' + filename + '\t' + blob.size() + " B");
                         }
                         
                         tx.commit();
