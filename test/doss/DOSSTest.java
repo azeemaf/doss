@@ -371,7 +371,7 @@ public class DOSSTest {
         try {
             System.setOut(out);
             System.setProperty("doss.home", path.toString());
-            Main.main("info", blob.id());
+            Main.main("stat", blob.id());
         } finally {
             System.setOut(oldOut);
         }
