@@ -42,7 +42,7 @@ public class LocalBlob implements Blob {
     }
 
     @Override
-    public FileTime created() throws IOException {
+    public FileTime created() throws IOException {        
         return Files.readAttributes(path, BasicFileAttributes.class).creationTime();
     }
 
@@ -54,5 +54,10 @@ public class LocalBlob implements Blob {
     @Override
     public FileTime lastAccess() throws IOException {
         return Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime();
+    }
+    
+    @Override
+    public Object fileKey() throws IOException {
+        return Files.readAttributes(path, BasicFileAttributes.class).fileKey();
     }
 }
