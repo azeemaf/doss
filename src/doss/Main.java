@@ -97,10 +97,14 @@ public class Main {
                     for (String arg : args) {
                         Blob blob = bs.get(arg);
                         
-                        out.println("ID\t\t" + blob.id());
+                        out.println(blob.id() + ": ");
                         
-                        out.println("Created\t\t" + formattedTime(blob.created()));
-                        out.println("Size\t\t" + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
+                        out.println("\tCreated\t\t" + formattedTime(blob.created()));
+                        out.println("\tModified\t" + formattedTime(blob.lastModified()));
+                        out.println("\tAccessed\t" + formattedTime(blob.lastAccess()));
+                        out.println("\tSize\t\t" + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
+                        
+                        out.println("");
                     }
                 }
             }
