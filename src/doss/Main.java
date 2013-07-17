@@ -73,7 +73,7 @@ public class Main {
                 }
             }
         },
-        put("<file ...>", "Stores files as blobs.") {
+        put("[-h] <file ...>", "Stores files as blobs.") {
 
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
@@ -82,6 +82,13 @@ public class Main {
                     BlobStore bs = openBlobStore();
                     
                     try (BlobTx tx = bs.begin()) {
+                        
+                        boolean humanSizes = false;
+                        if (args.first().equals("-h")) {
+                            humanSizes = true;
+                            args = args.rest();
+                        } 
+                                   
                         
                         out.println("ID\tFilename\tSize");
                         
@@ -92,7 +99,8 @@ public class Main {
                             }
                             
                             Blob blob = tx.put(p);
-                            out.println(blob.id() + '\t' + filename + '\t' + readableFileSize(blob.size()));
+                            
+                            out.println(blob.id() + '\t' + filename + '\t' + (humanSizes? readableFileSize(blob.size()) : blob.size() + "B"));
                         }
                         
                         tx.commit();
