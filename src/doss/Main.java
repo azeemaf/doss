@@ -6,6 +6,7 @@ import static java.lang.System.out;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -43,13 +44,7 @@ public class Main {
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
-                if (System.getProperty("doss.home") == null) {
-                    throw new CommandLineException("the DOSS_HOME environment variable must be set");
-                };
-                                
-                Path path = Paths.get( System.getProperty("doss.home") );
-                
-                BlobStore bs = DOSS.openLocalStore(path);
+                BlobStore bs = openBlobStore();
                 Blob blob = bs.get(blobId);
                 ReadableByteChannel channel = blob.openChannel();
                 WritableByteChannel dest = Channels.newChannel(out);
@@ -59,7 +54,7 @@ public class Main {
                 while (channel.read(buffer) != -1) {
                     buffer.flip();
                     dest.write(buffer);
-                    buffer.compact();                        
+                    buffer.compact();
                 }
                 buffer.flip();
                 while (buffer.hasRemaining()) {
@@ -71,12 +66,43 @@ public class Main {
                 if (args.isEmpty()) {
                     usage();
                 } else {
-                    for (String arg: args) {                        
+                    for (String arg: args) {
                         outputBlob(arg);
                     }
                 }
             }
+        },
+        put("<file ...>", "Stores files as blobs.") {
 
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    BlobStore bs = openBlobStore();
+                    
+                    try (BlobTx tx = bs.begin()) {
+                        
+                        out.println("ID\tFilename\tSize");
+                        
+                        for (String filename: args) {
+                            Path p = Paths.get(filename);
+                            if (!Files.exists(p)) {
+                                throw new CommandLineException("no such file: " + filename);
+                            }
+                            
+                            Blob blob = tx.put(p);
+                            out.println(blob.id() + '\t' + filename + '\t' + blob.size() + " B");
+                        }
+                        
+                        tx.commit();
+                    } catch (Exception e) {
+                        err.println("Aborting, rolling back all changes...");
+                        throw e;
+                    }
+                    
+                    out.println("Created " + args.list.size() + " blobs.");
+                }
+            }
         };
         
         final String descrption, parameters;
@@ -87,6 +113,15 @@ public class Main {
         }
         
         abstract void execute(Arguments args) throws IOException;
+        
+        BlobStore openBlobStore() throws CommandLineException, IOException {
+            String dir = System.getProperty("doss.home");
+            if (dir == null) {
+                throw new CommandLineException("The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss ");
+            };
+            
+            return DOSS.openLocalStore(Paths.get(dir));
+        }
         
         String description() {
             return this.descrption;
@@ -110,7 +145,7 @@ public class Main {
         }
     }
     
-    public static void main(String... arguments) {
+    public static void main(String... arguments) throws IOException {
         try {
             Arguments args = new Arguments(Arrays.asList(arguments));
             if (args.isEmpty()) {
@@ -118,7 +153,7 @@ public class Main {
             } else {
                 Command.get(args.first()).execute(args.rest());
             }
-        } catch (CommandLineException | IOException e) {
+        } catch (CommandLineException e) {
             err.println("doss: " + e.getLocalizedMessage());
         }
     }
@@ -126,7 +161,7 @@ public class Main {
     static class CommandLineException extends RuntimeException {
         CommandLineException(String message) {
             super(message);
-        }        
+        }
     }
 
     static class NoSuchCommandException extends CommandLineException {
