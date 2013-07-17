@@ -10,8 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -78,6 +80,11 @@ public class Main {
         },
         info("<blobId>", "Displays metadata about a blob.") {
             
+            String formattedTime(FileTime time) {
+                Date date = new Date(time.toMillis());
+                return date.toString();
+            }
+            
             void execute(Arguments args) throws IOException {
                 if (args.list.size() != 1) {
                     usage();
@@ -87,11 +94,12 @@ public class Main {
                     
                     BasicFileAttributes attr = blob.readAttributes();
                     
-                    out.println("ID\t" + blob.id());
-                    out.println("Created\t" + attr.creationTime());
-                    out.println("Accessed\t" + attr.lastAccessTime());
-                    out.println("Modified\t" + attr.lastModifiedTime());
-                    out.println("Size\t" + readableFileSize(attr.size()));
+                    out.println("ID\t\t" + blob.id());
+                    
+                    out.println("Created\t\t" + formattedTime(attr.creationTime()));
+                    out.println("Modified\t" + formattedTime(attr.lastModifiedTime()));
+                    out.println("Accessed\t" + formattedTime(attr.lastAccessTime()));
+                    out.println("Size\t\t" + readableFileSize(attr.size()));
                     
                 }
             }
