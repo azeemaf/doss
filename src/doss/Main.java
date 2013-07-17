@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -90,13 +91,12 @@ public class Main {
                     out.println("Created\t" + attr.creationTime());
                     out.println("Accessed\t" + attr.lastAccessTime());
                     out.println("Modified\t" + attr.lastModifiedTime());
-                    out.println("Size\t" + attr.size());
+                    out.println("Size\t" + readableFileSize(attr.size()));
                     
                 }
             }
         },
-        put("<file ...>", "Stores files as blobs.") {
-
+        put("[-b] <file ...>", "Stores files as blobs.") {
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
@@ -104,6 +104,13 @@ public class Main {
                     BlobStore bs = openBlobStore();
                     
                     try (BlobTx tx = bs.begin()) {
+                        
+                        boolean humanSizes = true;
+                        if (args.first().equals("-b")) {
+                            humanSizes = false;
+                            args = args.rest();
+                        } 
+                                   
                         
                         out.println("ID\tFilename\tSize");
                         
@@ -114,7 +121,8 @@ public class Main {
                             }
                             
                             Blob blob = tx.put(p);
-                            out.println(blob.id() + '\t' + filename + '\t' + blob.size() + " B");
+                            
+                            out.println(blob.id() + '\t' + filename + '\t' + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
                         }
                         
                         tx.commit();
@@ -179,6 +187,13 @@ public class Main {
         } catch (CommandLineException e) {
             err.println("doss: " + e.getLocalizedMessage());
         }
+    }
+    
+    public static String readableFileSize(long size) {
+        if(size <= 0) return "0";
+        final String[] units = new String[] { "B", "KB", "MB", "GB", "TB" };
+        int digitGroups = (int) (Math.log10(size)/Math.log10(1024));
+        return new DecimalFormat("#,##0.#").format(size/Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
 
     static class CommandLineException extends RuntimeException {
