@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.channels.FileChannel;
+import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -45,29 +46,17 @@ public class Main {
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
-                if (System.getProperty("doss.home") == null) {
-                    throw new CommandLineException("the DOSS_HOME environment variable must be set");
-                };
-                                
-                Path path = Paths.get( System.getProperty("doss.home") );
-                
-                try (BlobStore bs = DOSS.openLocalStore(path);
-                     ReadableByteChannel channel = bs.get(blobId).openChannel();
-                     WritableByteChannel dest = Channels.newChannel(out)) { 
-                 
-                    final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
+                BlobStore bs = openBlobStore();
+                Blob blob = bs.get(blobId);
+                ReadableByteChannel channel = blob.openChannel();
+                WritableByteChannel dest = Channels.newChannel(out);
 
-                    while (channel.read(buffer) != -1) {
-                        buffer.flip();
-                        dest.write(buffer);
-                        buffer.compact();                        
-                    }
+                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
+
+                while (channel.read(buffer) != -1) {
                     buffer.flip();
-                    while (buffer.hasRemaining()) {
-                        dest.write(buffer);
-                    }
-                    
-                    
+                    dest.write(buffer);
+                    buffer.compact();
                 }
             }
 
@@ -75,12 +64,11 @@ public class Main {
                 if (args.isEmpty()) {
                     usage();
                 } else {
-                    for (String arg: args) {                        
+                    for (String arg: args) {
                         outputBlob(arg);
                     }
                 }
             }
-
         },        
         get("<blobId ...>", "Copy blobs to the current working directory.") {
           
@@ -106,12 +94,51 @@ public class Main {
                 if (args.isEmpty()) {
                     usage();
                 } else {
-                    for (String arg: args) {                        
+                    for (String arg: args) {
                         outputBlob(arg);
                     }
                 }
             }
+        },
+        put("[-b] <file ...>", "Stores files as blobs.") {
 
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    BlobStore bs = openBlobStore();
+                    
+                    try (BlobTx tx = bs.begin()) {
+                        
+                        boolean humanSizes = true;
+                        if (args.first().equals("-b")) {
+                            humanSizes = false;
+                            args = args.rest();
+                        } 
+                                   
+                        
+                        out.println("ID\tFilename\tSize");
+                        
+                        for (String filename: args) {
+                            Path p = Paths.get(filename);
+                            if (!Files.exists(p)) {
+                                throw new CommandLineException("no such file: " + filename);
+                            }
+                            
+                            Blob blob = tx.put(p);
+                            
+                            out.println(blob.id() + '\t' + filename + '\t' + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
+                        }
+                        
+                        tx.commit();
+                    } catch (Exception e) {
+                        err.println("Aborting, rolling back all changes...");
+                        throw e;
+                    }
+                    
+                    out.println("Created " + args.list.size() + " blobs.");
+                }
+            }
         };
         
         final String descrption, parameters;
@@ -122,6 +149,15 @@ public class Main {
         }
         
         abstract void execute(Arguments args) throws IOException;
+        
+        BlobStore openBlobStore() throws CommandLineException, IOException {
+            String dir = System.getProperty("doss.home");
+            if (dir == null) {
+                throw new CommandLineException("The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss ");
+            };
+            
+            return DOSS.openLocalStore(Paths.get(dir));
+        }
         
         String description() {
             return this.descrption;
@@ -145,7 +181,7 @@ public class Main {
         }
     }
     
-    public static void main(String... arguments) {
+    public static void main(String... arguments) throws IOException {
         try {
             Arguments args = new Arguments(Arrays.asList(arguments));
             if (args.isEmpty()) {
@@ -153,15 +189,22 @@ public class Main {
             } else {
                 Command.get(args.first()).execute(args.rest());
             }
-        } catch (CommandLineException | IOException e) {
+        } catch (CommandLineException e) {
             err.println("doss: " + e.getLocalizedMessage());
         }
+    }
+    
+    public static String readableFileSize(long size) {
+        if(size <= 0) return "0";
+        final String[] units = new String[] { "B", "KB", "MB", "GB", "TB" };
+        int digitGroups = (int) (Math.log10(size)/Math.log10(1024));
+        return new DecimalFormat("#,##0.#").format(size/Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
 
     static class CommandLineException extends RuntimeException {
         CommandLineException(String message) {
             super(message);
-        }        
+        }
     }
 
     static class NoSuchCommandException extends CommandLineException {
