@@ -22,7 +22,7 @@ public interface Status extends Sized {
      * @return the object's creation date
      * @throws IOException if an I/O occurs
      */
-    public abstract FileTime lastModifed() throws IOException;
+    public abstract FileTime lastModified() throws IOException;
 
     /**
      * Returns the last access date for this object.

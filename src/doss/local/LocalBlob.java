@@ -47,7 +47,7 @@ public class LocalBlob implements Blob {
     }
 
     @Override
-    public FileTime lastModifed() throws IOException {
+    public FileTime lastModified() throws IOException {
         return Files.readAttributes(path, BasicFileAttributes.class).lastModifiedTime();
     }
     
