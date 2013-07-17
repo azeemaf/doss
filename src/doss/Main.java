@@ -9,9 +9,12 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+
+import doss.local.LocalBlob;
 
 
 /**
@@ -69,6 +72,26 @@ public class Main {
                     for (String arg: args) {
                         outputBlob(arg);
                     }
+                }
+            }
+        },
+        info("<blobId>", "Displays metadata about a blob.") {
+            
+            void execute(Arguments args) throws IOException {
+                if (args.list.size() != 1) {
+                    usage();
+                } else {
+                    BlobStore bs = openBlobStore(); 
+                    LocalBlob blob = (LocalBlob) bs.get(args.first());
+                    
+                    BasicFileAttributes attr = blob.readAttributes();
+                    
+                    out.println("ID\t" + blob.id());
+                    out.println("Created\t" + attr.creationTime());
+                    out.println("Accessed\t" + attr.lastAccessTime());
+                    out.println("Modified\t" + attr.lastModifiedTime());
+                    out.println("Size\t" + attr.size());
+                    
                 }
             }
         },

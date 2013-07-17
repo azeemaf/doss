@@ -6,6 +6,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
 
 import doss.Blob;
 
@@ -37,5 +38,9 @@ public class LocalBlob implements Blob {
     @Override
     public long size() throws IOException {
         return Files.size(path);
+    }
+
+    public BasicFileAttributes readAttributes() throws IOException {
+        return Files.readAttributes(path, BasicFileAttributes.class);
     }
 }
