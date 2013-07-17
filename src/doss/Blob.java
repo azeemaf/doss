@@ -7,7 +7,7 @@ import java.nio.channels.SeekableByteChannel;
 /**
  * A named byte stream of known length that supports random read access.
  */
-public interface Blob extends Named, Sized {
+public interface Blob extends Named, Status {
 
     /**
      * Opens the blob for reading and returns an InputStream.

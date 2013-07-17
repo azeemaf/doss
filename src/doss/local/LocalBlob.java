@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 
 import doss.Blob;
 
@@ -40,7 +41,18 @@ public class LocalBlob implements Blob {
         return Files.size(path);
     }
 
-    public BasicFileAttributes readAttributes() throws IOException {
-        return Files.readAttributes(path, BasicFileAttributes.class);
+    @Override
+    public FileTime created() throws IOException {
+        return Files.readAttributes(path, BasicFileAttributes.class).creationTime();
+    }
+
+    @Override
+    public FileTime lastModifed() throws IOException {
+        return Files.readAttributes(path, BasicFileAttributes.class).lastModifiedTime();
+    }
+    
+    @Override
+    public FileTime lastAccess() throws IOException {
+        return Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime();
     }
 }

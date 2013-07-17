@@ -9,15 +9,12 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-
-import doss.local.LocalBlob;
 
 
 /**
@@ -78,7 +75,7 @@ public class Main {
                 }
             }
         },
-        info("<blobId>", "Displays metadata about a blob.") {
+        stat("[-b] <blobId ...>", "Displays metadata about blobs.") {
             
             String formattedTime(FileTime time) {
                 Date date = new Date(time.toMillis());
@@ -86,21 +83,25 @@ public class Main {
             }
             
             void execute(Arguments args) throws IOException {
-                if (args.list.size() != 1) {
+                if (args.isEmpty()) {
                     usage();
                 } else {
-                    BlobStore bs = openBlobStore(); 
-                    LocalBlob blob = (LocalBlob) bs.get(args.first());
+                    BlobStore bs = openBlobStore();
                     
-                    BasicFileAttributes attr = blob.readAttributes();
+                    boolean humanSizes = true;
+                    if (args.first().equals("-b")) {
+                        humanSizes = false;
+                        args = args.rest();
+                    } 
                     
-                    out.println("ID\t\t" + blob.id());
-                    
-                    out.println("Created\t\t" + formattedTime(attr.creationTime()));
-                    out.println("Modified\t" + formattedTime(attr.lastModifiedTime()));
-                    out.println("Accessed\t" + formattedTime(attr.lastAccessTime()));
-                    out.println("Size\t\t" + readableFileSize(attr.size()));
-                    
+                    for (String arg : args) {
+                        Blob blob = bs.get(arg);
+                        
+                        out.println("ID\t\t" + blob.id());
+                        
+                        out.println("Created\t\t" + formattedTime(blob.created()));
+                        out.println("Size\t\t" + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
+                    }
                 }
             }
         },
