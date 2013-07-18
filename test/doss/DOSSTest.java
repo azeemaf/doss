@@ -17,8 +17,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class DOSSTest {
     static final String TEST_STRING = "test\nstring\0a\r\nwith\tstrange\u2603characters";
-    static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset
-            .forName("UTF-8"));
+    static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset.forName("UTF-8"));
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -373,4 +372,33 @@ public class DOSSTest {
         assertTrue(outputStream.toString("UTF-8").contains("not a regular file"));
     }
 
+    @Test
+    public void cliStat() throws Exception {
+        Path path = folder.newFolder().toPath();
+        blobStore = DOSS.openLocalStore(path);
+
+        Blob blob = null;
+
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_BYTES);
+            tx.commit();
+        }
+        assertNotNull("Blob is not null", blob);
+        
+        PrintStream oldOut = System.out;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(outputStream);
+
+        try {
+            System.setOut(out);
+            System.setProperty("doss.home", path.toString());
+            Main.main("stat", blob.id());
+        } finally {
+            System.setOut(oldOut);
+        }
+
+        assertTrue(outputStream.toString().contains(blob.id()));
+        assertTrue(outputStream.toString().contains("Created"));
+        assertTrue(outputStream.toString().contains(Integer.toString(TEST_BYTES.length)));
+    }
 }

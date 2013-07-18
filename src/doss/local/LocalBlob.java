@@ -6,6 +6,8 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 
 import doss.Blob;
 
@@ -38,4 +40,10 @@ public class LocalBlob implements Blob {
     public long size() throws IOException {
         return Files.size(path);
     }
+
+    @Override
+    public FileTime created() throws IOException {        
+        return Files.readAttributes(path, BasicFileAttributes.class).creationTime();
+    }
+
 }

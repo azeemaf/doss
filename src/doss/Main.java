@@ -9,8 +9,10 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -73,8 +75,39 @@ public class Main {
                 }
             }
         },
+        stat("[-b] <blobId ...>", "Displays metadata about blobs.") {
+            
+            String formattedTime(FileTime time) {
+                Date date = new Date(time.toMillis());
+                return date.toString();
+            }
+            
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    BlobStore bs = openBlobStore();
+                    
+                    boolean humanSizes = true;
+                    if (args.first().equals("-b")) {
+                        humanSizes = false;
+                        args = args.rest();
+                    } 
+                    
+                    for (String arg : args) {
+                        Blob blob = bs.get(arg);
+                        
+                        out.println(blob.id() + ": ");
+                        
+                        out.println("\tCreated:\t" + formattedTime(blob.created()));
+                        out.println("\tSize:\t\t" + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
+                        
+                        out.println("");
+                    }
+                }
+            }
+        },
         put("[-b] <file ...>", "Stores files as blobs.") {
-
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
