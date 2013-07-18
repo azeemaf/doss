@@ -335,8 +335,8 @@ public class DOSSTest {
     @Test
     public void cliPutBogusFile() throws Exception {
         Path dossPath = folder.newFolder().toPath();
-                
-        PrintStream oldOut = System.out;
+        
+        PrintStream oldErr = System.err;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(outputStream);
         
@@ -345,10 +345,31 @@ public class DOSSTest {
             System.setProperty("doss.home", dossPath.toString());
             Main.main("put", "this/file/should/probably/not/exist");
         } finally {
-            System.setErr(oldOut);
+            System.setErr(oldErr);
         }
         
         assertTrue(outputStream.toString("UTF-8").contains("no such file"));
+    }
+    
+    @Test
+    public void cliPutDirectory() throws Exception {
+        Path dossPath = folder.newFolder().toPath();
+                
+        PrintStream oldErr = System.err;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(outputStream);
+        
+        Path directoryPath = folder.newFolder("importme").toPath();
+        
+        try {
+            System.setErr(out);
+            System.setProperty("doss.home", dossPath.toString());
+            Main.main("put", directoryPath.toString());
+        } finally {
+            System.setErr(oldErr);
+        }
+        
+        assertTrue(outputStream.toString("UTF-8").contains("not a regular file"));
     }
 
     @Test
