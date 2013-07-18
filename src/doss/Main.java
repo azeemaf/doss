@@ -43,7 +43,26 @@ public class Main {
                 } 
             }
 
-        },        
+        },
+        version("", "Displays the version number.") {
+            
+            void execute(Arguments args) throws IOException {
+                if (!args.isEmpty()) {
+                    usage();
+                } else {
+                    if (this.getClass().getPackage().getImplementationVersion()== null) {
+                        out.println("DOSS 2 - unknown version\nThere is no MANIFEST.MF to look at outside of a jar.");
+                    } else {
+                        out.println("DOSS 2 version " + this.getClass().getPackage().getImplementationVersion());
+                    }
+                    
+                    out.println("Java version: " + System.getProperty("java.version") + ", vendor: " + System.getProperty("java.vendor"));
+                    out.println("Java home: " +  System.getProperty("java.home"));
+                    out.println("");
+                    out.println("For more usage: help <command>");
+                }
+            }
+        },
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
