@@ -88,7 +88,6 @@ public class Main {
                             humanSizes = false;
                             args = args.rest();
                         } 
-                                   
                         
                         out.println("ID\tFilename\tSize");
                         
@@ -96,6 +95,9 @@ public class Main {
                             Path p = Paths.get(filename);
                             if (!Files.exists(p)) {
                                 throw new CommandLineException("no such file: " + filename);
+                            }
+                            if (!Files.isRegularFile(p)) {
+                                throw new CommandLineException("not a regular file: " + filename);
                             }
                             
                             Blob blob = tx.put(p);
