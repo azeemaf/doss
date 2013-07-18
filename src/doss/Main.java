@@ -100,9 +100,6 @@ public class Main {
                         out.println(blob.id() + ": ");
                         
                         out.println("\tCreated:\t" + formattedTime(blob.created()));
-                        out.println("\tModified:\t" + formattedTime(blob.lastModified()));
-                        out.println("\tAccessed:\t" + formattedTime(blob.lastAccess()));
-                        out.println("\tKey:\t\t" + blob.fileKey());
                         out.println("\tSize:\t\t" + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
                         
                         out.println("");

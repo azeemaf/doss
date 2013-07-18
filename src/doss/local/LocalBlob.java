@@ -46,18 +46,4 @@ public class LocalBlob implements Blob {
         return Files.readAttributes(path, BasicFileAttributes.class).creationTime();
     }
 
-    @Override
-    public FileTime lastModified() throws IOException {
-        return Files.readAttributes(path, BasicFileAttributes.class).lastModifiedTime();
-    }
-    
-    @Override
-    public FileTime lastAccess() throws IOException {
-        return Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime();
-    }
-    
-    @Override
-    public Object fileKey() throws IOException {
-        return Files.readAttributes(path, BasicFileAttributes.class).fileKey();
-    }
 }
