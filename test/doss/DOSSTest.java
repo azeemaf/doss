@@ -401,4 +401,22 @@ public class DOSSTest {
         assertTrue(outputStream.toString().contains("Created"));
         assertTrue(outputStream.toString().contains(Integer.toString(TEST_BYTES.length)));
     }
+    
+    @Test
+    public void cliVersion() throws Exception {        
+        PrintStream oldOut = System.out;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(outputStream);
+        
+        try {
+            System.setOut(out);
+            Main.main("version");
+        } finally {
+            System.setOut(oldOut);
+        }
+        
+        assertTrue(outputStream.toString().contains("DOSS 2"));
+        assertTrue(outputStream.toString().contains("Java version:"));
+        assertTrue(outputStream.toString().contains("Java home:"));
+    }
 }
