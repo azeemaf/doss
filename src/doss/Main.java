@@ -9,6 +9,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.nio.channels.FileChannel;
 import java.nio.file.attribute.FileTime;
 import java.text.DecimalFormat;
 import java.util.Arrays;
@@ -66,21 +68,41 @@ public class Main {
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
-                BlobStore bs = openBlobStore();
-                Blob blob = bs.get(blobId);
-                ReadableByteChannel channel = blob.openChannel();
-                WritableByteChannel dest = Channels.newChannel(out);
+            	try (BlobStore bs = openBlobStore()) {
+                    Blob blob = bs.get(blobId);
+                    ReadableByteChannel channel = blob.openChannel();
+                    WritableByteChannel dest = Channels.newChannel(out);
 
-                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
+                    final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
 
-                while (channel.read(buffer) != -1) {
-                    buffer.flip();
-                    dest.write(buffer);
-                    buffer.compact();
+                    while (channel.read(buffer) != -1) {
+                        buffer.flip();
+                        dest.write(buffer);
+                        buffer.compact();
+                    }
+            	}
+            }
+
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    for (String arg: args) {
+                        outputBlob(arg);
+                    }
                 }
-                buffer.flip();
-                while (buffer.hasRemaining()) {
-                    dest.write(buffer);
+            }
+        },        
+        get("<blobId ...>", "Copy blobs to the current working directory.") {
+          
+            void outputBlob(String blobId) throws IOException {
+            	
+                try (BlobStore bs = openBlobStore()) {
+                    Blob blob = bs.get(blobId);
+                    ReadableByteChannel channel = blob.openChannel();
+                    FileChannel dest = FileChannel.open(Paths.get(blobId), StandardOpenOption.WRITE,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING );
+                    long bytesTransferred = dest.transferFrom(channel, 0, Long.MAX_VALUE);
+                    out.println("Got " + bytesTransferred + "B of " + blob.size() + "B from blob " + blobId);
                 }
             }
 
