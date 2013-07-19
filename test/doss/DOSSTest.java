@@ -19,8 +19,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class DOSSTest {
     static final String TEST_STRING = "test\nstring\0a\r\nwith\tstrange\u2603characters";
-    static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset
-            .forName("UTF-8"));
+    static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset.forName("UTF-8"));
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -362,8 +361,8 @@ public class DOSSTest {
 
     public void cliPutBogusFile() throws Exception {
         Path dossPath = folder.newFolder().toPath();
-                
-        PrintStream oldOut = System.out;
+        
+        PrintStream oldErr = System.err;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(outputStream);
         
@@ -372,10 +371,78 @@ public class DOSSTest {
             System.setProperty("doss.home", dossPath.toString());
             Main.main("put", "this/file/should/probably/not/exist");
         } finally {
-            System.setErr(oldOut);
+            System.setErr(oldErr);
         }
         
         assertTrue(outputStream.toString("UTF-8").contains("no such file"));
     }
+    
+    @Test
+    public void cliPutDirectory() throws Exception {
+        Path dossPath = folder.newFolder().toPath();
+                
+        PrintStream oldErr = System.err;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(outputStream);
+        
+        Path directoryPath = folder.newFolder("importme").toPath();
+        
+        try {
+            System.setErr(out);
+            System.setProperty("doss.home", dossPath.toString());
+            Main.main("put", directoryPath.toString());
+        } finally {
+            System.setErr(oldErr);
+        }
+        
+        assertTrue(outputStream.toString("UTF-8").contains("not a regular file"));
+    }
 
+    @Test
+    public void cliStat() throws Exception {
+        Path path = folder.newFolder().toPath();
+        blobStore = DOSS.openLocalStore(path);
+
+        Blob blob = null;
+
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_BYTES);
+            tx.commit();
+        }
+        assertNotNull("Blob is not null", blob);
+        
+        PrintStream oldOut = System.out;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(outputStream);
+
+        try {
+            System.setOut(out);
+            System.setProperty("doss.home", path.toString());
+            Main.main("stat", blob.id());
+        } finally {
+            System.setOut(oldOut);
+        }
+
+        assertTrue(outputStream.toString().contains(blob.id()));
+        assertTrue(outputStream.toString().contains("Created"));
+        assertTrue(outputStream.toString().contains(Integer.toString(TEST_BYTES.length)));
+    }
+    
+    @Test
+    public void cliVersion() throws Exception {        
+        PrintStream oldOut = System.out;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(outputStream);
+        
+        try {
+            System.setOut(out);
+            Main.main("version");
+        } finally {
+            System.setOut(oldOut);
+        }
+        
+        assertTrue(outputStream.toString().contains("DOSS 2"));
+        assertTrue(outputStream.toString().contains("Java version:"));
+        assertTrue(outputStream.toString().contains("Java home:"));
+    }
 }

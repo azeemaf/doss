@@ -7,13 +7,14 @@ import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.nio.channels.FileChannel;
+import java.nio.file.attribute.FileTime;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -44,7 +45,26 @@ public class Main {
                 } 
             }
 
-        },        
+        },
+        version("", "Displays the version number.") {
+            
+            void execute(Arguments args) throws IOException {
+                if (!args.isEmpty()) {
+                    usage();
+                } else {
+                    if (this.getClass().getPackage().getImplementationVersion()== null) {
+                        out.println("DOSS 2 - unknown version\nThere is no MANIFEST.MF to look at outside of a jar.");
+                    } else {
+                        out.println("DOSS 2 version " + this.getClass().getPackage().getImplementationVersion());
+                    }
+                    
+                    out.println("Java version: " + System.getProperty("java.version") + ", vendor: " + System.getProperty("java.vendor"));
+                    out.println("Java home: " +  System.getProperty("java.home"));
+                    out.println("");
+                    out.println("For more usage: help <command>");
+                }
+            }
+        },
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
@@ -96,8 +116,39 @@ public class Main {
                 }
             }
         },
+        stat("[-b] <blobId ...>", "Displays metadata about blobs.") {
+            
+            String formattedTime(FileTime time) {
+                Date date = new Date(time.toMillis());
+                return date.toString();
+            }
+            
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    BlobStore bs = openBlobStore();
+                    
+                    boolean humanSizes = true;
+                    if (args.first().equals("-b")) {
+                        humanSizes = false;
+                        args = args.rest();
+                    } 
+                    
+                    for (String arg : args) {
+                        Blob blob = bs.get(arg);
+                        
+                        out.println(blob.id() + ": ");
+                        
+                        out.println("\tCreated:\t" + formattedTime(blob.created()));
+                        out.println("\tSize:\t\t" + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
+                        
+                        out.println("");
+                    }
+                }
+            }
+        },
         put("[-b] <file ...>", "Stores files as blobs.") {
-
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
@@ -111,7 +162,6 @@ public class Main {
                             humanSizes = false;
                             args = args.rest();
                         } 
-                                   
                         
                         out.println("ID\tFilename\tSize");
                         
@@ -119,6 +169,9 @@ public class Main {
                             Path p = Paths.get(filename);
                             if (!Files.exists(p)) {
                                 throw new CommandLineException("no such file: " + filename);
+                            }
+                            if (!Files.isRegularFile(p)) {
+                                throw new CommandLineException("not a regular file: " + filename);
                             }
                             
                             Blob blob = tx.put(p);
