@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,7 +39,7 @@ public class DOSSTest {
         }
         return new String(buf, "UTF-8");
     }
-    
+
     /*
      * Blobs
      */
@@ -338,7 +339,7 @@ public class DOSSTest {
     public void cliGet() throws Exception {
         Path path = folder.newFolder().toPath();
         blobStore = DOSS.openLocalStore(path);
-        
+
         Blob blob = null;
         
         try (BlobTx tx = blobStore.begin()) {
@@ -350,8 +351,12 @@ public class DOSSTest {
         
         System.setProperty("doss.home", path.toString());
         Main.main("get", blob.id());
+ 
+        assertTrue(Arrays.equals(Files.readAllBytes(Paths.get(blob.id())),TEST_BYTES));
+        assertEquals(TEST_STRING, new String(Files.readAllBytes(Paths.get(blob.id())), "UTF-8"));
         
-        assertEquals(TEST_BYTES, Files.readAllLines(Paths.get(blob.id()), Charset.forName("UTF-8")));
+        Files.deleteIfExists(Paths.get(blob.id()));
+
     }
     
 

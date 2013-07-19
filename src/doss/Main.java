@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
 import java.util.Arrays;
@@ -81,7 +83,7 @@ public class Main {
                     Blob blob = bs.get(blobId);
                     ReadableByteChannel channel = blob.openChannel();
                 
-                    FileChannel dest = FileChannel.open(Files.createFile(Paths.get(blobId)));
+                    FileChannel dest = FileChannel.open(Paths.get(blobId), StandardOpenOption.WRITE,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING );
                 
                     long bytesTransferred = dest.transferFrom(channel, 0, Long.MAX_VALUE);
                 
