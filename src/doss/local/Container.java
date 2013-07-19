@@ -10,5 +10,6 @@ public interface Container extends AutoCloseable {
 
     public long put(String id, Writable output)
             throws IOException;
-
+    
+    void close();
 }

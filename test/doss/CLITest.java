@@ -54,6 +54,30 @@ public class CLITest {
 
         assertEquals(TEST_STRING, outputStream.toString("UTF-8"));
     }
+
+    @Test
+    public void cliGet() throws Exception {
+        Path path = folder.newFolder().toPath();
+        blobStore = DOSS.openLocalStore(path);
+
+        Blob blob = null;
+        
+        try (BlobTx tx = blobStore.begin()) {
+            blob = tx.put(TEST_BYTES);
+            tx.commit();
+        }
+        assertNotNull("Blob is not null", blob);
+        assertEquals(TEST_STRING, slurp(blob));
+        
+        System.setProperty("doss.home", path.toString());
+        Main.main("get", blob.id());
+ 
+        assertTrue(Arrays.equals(Files.readAllBytes(Paths.get(blob.id())),TEST_BYTES));
+        assertEquals(TEST_STRING, new String(Files.readAllBytes(Paths.get(blob.id())), "UTF-8"));
+        
+        Files.deleteIfExists(Paths.get(blob.id()));
+
+    }
     
     @Test
     public void cliPut() throws Exception {
@@ -163,6 +187,23 @@ public class CLITest {
         assertTrue(outputStream.toString().contains(Integer.toString(TEST_BYTES.length)));
     }
     
+    @Test
+    public void cliVersion() throws Exception {        
+        PrintStream oldOut = System.out;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(outputStream);
+        
+        try {
+            System.setOut(out);
+            Main.main("version");
+        } finally {
+            System.setOut(oldOut);
+        }
+        
+        assertTrue(outputStream.toString().contains("DOSS 2"));
+        assertTrue(outputStream.toString().contains("Java version:"));
+        assertTrue(outputStream.toString().contains("Java home:"));
+    }
     
     /**
      * Make a temporary file somewhere harmless with some test contents in it.
