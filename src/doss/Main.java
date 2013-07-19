@@ -75,21 +75,13 @@ public class Main {
         get("<blobId ...>", "Copy blobs to the current working directory.") {
           
             void outputBlob(String blobId) throws IOException {
-                if (System.getProperty("doss.home") == null) {
-                    throw new CommandLineException("the DOSS_HOME environment variable must be set");
-                };
-
-                try (BlobStore bs = DOSS.openLocalStore(Paths.get( System.getProperty("doss.home") ))) {
-                    Blob blob = bs.get(blobId);
-                    ReadableByteChannel channel = blob.openChannel();
+                BlobStore bs = openBlobStore();
+                Blob blob = bs.get(blobId);
+                ReadableByteChannel channel = blob.openChannel();
+                FileChannel dest = FileChannel.open(Paths.get(blobId), StandardOpenOption.WRITE,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING );
+                long bytesTransferred = dest.transferFrom(channel, 0, Long.MAX_VALUE);
+                out.println("Got " + bytesTransferred + "B of " + blob.size() + "B from blob " + blobId);
                 
-                    FileChannel dest = FileChannel.open(Paths.get(blobId), StandardOpenOption.WRITE,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING );
-                
-                    long bytesTransferred = dest.transferFrom(channel, 0, Long.MAX_VALUE);
-                
-                    out.println("Got " + bytesTransferred + "B of " + blob.size() + "B from blob " + blobId);
-                
-                }
             }
 
             void execute(Arguments args) throws IOException {
