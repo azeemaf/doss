@@ -2,36 +2,9 @@ package doss;
 
 import static org.junit.Assert.*;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class TransactionsTest {
-
-    static final String TEST_STRING = "test\nstring\0a\r\nwith\tstrange\u2603characters";
-    static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset.forName("UTF-8"));
-
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
-    private BlobStore blobStore;
-    
-    @Before
-    public void openBlobStore() throws IOException {
-        blobStore = DOSS.openLocalStore(folder.newFolder().toPath());
-    }
-
-    @After
-    public void closeBlobStore() throws Exception {
-        blobStore.close();
-        blobStore = null;
-    }
-    
+public class TransactionsTest extends DOSSTest {
     @Test(expected = NoSuchBlobException.class)
     public void testRollback() throws Exception {
         Named blob;

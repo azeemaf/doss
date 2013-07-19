@@ -1,31 +1,23 @@
 package doss;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class CLITest {
-
-    static final String TEST_STRING = "test\nstring\0a\r\nwith\tstrange\u2603characters";
-    static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset.forName("UTF-8"));
-
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
-    private BlobStore blobStore;
+public class CLITest extends DOSSTest {
     
     @Test
     public void cliCat() throws Exception {
@@ -204,17 +196,6 @@ public class CLITest {
         assertTrue(outputStream.toString().contains("Java version:"));
         assertTrue(outputStream.toString().contains("Java home:"));
     }
-    
-    /**
-     * Make a temporary file somewhere harmless with some test contents in it.
-     * 
-     * @returns Path to the temporary file
-     * @throws IOException if an I/O occurs
-     */
-    private Path makeTempFile(String contents) throws IOException {
-        Path path = folder.newFile().toPath();
-        Files.write(path, contents.getBytes());
-        return path;
-    }
+
 
 }
