@@ -27,19 +27,6 @@ public class CLITest {
 
     private BlobStore blobStore;
     
-    
-    /**
-     * Make a temporary file somewhere harmless with some test contents in it.
-     * 
-     * @returns Path to the temporary file
-     * @throws IOException if an I/O occurs
-     */
-    private Path makeTempFile(String contents) throws IOException {
-        Path path = folder.newFile().toPath();
-        Files.write(path, contents.getBytes());
-        return path;
-    }
-    
     @Test
     public void cliCat() throws Exception {
         Path path = folder.newFolder().toPath();
@@ -174,6 +161,19 @@ public class CLITest {
         assertTrue(outputStream.toString().contains(blob.id()));
         assertTrue(outputStream.toString().contains("Created"));
         assertTrue(outputStream.toString().contains(Integer.toString(TEST_BYTES.length)));
+    }
+    
+    
+    /**
+     * Make a temporary file somewhere harmless with some test contents in it.
+     * 
+     * @returns Path to the temporary file
+     * @throws IOException if an I/O occurs
+     */
+    private Path makeTempFile(String contents) throws IOException {
+        Path path = folder.newFile().toPath();
+        Files.write(path, contents.getBytes());
+        return path;
     }
 
 }
