@@ -1,4 +1,4 @@
-package doss.local;
+package doss.core;
 
 import java.io.IOException;
 import doss.Blob;

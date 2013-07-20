@@ -12,9 +12,9 @@ import java.util.List;
 
 import doss.Blob;
 import doss.BlobTx;
-import doss.Transaction;
-import doss.TransactionState;
 import doss.Writable;
+import doss.core.Transaction;
+import doss.core.TransactionState;
 
 public class LocalBlobTx implements BlobTx {
 

@@ -1,4 +1,4 @@
-package doss.local;
+package doss.core;
 
 import doss.NoSuchBlobException;
 

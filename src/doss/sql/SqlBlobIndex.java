@@ -1,9 +1,10 @@
-package doss.local;
+package doss.sql;
 
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.IDBI;
 
 import doss.NoSuchBlobException;
+import doss.core.BlobIndex;
 
 /**
  * BlobIndex backed by a SQL database using jDBI.

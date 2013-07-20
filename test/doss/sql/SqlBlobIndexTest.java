@@ -1,4 +1,4 @@
-package doss.local;
+package doss.sql;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -17,6 +17,9 @@ import org.skife.jdbi.v2.logging.PrintStreamLog;
 import org.skife.jdbi.v2.tweak.SQLLog;
 
 import doss.NoSuchBlobException;
+import doss.core.BlobIndex;
+import doss.sql.BlobIndexSchemaDAO;
+import doss.sql.SqlBlobIndex;
 
 public class SqlBlobIndexTest {
 

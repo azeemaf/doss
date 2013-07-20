@@ -5,12 +5,12 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.skife.jdbi.v2.DBI;
-
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
 import doss.NoSuchBlobTxException;
+import doss.core.BlobIndex;
+import doss.core.Container;
 
 public class LocalBlobStore implements BlobStore {
 
@@ -20,10 +20,9 @@ public class LocalBlobStore implements BlobStore {
     final BlobIndex db;
     final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
 
-    public LocalBlobStore(Path rootDir) throws IOException {
+    public LocalBlobStore(Path rootDir, BlobIndex index) throws IOException {
         container = new DirectoryContainer(rootDir.resolve("data"));
-        DBI dbi = new DBI("jdbc:h2:file:" + rootDir.resolve("index/index")+";AUTO_SERVER=TRUE");
-        db = new SqlBlobIndex(dbi.open());
+        this.db = index;
     }
 
     @Override

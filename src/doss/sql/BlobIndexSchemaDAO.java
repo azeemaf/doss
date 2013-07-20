@@ -1,4 +1,4 @@
-package doss.local;
+package doss.sql;
 
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
 

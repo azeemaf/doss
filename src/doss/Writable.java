@@ -3,6 +3,8 @@ package doss;
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 
+import doss.core.Sized;
+
 /**
  * An object of known size that can be written to a byte channel.
  */

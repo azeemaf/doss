@@ -1,4 +1,4 @@
-package doss;
+package doss.core;
 
 /**
  * An object that has an identifier.
