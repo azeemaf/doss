@@ -6,12 +6,9 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 
-import org.junit.*;
-
 import doss.core.Named;
 
 public class IOTest extends DOSSTest {
-    @Test(timeout = 1000)
     public void testChannelIO() throws Exception {
         String blobId;
 
@@ -27,7 +24,6 @@ public class IOTest extends DOSSTest {
         assertEquals(TEST_STRING, new String(buf, "UTF-8"));
     }
 
-    @Test(timeout = 1000)
     public void testStreamIO() throws Exception {
         String id = writeTempBlob(blobStore, TEST_STRING).id();
         assertNotNull(id);
@@ -40,7 +36,6 @@ public class IOTest extends DOSSTest {
         }
     }
 
-    @Test(timeout = 1000)
     public void testBytesIO() throws Exception {
         Named blob;
 
