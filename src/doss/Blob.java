@@ -5,6 +5,9 @@ import java.io.InputStream;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.attribute.FileTime;
 
+import doss.core.Named;
+import doss.core.Sized;
+
 /**
  * A named byte stream of known length that supports random read access.
  */

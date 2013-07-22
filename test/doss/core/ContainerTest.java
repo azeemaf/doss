@@ -1,4 +1,4 @@
-package doss.local;
+package doss.core;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -15,6 +15,7 @@ import org.junit.rules.TemporaryFolder;
 
 import doss.Blob;
 import doss.Writable;
+import doss.core.Container;
 
 public abstract class ContainerTest {
     protected static final String TEST_ID = "weird\nid\0a\r\nwith\tstrange\u2601characters";

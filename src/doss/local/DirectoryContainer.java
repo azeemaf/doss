@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import doss.Writable;
+import doss.core.Container;
 import static java.nio.file.StandardOpenOption.*;
 
 

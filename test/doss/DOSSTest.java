@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
+import doss.core.Named;
+
 public class DOSSTest {
     static final String TEST_STRING = "test\nstring\0a\r\nwith\tstrange\u2603characters";
     static final byte[] TEST_BYTES = TEST_STRING.getBytes(Charset.forName("UTF-8"));
