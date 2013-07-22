@@ -18,10 +18,14 @@ import org.skife.jdbi.v2.tweak.SQLLog;
 
 import doss.NoSuchBlobException;
 import doss.core.BlobIndex;
+import doss.core.Container;
 import doss.sql.BlobIndexSchemaDAO;
 import doss.sql.SqlBlobIndex;
 
 public class SqlBlobIndexTest {
+
+    // TODO: multiple container support
+    final static Container container = null;
 
     private DBI dbi;
 
@@ -66,36 +70,37 @@ public class SqlBlobIndexTest {
         long sharedPosition = 0L;
         long differentPosition = 1L;
 
-        index.remember(firstBlob, sharedPosition);
-        index.remember(secondBlob, sharedPosition);
-        index.remember(thirdBlob, differentPosition);
+        index.remember(firstBlob, container, sharedPosition);
+        index.remember(secondBlob, container, sharedPosition);
+        index.remember(thirdBlob, container, differentPosition);
 
         assertEquals("First blob position is OK", sharedPosition,
-                index.locate(firstBlob));
+                index.locate(firstBlob).offset());
 
         assertEquals("Second blob position is OK", sharedPosition,
-                index.locate(secondBlob));
+                index.locate(secondBlob).offset());
 
         assertEquals("Third blob position is OK", differentPosition,
-                index.locate(thirdBlob));
+                index.locate(thirdBlob).offset());
     }
 
     @Test
     public void testDelete() {
+        
         BlobIndex index = new SqlBlobIndex(dbi);
 
         long firstBlob = 0L;
         long secondBlob = 1L;
         long sharedPosition = 0L;
 
-        index.remember(firstBlob, sharedPosition);
-        index.remember(secondBlob, sharedPosition);
+        index.remember(firstBlob, container, sharedPosition);
+        index.remember(secondBlob, container, sharedPosition);
 
         assertEquals("First blob position is OK", sharedPosition,
-                index.locate(firstBlob));
+                index.locate(firstBlob).offset());
 
         assertEquals("Second blob position is OK", sharedPosition,
-                index.locate(secondBlob));
+                index.locate(secondBlob).offset());
 
         index.delete(firstBlob);
         Boolean firstBlobDeleted = false;
@@ -107,7 +112,7 @@ public class SqlBlobIndexTest {
         assertTrue("First blob got deleted", firstBlobDeleted);
 
         assertEquals("Second blob is OK after first blob deleted",
-                sharedPosition, index.locate(secondBlob));
+                sharedPosition, index.locate(secondBlob).offset());
 
         index.delete(secondBlob);
         Boolean secondBlobDeleted = false;
@@ -126,10 +131,10 @@ public class SqlBlobIndexTest {
         long firstBlob = Long.MAX_VALUE;
         long firstBlobContainerOffset = Long.MAX_VALUE;
 
-        index.remember(firstBlob, firstBlobContainerOffset);
+        index.remember(firstBlob, container, firstBlobContainerOffset);
 
         assertEquals("First blob position is OK", firstBlobContainerOffset,
-                index.locate(firstBlob));
+                index.locate(firstBlob).offset());
     }
 
     @Test
@@ -139,10 +144,10 @@ public class SqlBlobIndexTest {
         long firstBlob = Long.MIN_VALUE;
         long firstBlobContainerOffset = Long.MIN_VALUE;
 
-        index.remember(firstBlob, firstBlobContainerOffset);
+        index.remember(firstBlob, container, firstBlobContainerOffset);
 
         assertEquals("First blob position is OK", firstBlobContainerOffset,
-                index.locate(firstBlob));
+                index.locate(firstBlob).offset());
     }
 
     @Test
@@ -155,10 +160,10 @@ public class SqlBlobIndexTest {
 
             long firstBlob = 0;
             long firstBlobContainerOffset = 0;
-            index.remember(firstBlob, firstBlobContainerOffset);
+            index.remember(firstBlob, container, firstBlobContainerOffset);
 
             assertEquals("First blob position is OK", firstBlobContainerOffset,
-                    index.locate(firstBlob));
+                    index.locate(firstBlob).offset());
 
         } finally {
             if (h != null) {
@@ -176,10 +181,10 @@ public class SqlBlobIndexTest {
         final long firstBlob = 0L;
         long secondBlob = 1L;
 
-        index.remember(firstBlob, 0);
-        index.remember(secondBlob, 0);
+        index.remember(firstBlob, container, 0);
+        index.remember(secondBlob, container, 0);
 
-        assertEquals("First blob position is OK", 0, index.locate(firstBlob));
+        assertEquals("First blob position is OK", 0, index.locate(firstBlob).offset());
 
         Boolean rolledBack = false;
         try {
@@ -191,15 +196,15 @@ public class SqlBlobIndexTest {
 
                     final BlobIndex totallyDifferentIndexInstance = new SqlBlobIndex(
                             conn);
-                    totallyDifferentIndexInstance.remember(firstBlob, 1);
+                    totallyDifferentIndexInstance.remember(firstBlob, container, 1);
 
                     assertEquals(
                             "First blob position is OK after update in transaction",
-                            1, totallyDifferentIndexInstance.locate(firstBlob));
+                            1, totallyDifferentIndexInstance.locate(firstBlob).offset());
 
                     assertEquals(
                             "First blob position is OK after update /outside/ transaction",
-                            0, index.locate(firstBlob));
+                            0, index.locate(firstBlob).offset());
 
                     throw new RuntimeException("rollback, please");
                 }
@@ -211,6 +216,6 @@ public class SqlBlobIndexTest {
         assertTrue("Rollback happened", rolledBack);
 
         assertEquals("First blob position is OK after transaction rolled back",
-                0, index.locate(firstBlob));
+                0, index.locate(firstBlob).offset());
     }
 }
