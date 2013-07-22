@@ -5,6 +5,8 @@ import org.skife.jdbi.v2.IDBI;
 
 import doss.NoSuchBlobException;
 import doss.core.BlobIndex;
+import doss.core.Container;
+import doss.core.BlobIndexEntry;
 
 /**
  * BlobIndex backed by a SQL database using jDBI.
@@ -52,16 +54,18 @@ public class SqlBlobIndex implements BlobIndex {
     }
 
     @Override
-    public long locate(final long blobId) throws NoSuchBlobException {
+    public BlobIndexEntry locate(final long blobId) throws NoSuchBlobException {
         Long offset = dao.locate(blobId);
         if (offset == null) {
             throw new NoSuchBlobException(new Long(blobId).toString());
         }
-        return offset;
+        // TODO: handle multiple containers
+        return new BlobIndexEntry(0, offset);
     }
 
     @Override
-    public void remember(final long blobId, final long offset) {
+    public void remember(long blobId, Container container, long offset) {
+        // TODO: handle multiple containers
         if (dao.locate(blobId) != null) {
             dao.update(blobId, offset);
         } else {

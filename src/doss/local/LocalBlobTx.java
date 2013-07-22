@@ -72,7 +72,7 @@ public class LocalBlobTx implements BlobTx {
         }
         long blobId = blobStore.blobNumber.next();
         long offset = blobStore.container.put(Long.toString(blobId), output);
-        blobStore.db.remember(blobId, offset);
+        blobStore.blobIndex.remember(blobId, blobStore.container, offset);
         addedBlobs.add(blobId);
         return blobStore.container.get(offset);
     }
@@ -93,7 +93,7 @@ public class LocalBlobTx implements BlobTx {
         @Override
         public void rollback() throws IOException {
             for (Long blobId : addedBlobs) {
-                blobStore.db.delete(blobId);
+                blobStore.blobIndex.delete(blobId);
             }
             blobStore.txs.remove(id());
         }

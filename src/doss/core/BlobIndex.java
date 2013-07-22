@@ -2,35 +2,41 @@ package doss.core;
 
 import doss.NoSuchBlobException;
 
-
 /**
- * A index that maps blob ids to offsets within containers.
- * 
- * TODO: currently assumes there is a single universal container :)
+ * The BlobIndex allows blobs to be quickly located within a BlobStore. For each
+ * blob it stores the id of the container the blob is located within and the
+ * position (offset) of the blob within that container.
  */
 public interface BlobIndex {
 
     /**
-     * Locates a blob in the container
+     * Locates the container a blob is stored in and the position (byte offset)
+     * of the blob within that container.
      * 
      * @param blobId
-     * @return offset into the container file
-     * @throws NoSuchBlobException if the blob does not exist
+     * @return the container and offset of the blob within that container
+     * @throws NoSuchBlobException
+     *             if the blob does not exist
      */
-    long locate(long blobId) throws NoSuchBlobException;
+    BlobIndexEntry locate(long blobId) throws NoSuchBlobException;
 
     /**
      * Remembers the location of a blob.
      * 
-     * @param blobId the blob to remember
-     * @param offset the offset within the container to remember
+     * @param blobId
+     *            the blob to remember
+     * @param container
+     *            the container which the blob was stored in
+     * @param offset
+     *            the position of the blob within the container
      */
-    void remember(long blobId, long offset);
+    void remember(long blobId, Container container, long offset);
 
     /**
      * Marks this blob as deleted.
      * 
-     * @param blobId the blob to delete
+     * @param blobId
+     *            the blob to delete
      */
     void delete(long blobId);
 

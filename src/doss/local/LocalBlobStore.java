@@ -11,18 +11,19 @@ import doss.BlobTx;
 import doss.NoSuchBlobTxException;
 import doss.core.BlobIndex;
 import doss.core.Container;
+import doss.core.BlobIndexEntry;
 
 public class LocalBlobStore implements BlobStore {
 
     final RunningNumber blobNumber = new RunningNumber();
     final RunningNumber txNumber = new RunningNumber();
     final Container container;
-    final BlobIndex db;
+    final BlobIndex blobIndex;
     final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
 
     public LocalBlobStore(Path rootDir, BlobIndex index) throws IOException {
         container = new DirectoryContainer(rootDir.resolve("data"));
-        this.db = index;
+        this.blobIndex = index;
     }
 
     @Override
@@ -32,8 +33,8 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public Blob get(String blobId) throws IOException {
-        long offset = db.locate(parseId(blobId));
-        return container.get(offset);
+        BlobIndexEntry entry = blobIndex.locate(parseId(blobId));
+        return container.get(entry.offset());
     }
 
     @Override
