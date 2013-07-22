@@ -22,7 +22,7 @@ public class DOSS {
      */
     public static BlobStore openLocalStore(Path root) throws IOException {
         DBI dbi = new DBI("jdbc:h2:file:" + root.resolve("index/index")+";AUTO_SERVER=TRUE");
-        BlobIndex index = new SqlBlobIndex(dbi.open());
+        BlobIndex index = new SqlBlobIndex(dbi);
         return new LocalBlobStore(root, index);
     }
 
