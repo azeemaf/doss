@@ -17,11 +17,10 @@ import org.skife.jdbi.v2.logging.PrintStreamLog;
 import org.skife.jdbi.v2.tweak.SQLLog;
 
 import doss.NoSuchBlobException;
-import doss.core.BlobIndex;
-import doss.sql.BlobIndexSchemaDAO;
-import doss.sql.SqlBlobIndex;
+import doss.core.ContainerIndex;
+import doss.sql.ContainerIndexSchemaDAO;
 
-public class SqlBlobIndexTest {
+public class SqlContainerIndexTest {
 
     private DBI dbi;
 
@@ -34,7 +33,8 @@ public class SqlBlobIndexTest {
 
         // DDL is going to commit the transaction in a h2 db no matter what,
         // FYI (unless you use TEMPORARY).
-        BlobIndexSchemaDAO schema = dbi.onDemand(BlobIndexSchemaDAO.class);
+        ContainerIndexSchemaDAO schema = dbi
+                .onDemand(ContainerIndexSchemaDAO.class);
         schema.createSchema();
     }
 
@@ -58,7 +58,7 @@ public class SqlBlobIndexTest {
     @Test
     public void testRemember() {
 
-        BlobIndex index = new SqlBlobIndex(dbi);
+        ContainerIndex index = new SqlContainerIndex(dbi);
 
         long firstBlob = 0L;
         long secondBlob = 1L;
@@ -82,7 +82,7 @@ public class SqlBlobIndexTest {
 
     @Test
     public void testDelete() {
-        BlobIndex index = new SqlBlobIndex(dbi);
+        ContainerIndex index = new SqlContainerIndex(dbi);
 
         long firstBlob = 0L;
         long secondBlob = 1L;
@@ -121,7 +121,7 @@ public class SqlBlobIndexTest {
 
     @Test
     public void testMaxValue() {
-        BlobIndex index = new SqlBlobIndex(dbi);
+        ContainerIndex index = new SqlContainerIndex(dbi);
 
         long firstBlob = Long.MAX_VALUE;
         long firstBlobContainerOffset = Long.MAX_VALUE;
@@ -134,7 +134,7 @@ public class SqlBlobIndexTest {
 
     @Test
     public void testMinValue() {
-        BlobIndex index = new SqlBlobIndex(dbi);
+        ContainerIndex index = new SqlContainerIndex(dbi);
 
         long firstBlob = Long.MIN_VALUE;
         long firstBlobContainerOffset = Long.MIN_VALUE;
@@ -151,7 +151,7 @@ public class SqlBlobIndexTest {
         Handle h = null;
         try {
             h = dbi.open();
-            BlobIndex index = new SqlBlobIndex(h);
+            ContainerIndex index = new SqlContainerIndex(h);
 
             long firstBlob = 0;
             long firstBlobContainerOffset = 0;
@@ -171,7 +171,7 @@ public class SqlBlobIndexTest {
     @Test
     public void testTransactionParticipation() {
 
-        final BlobIndex index = new SqlBlobIndex(dbi);
+        final ContainerIndex index = new SqlContainerIndex(dbi);
 
         final long firstBlob = 0L;
         long secondBlob = 1L;
@@ -189,7 +189,7 @@ public class SqlBlobIndexTest {
                 public Void inTransaction(Handle conn, TransactionStatus status)
                         throws Exception {
 
-                    final BlobIndex totallyDifferentIndexInstance = new SqlBlobIndex(
+                    final ContainerIndex totallyDifferentIndexInstance = new SqlContainerIndex(
                             conn);
                     totallyDifferentIndexInstance.remember(firstBlob, 1);
 

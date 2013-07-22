@@ -10,7 +10,6 @@ import doss.Writable;
 import doss.core.Container;
 import static java.nio.file.StandardOpenOption.*;
 
-
 /**
  * A very simple container that just stores blobs in a directory.
  */
@@ -48,11 +47,11 @@ public class DirectoryContainer implements Container {
         }
     }
 
-    protected Path dataPathFor(Long offset) {
+    Path dataPathFor(Long offset) {
         return dir.resolve(offset.toString());
     }
 
-    protected Path idPathFor(Long offset) {
+    Path idPathFor(Long offset) {
         return dir.resolve(offset.toString() + ".id");
     }
 

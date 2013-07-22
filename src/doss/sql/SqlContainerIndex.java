@@ -4,7 +4,7 @@ import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.IDBI;
 
 import doss.NoSuchBlobException;
-import doss.core.BlobIndex;
+import doss.core.ContainerIndex;
 
 /**
  * BlobIndex backed by a SQL database using jDBI.
@@ -12,9 +12,9 @@ import doss.core.BlobIndex;
  * This class does not own any jDBI resources and is not responsible for any
  * jDBI resource management.
  */
-public class SqlBlobIndex implements BlobIndex {
+public class SqlContainerIndex implements ContainerIndex {
 
-    final BlobIndexDAO dao;
+    final ContainerIndexDAO dao;
 
     /**
      * Connects to the database using the supplied DBI instance. This
@@ -28,9 +28,9 @@ public class SqlBlobIndex implements BlobIndex {
      * @param dbi
      *            The jDBI instance to access the database through
      */
-    public SqlBlobIndex(final IDBI dbi) {
-        dbi.onDemand(BlobIndexSchemaDAO.class).createSchema();
-    	this.dao = dbi.onDemand(BlobIndexDAO.class);
+    public SqlContainerIndex(final IDBI dbi) {
+        dbi.onDemand(ContainerIndexSchemaDAO.class).createSchema();
+        this.dao = dbi.onDemand(ContainerIndexDAO.class);
     }
 
     /**
@@ -46,9 +46,9 @@ public class SqlBlobIndex implements BlobIndex {
      *            The connection Handle that will be used to connect to the
      *            database.
      */
-    public SqlBlobIndex(final Handle h) {
-    	h.attach(BlobIndexSchemaDAO.class).createSchema();
-        this.dao = h.attach(BlobIndexDAO.class);
+    public SqlContainerIndex(final Handle h) {
+        h.attach(ContainerIndexSchemaDAO.class).createSchema();
+        this.dao = h.attach(ContainerIndexDAO.class);
     }
 
     @Override

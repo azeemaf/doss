@@ -2,12 +2,17 @@ package doss;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.skife.jdbi.v2.DBI;
 
-import doss.core.BlobIndex;
+import doss.core.ContainerIndex;
+import doss.core.ContainerIndexWriter;
+import doss.core.ContainerIndexWriterProxy;
+import doss.local.DirectoryContainer;
 import doss.local.LocalBlobStore;
-import doss.sql.SqlBlobIndex;
+import doss.local.SymlinkContainerIndex;
+import doss.sql.SqlContainerIndex;
 
 /**
  * Convenience methods for opening blob stores.
@@ -15,15 +20,17 @@ import doss.sql.SqlBlobIndex;
 public class DOSS {
 
     /**
-     * Opens a BlobStore that stores all its data and indexes on the local file system.
-     * @param root directory to store data and indexes in
+     * Opens a BlobStore that stores all its data and indexes on the local file
+     * system.
+     * 
+     * @param root
+     *            directory to store data and indexes in
      * @return a new BlobStore
-     * @throws IOException if an I/O error occurs
+     * @throws IOException
+     *             if an I/O error occurs
      */
     public static BlobStore openLocalStore(Path root) throws IOException {
-        DBI dbi = new DBI("jdbc:h2:file:" + root.resolve("index/index")+";AUTO_SERVER=TRUE");
-        BlobIndex index = new SqlBlobIndex(dbi);
-        return new LocalBlobStore(root, index);
+        return LocalBlobStore.open(root);
     }
 
 }
