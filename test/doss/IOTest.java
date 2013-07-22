@@ -8,6 +8,8 @@ import java.nio.channels.SeekableByteChannel;
 
 import org.junit.*;
 
+import doss.core.Named;
+
 public class IOTest extends DOSSTest {
     @Test(timeout = 1000)
     public void testChannelIO() throws Exception {

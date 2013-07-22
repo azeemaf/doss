@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import doss.core.Named;
+
 public class TransactionsTest extends DOSSTest {
     @Test(expected = NoSuchBlobException.class)
     public void testRollback() throws Exception {
