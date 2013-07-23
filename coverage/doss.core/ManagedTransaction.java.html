@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>ManagedTransaction.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.core</a> &gt; <span class="el_source">ManagedTransaction.java</span></div><h1>ManagedTransaction.java</h1><pre class="source lang-java linenums">package doss.core;
+
+import java.io.IOException;
+
+/**
+ * A transaction with a managed lifecycle.
+ */
+<span class="fc" id="L8">public abstract class ManagedTransaction implements Transaction {</span>
+    
+<span class="fc" id="L10">    protected State state = State.OPEN;</span>
+    
+    abstract protected Transaction getCallbacks();
+
+    public synchronized void close() throws IllegalStateException, IOException {
+<span class="fc" id="L15">        state = state.close(getCallbacks());</span>
+<span class="fc" id="L16">    }</span>
+
+    public synchronized void commit() throws IllegalStateException, IOException {
+<span class="fc" id="L19">        state = state.commit(getCallbacks());</span>
+<span class="fc" id="L20">    }</span>
+
+    public synchronized void rollback() throws IllegalStateException, IOException {
+<span class="fc" id="L23">        state = state.rollback(getCallbacks());</span>
+<span class="fc" id="L24">    }</span>
+
+    public synchronized void prepare() throws IllegalStateException, IOException {
+<span class="fc" id="L27">        state = state.prepare(getCallbacks());</span>
+<span class="fc" id="L28">    }</span>
+    
+    /**
+     * Transaction state machine.
+     * 
+     * Defines valid state transitions for a {@link Transaction} and manages an
+     * instance through those states. Passes all exceptions from the managed
+     * transaction through to the caller.
+     */
+<span class="pc" id="L37">    protected static enum State {</span>
+
+<span class="fc" id="L39">        OPEN {</span>
+            public State close(Transaction t)
+                    throws IllegalStateException, IOException {
+<span class="nc" id="L42">                rollback(t);</span>
+<span class="nc" id="L43">                return assertPreparedCommittedOrRolledback();</span>
+            }
+
+            public State prepare(Transaction t)
+                    throws IOException {
+<span class="fc" id="L48">                t.prepare();</span>
+<span class="fc" id="L49">                return PREPARED;</span>
+            }
+
+            public State commit(Transaction t) throws IOException {
+<span class="fc" id="L53">                return prepare(t).commit(t);</span>
+            }
+
+            public State rollback(Transaction t)
+                    throws IOException {
+<span class="fc" id="L58">                t.rollback();</span>
+<span class="fc" id="L59">                return ROLLEDBACK;</span>
+            }
+
+            public State assertOpen() {
+<span class="fc" id="L63">                return this;</span>
+            }
+
+            public State assertOpenOrPrepared() {
+<span class="nc" id="L67">                return this;</span>
+            }
+        },
+
+<span class="fc" id="L71">        PREPARED {</span>
+            public State commit(Transaction t) throws IOException {
+<span class="fc" id="L73">                t.commit();</span>
+<span class="fc" id="L74">                return COMMITTED;</span>
+            }
+
+            public State rollback(Transaction t)
+                    throws IOException {
+<span class="fc" id="L79">                t.rollback();</span>
+<span class="fc" id="L80">                return ROLLEDBACK;</span>
+            }
+
+            public State assertOpenOrPrepared() {
+<span class="nc" id="L84">                return this;</span>
+            }
+        },
+
+<span class="fc" id="L88">        COMMITTED, ROLLEDBACK;</span>
+
+        // defaults
+        public State close(Transaction t) throws IOException {
+<span class="fc" id="L92">            t.close();</span>
+<span class="fc" id="L93">            return this;</span>
+        }
+
+        public State prepare(Transaction t) throws IOException {
+<span class="nc" id="L97">            return assertOpen();</span>
+        }
+
+        public State commit(Transaction t) throws IOException {
+<span class="nc" id="L101">            return assertOpenOrPrepared();</span>
+        }
+
+        public State rollback(Transaction t) throws IOException {
+<span class="nc" id="L105">            return assertOpenOrPrepared();</span>
+        }
+
+        // helpers
+        public State assertOpen() {
+<span class="fc" id="L110">            throw new IllegalStateException(name() + &quot;; must be OPEN&quot;);</span>
+        }
+
+        public State assertOpenOrPrepared() {
+<span class="fc" id="L114">            throw new IllegalStateException(name() + &quot;; must be OPEN or PREPARED&quot;);</span>
+        }
+
+        public State assertPreparedCommittedOrRolledback() {
+<span class="fc" id="L118">            throw new IllegalStateException(name()</span>
+                    + &quot;; must be PREPARED, COMMITTED or ROLLEDBACK&quot;);
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

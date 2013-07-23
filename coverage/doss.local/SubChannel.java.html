@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>SubChannel.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.local</a> &gt; <span class="el_source">SubChannel.java</span></div><h1>SubChannel.java</h1><pre class="source lang-java linenums">package doss.local;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.NonWritableChannelException;
+import java.nio.channels.SeekableByteChannel;
+
+
+/**
+ * SubChannel is read only so write and truncate methods are not implemented
+ *
+ */
+class SubChannel implements SeekableByteChannel{
+    
+    final SeekableByteChannel containerChannel;
+    final long offset;
+    final long length;
+    
+<span class="fc" id="L19">    SubChannel(SeekableByteChannel containerChannel, long blobOffset, long blobLength) throws IOException {</span>
+<span class="fc bfc" id="L20" title="All 4 branches covered.">        if (blobOffset &gt; containerChannel.size() || blobLength &gt; containerChannel.size() - blobOffset) {</span>
+<span class="fc" id="L21">            throw new IllegalArgumentException(&quot;Can not create SubChannel for the container channel size &quot; + containerChannel.size() +</span>
+                    &quot; with offset = &quot; + blobOffset + &quot; and length = &quot; + blobLength);
+        }
+
+<span class="fc" id="L25">        this.containerChannel = containerChannel;</span>
+<span class="fc" id="L26">        containerChannel.position(blobOffset);</span>
+<span class="fc" id="L27">        this.offset = blobOffset;</span>
+<span class="fc" id="L28">        this.length = blobLength;</span>
+<span class="fc" id="L29">    }</span>
+
+    @Override
+    public boolean isOpen() {
+<span class="nc" id="L33">        return containerChannel.isOpen();</span>
+    }
+
+    @Override
+    public void close() throws IOException {
+<span class="nc" id="L38">        containerChannel.close();</span>
+        
+<span class="nc" id="L40">    }</span>
+
+    @Override
+    public int read(ByteBuffer b) throws IOException {
+<span class="fc" id="L44">        int originalLimit = b.limit();</span>
+<span class="fc" id="L45">        long capacity = offset + length;</span>
+        try {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            if (b.remaining() &gt; capacity - containerChannel.position()) {</span>
+                // buffer has more space available than we've got left in the
+                // blob so temporarily change its limit so we don't read past
+                // the end of the blob
+<span class="fc" id="L51">                b.limit((int) (b.position() + capacity - containerChannel.position()));</span>
+            }
+<span class="fc" id="L53">            return containerChannel.read(b);</span>
+        } finally {
+            // restore the original limit
+<span class="pc" id="L56">            b.limit(originalLimit);</span>
+        }
+    }
+
+    @Override
+    public int write(ByteBuffer src) throws IOException {
+<span class="fc" id="L62">    	throw new NonWritableChannelException();</span>
+    }
+
+    @Override
+    public long position() throws IOException {
+<span class="nc" id="L67">        return containerChannel.position() - offset;</span>
+    }
+
+    @Override
+    // input parameter new position is constrained by the size and offset,
+    public SeekableByteChannel position(long newPosition) throws IOException {
+<span class="fc bfc" id="L73" title="All 4 branches covered.">        if ((newPosition &lt; 0) || (newPosition &gt; length)) {</span>
+<span class="fc" id="L74">            throw new IllegalArgumentException();</span>
+        }
+<span class="fc" id="L76">        return containerChannel.position(offset + newPosition);</span>
+    }
+
+    @Override
+    public long size() throws IOException {
+<span class="nc" id="L81">        return length;</span>
+    }
+
+    @Override
+    public SeekableByteChannel truncate(long size) throws IOException {
+<span class="fc" id="L86">        throw new NonWritableChannelException();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

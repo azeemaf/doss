@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Database.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.local</a> &gt; <span class="el_source">Database.java</span></div><h1>Database.java</h1><pre class="source lang-java linenums">package doss.local;
+
+import java.io.Closeable;
+import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.Handle;
+import org.skife.jdbi.v2.StatementContext;
+import org.skife.jdbi.v2.sqlobject.Bind;
+import org.skife.jdbi.v2.sqlobject.SqlQuery;
+import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
+import org.skife.jdbi.v2.sqlobject.mixins.GetHandle;
+import org.skife.jdbi.v2.tweak.ResultSetMapper;
+
+<span class="fc" id="L18">abstract class Database implements Closeable, GetHandle {</span>
+
+    /**
+     * Opens a DOSS database stored on the local filesystem.
+     */
+    public static Database open(Path dbPath) {
+<span class="fc" id="L24">        return open(new DBI(&quot;jdbc:h2:file:&quot; + dbPath + &quot;;AUTO_SERVER=TRUE&quot;));</span>
+
+    }
+
+    public static Database open(DBI dbi) {
+<span class="fc" id="L29">        return dbi.open(Database.class);</span>
+    }
+
+    /**
+     * Runs database migrations to populate or upgrade the schema.
+     */
+    public Database migrate() {
+        // replace this with Flyway schema migrations (http://flywaydb.org/) as
+        // soon as we need to start altering existing tables
+<span class="fc" id="L38">        Schema schema = getHandle().attach(Schema.class);</span>
+<span class="fc" id="L39">        schema.createBlobsTable();</span>
+<span class="fc" id="L40">        schema.createBlobIdSequence();</span>
+<span class="fc" id="L41">        schema.createBlobTxIdSequence();</span>
+<span class="fc" id="L42">        return this;</span>
+    }
+
+    interface Schema {
+        @SqlUpdate(&quot;CREATE SEQUENCE IF NOT EXISTS blob_id_seq&quot;)
+        void createBlobIdSequence();
+
+        @SqlUpdate(&quot;CREATE SEQUENCE IF NOT EXISTS blob_tx_id_seq&quot;)
+        void createBlobTxIdSequence();
+
+        @SqlUpdate(&quot;CREATE TABLE IF NOT EXISTS blobs (blob_id BIGINT PRIMARY KEY, container_id BIGINT, offset BIGINT)&quot;)
+        void createBlobsTable();
+    }
+
+    @SqlQuery(&quot;SELECT NEXTVAL('blob_id_seq')&quot;)
+    public abstract long nextBlobId();
+
+    @SqlQuery(&quot;SELECT NEXTVAL('blob_tx_id_seq')&quot;)
+    public abstract long nextBlobTxId();
+
+    @SqlUpdate(&quot;INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)&quot;)
+    public abstract void insertBlob(@Bind(&quot;blobId&quot;) long blobId, @Bind(&quot;containerId&quot;) long containerId, @Bind(&quot;offset&quot;) long offset);
+
+    @SqlUpdate(&quot;DELETE FROM blobs WHERE blob_id = :blobId&quot;)
+    public abstract void deleteBlob(@Bind(&quot;blobId&quot;) long blobId);
+
+    @SqlQuery(&quot;SELECT container_id, offset FROM blobs WHERE blob_id = :blobId&quot;)
+    @RegisterMapper(BlobLocationMapper.class)
+    public abstract BlobLocation locateBlob(@Bind(&quot;blobId&quot;) long blobId);
+
+<span class="fc" id="L72">    public static class BlobLocationMapper implements ResultSetMapper&lt;BlobLocation&gt; {</span>
+        public BlobLocation map(int index, ResultSet r, StatementContext ctx) throws SQLException {
+<span class="fc" id="L74">            return new BlobLocation(r.getLong(&quot;container_id&quot;), r.getLong(&quot;offset&quot;));</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

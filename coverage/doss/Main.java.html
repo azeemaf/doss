@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Main.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss</a> &gt; <span class="el_source">Main.java</span></div><h1>Main.java</h1><pre class="source lang-java linenums">package doss;
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Main.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss</a> &gt; <span class="el_source">Main.java</span></div><h1>Main.java</h1><pre class="source lang-java linenums">package doss;
 
 import static java.lang.System.err;
 import static java.lang.System.out;
@@ -6,159 +6,312 @@ import static java.lang.System.out;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.nio.channels.FileChannel;
+import java.nio.file.attribute.FileTime;
+import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+
+import doss.local.LocalBlobStore;
 
 
 /**
  * DOSS command-line interface
  */
 @SuppressWarnings(&quot;serial&quot;)
-<span class="nc" id="L20">public class Main {</span>
+<span class="nc" id="L28">public class Main {</span>
     
-<span class="fc" id="L22">    enum Command {</span>
-<span class="fc" id="L23">        help(&quot;&lt;command&gt;&quot;, &quot;Display a list of commands or help for a given command.&quot;) {</span>
+<span class="fc" id="L30">    enum Command {</span>
+<span class="fc" id="L31">        help(&quot;&lt;command&gt;&quot;, &quot;Display a list of commands or help for a given command.&quot;) {</span>
             
             void listCommands() {
-<span class="nc" id="L26">                out.println(&quot;usage: doss &lt;command&gt; [&lt;args&gt;]&quot;);</span>
-<span class="nc" id="L27">                out.println(&quot;&quot;);</span>
-<span class="nc" id="L28">                out.println(&quot;Available commands:&quot;);</span>
-<span class="nc bnc" id="L29" title="All 2 branches missed.">                for (Command command: Command.values()) {</span>
-<span class="nc" id="L30">                    out.println(String.format(&quot;  %-10s%s&quot;, command.name(), command.description()));</span>
+<span class="nc" id="L34">                out.println(&quot;usage: doss &lt;command&gt; [&lt;args&gt;]&quot;);</span>
+<span class="nc" id="L35">                out.println(&quot;&quot;);</span>
+<span class="nc" id="L36">                out.println(&quot;Available commands:&quot;);</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">                for (Command command: Command.values()) {</span>
+<span class="nc" id="L38">                    out.println(String.format(&quot;  %-10s%s&quot;, command.name(), command.description()));</span>
                 }                
-<span class="nc" id="L32">            }</span>
-
-            void execute(Arguments args) {
-<span class="nc bnc" id="L35" title="All 2 branches missed.">                if (args.isEmpty()) {</span>
-<span class="nc" id="L36">                    listCommands();</span>
-                } else {
-<span class="nc" id="L38">                    Command.get(args.first()).usage();</span>
-                } 
 <span class="nc" id="L40">            }</span>
 
-        },        
-<span class="fc" id="L43">        cat(&quot;&lt;blobId ...&gt;&quot;, &quot;Concatinate and print blobs (like unix cat).&quot;) {</span>
-          
-            void outputBlob(String blobId) throws IOException {
-<span class="pc bpc" id="L46" title="1 of 2 branches missed.">                if (System.getProperty(&quot;doss.home&quot;) == null) {</span>
-<span class="nc" id="L47">                    throw new CommandLineException(&quot;the DOSS_HOME environment variable must be set&quot;);</span>
-                };
-                                
-<span class="fc" id="L50">                Path path = Paths.get( System.getProperty(&quot;doss.home&quot;) );</span>
-                
-<span class="fc" id="L52">                BlobStore bs = DOSS.openLocalStore(path);</span>
-<span class="fc" id="L53">                Blob blob = bs.get(blobId);</span>
-<span class="fc" id="L54">                ReadableByteChannel channel = blob.openChannel();</span>
-<span class="fc" id="L55">                WritableByteChannel dest = Channels.newChannel(out);</span>
+            void execute(Arguments args) {
+<span class="nc bnc" id="L43" title="All 2 branches missed.">                if (args.isEmpty()) {</span>
+<span class="nc" id="L44">                    listCommands();</span>
+                } else {
+<span class="nc" id="L46">                    Command.get(args.first()).usage();</span>
+                } 
+<span class="nc" id="L48">            }</span>
 
-<span class="fc" id="L57">                final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);</span>
-
-<span class="fc bfc" id="L59" title="All 2 branches covered.">                while (channel.read(buffer) != -1) {</span>
-<span class="fc" id="L60">                    buffer.flip();</span>
-<span class="fc" id="L61">                    dest.write(buffer);</span>
-<span class="fc" id="L62">                    buffer.compact();                        </span>
-                }
-<span class="fc" id="L64">                buffer.flip();</span>
-<span class="pc bpc" id="L65" title="1 of 2 branches missed.">                while (buffer.hasRemaining()) {</span>
-<span class="nc" id="L66">                    dest.write(buffer);</span>
+        },
+<span class="fc" id="L51">        version(&quot;&quot;, &quot;Displays the version number.&quot;) {</span>
+            
+            void execute(Arguments args) throws IOException {
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">                if (!args.isEmpty()) {</span>
+<span class="nc" id="L55">                    usage();</span>
+                } else {
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">                    if (this.getClass().getPackage().getImplementationVersion()== null) {</span>
+<span class="fc" id="L58">                        out.println(&quot;DOSS 2 - unknown version\nThere is no MANIFEST.MF to look at outside of a jar.&quot;);</span>
+                    } else {
+<span class="nc" id="L60">                        out.println(&quot;DOSS 2 version &quot; + this.getClass().getPackage().getImplementationVersion());</span>
+                    }
+                    
+<span class="fc" id="L63">                    out.println(&quot;Java version: &quot; + System.getProperty(&quot;java.version&quot;) + &quot;, vendor: &quot; + System.getProperty(&quot;java.vendor&quot;));</span>
+<span class="fc" id="L64">                    out.println(&quot;Java home: &quot; +  System.getProperty(&quot;java.home&quot;));</span>
+<span class="fc" id="L65">                    out.println(&quot;&quot;);</span>
+<span class="fc" id="L66">                    out.println(&quot;For more usage: help &lt;command&gt;&quot;);</span>
                 }
 <span class="fc" id="L68">            }</span>
+        },
+<span class="fc" id="L70">        init(&quot;&quot;, &quot;Initialize the blob store&quot;) {</span>
+            void execute(Arguments args) throws IOException {
+<span class="nc" id="L72">                LocalBlobStore.init(getDossHome());</span>
+<span class="nc" id="L73">            }</span>
+        },
+<span class="fc" id="L75">        cat(&quot;&lt;blobId ...&gt;&quot;, &quot;Concatinate and print blobs (like unix cat).&quot;) {</span>
+          
+            void outputBlob(String blobId) throws IOException {
+<span class="pc" id="L78">            	try (BlobStore bs = openBlobStore()) {</span>
+<span class="fc" id="L79">                    Blob blob = bs.get(Long.parseLong(blobId));</span>
+<span class="fc" id="L80">                    ReadableByteChannel channel = blob.openChannel();</span>
+<span class="fc" id="L81">                    WritableByteChannel dest = Channels.newChannel(out);</span>
+
+<span class="fc" id="L83">                    final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);</span>
+
+<span class="fc bfc" id="L85" title="All 2 branches covered.">                    while (channel.read(buffer) != -1) {</span>
+<span class="fc" id="L86">                        buffer.flip();</span>
+<span class="fc" id="L87">                        dest.write(buffer);</span>
+<span class="fc" id="L88">                        buffer.compact();</span>
+                    }
+<span class="pc bpc" id="L90" title="6 of 8 branches missed.">            	}</span>
+<span class="fc" id="L91">            }</span>
 
             void execute(Arguments args) throws IOException {
-<span class="pc bpc" id="L71" title="1 of 2 branches missed.">                if (args.isEmpty()) {</span>
-<span class="nc" id="L72">                    usage();</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">                if (args.isEmpty()) {</span>
+<span class="nc" id="L95">                    usage();</span>
                 } else {
-<span class="fc bfc" id="L74" title="All 2 branches covered.">                    for (String arg: args) {                        </span>
-<span class="fc" id="L75">                        outputBlob(arg);</span>
-<span class="fc" id="L76">                    }</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">                    for (String arg: args) {</span>
+<span class="fc" id="L98">                        outputBlob(arg);</span>
+<span class="fc" id="L99">                    }</span>
                 }
-<span class="fc" id="L78">            }</span>
+<span class="fc" id="L101">            }</span>
+        },        
+<span class="fc" id="L103">        get(&quot;&lt;blobId ...&gt;&quot;, &quot;Copy blobs to the current working directory.&quot;) {</span>
+          
+            void outputBlob(String blobId) throws IOException {
+            	
+<span class="pc" id="L107">                try (BlobStore bs = openBlobStore()) {</span>
+<span class="fc" id="L108">                    Blob blob = bs.get(Long.parseLong(blobId));</span>
+<span class="fc" id="L109">                    ReadableByteChannel channel = blob.openChannel();</span>
+<span class="fc" id="L110">                    FileChannel dest = FileChannel.open(Paths.get(blobId), StandardOpenOption.WRITE,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING );</span>
+<span class="fc" id="L111">                    long bytesTransferred = dest.transferFrom(channel, 0, Long.MAX_VALUE);</span>
+<span class="fc" id="L112">                    out.println(&quot;Got &quot; + bytesTransferred + &quot;B of &quot; + blob.size() + &quot;B from blob &quot; + blobId);</span>
+<span class="pc bpc" id="L113" title="6 of 8 branches missed.">                }</span>
+<span class="fc" id="L114">            }</span>
 
+            void execute(Arguments args) throws IOException {
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">                if (args.isEmpty()) {</span>
+<span class="nc" id="L118">                    usage();</span>
+                } else {
+<span class="fc bfc" id="L120" title="All 2 branches covered.">                    for (String arg: args) {</span>
+<span class="fc" id="L121">                        outputBlob(arg);</span>
+<span class="fc" id="L122">                    }</span>
+                }
+<span class="fc" id="L124">            }</span>
+        },
+<span class="fc" id="L126">        stat(&quot;[-b] &lt;blobId ...&gt;&quot;, &quot;Displays metadata about blobs.&quot;) {</span>
+            
+            String formattedTime(FileTime time) {
+<span class="fc" id="L129">                Date date = new Date(time.toMillis());</span>
+<span class="fc" id="L130">                return date.toString();</span>
+            }
+            
+            void execute(Arguments args) throws IOException {
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">                if (args.isEmpty()) {</span>
+<span class="nc" id="L135">                    usage();</span>
+                } else {
+<span class="fc" id="L137">                    BlobStore bs = openBlobStore();</span>
+                    
+<span class="fc" id="L139">                    boolean humanSizes = true;</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">                    if (args.first().equals(&quot;-b&quot;)) {</span>
+<span class="nc" id="L141">                        humanSizes = false;</span>
+<span class="nc" id="L142">                        args = args.rest();</span>
+                    } 
+                    
+<span class="fc bfc" id="L145" title="All 2 branches covered.">                    for (String arg : args) {</span>
+<span class="fc" id="L146">                        Blob blob = bs.get(Long.parseLong(arg));</span>
+                        
+<span class="fc" id="L148">                        out.println(blob.id() + &quot;: &quot;);</span>
+                        
+<span class="fc" id="L150">                        out.println(&quot;\tCreated:\t&quot; + formattedTime(blob.created()));</span>
+<span class="pc bpc" id="L151" title="1 of 2 branches missed.">                        out.println(&quot;\tSize:\t\t&quot; + (humanSizes? readableFileSize(blob.size()) : blob.size() + &quot; B&quot;));</span>
+                        
+<span class="fc" id="L153">                        out.println(&quot;&quot;);</span>
+<span class="fc" id="L154">                    }</span>
+                }
+<span class="fc" id="L156">            }</span>
+        },
+<span class="fc" id="L158">        put(&quot;[-b] &lt;file ...&gt;&quot;, &quot;Stores files as blobs.&quot;) {</span>
+            void execute(Arguments args) throws IOException {
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">                if (args.isEmpty()) {</span>
+<span class="nc" id="L161">                    usage();</span>
+                } else {
+<span class="fc" id="L163">                    BlobStore bs = openBlobStore();</span>
+                    
+<span class="fc" id="L165">                    try (BlobTx tx = bs.begin()) {</span>
+                        
+<span class="fc" id="L167">                        boolean humanSizes = true;</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">                        if (args.first().equals(&quot;-b&quot;)) {</span>
+<span class="nc" id="L169">                            humanSizes = false;</span>
+<span class="nc" id="L170">                            args = args.rest();</span>
+                        } 
+                        
+<span class="fc" id="L173">                        out.println(&quot;ID\tFilename\tSize&quot;);</span>
+                        
+<span class="fc bfc" id="L175" title="All 2 branches covered.">                        for (String filename: args) {</span>
+<span class="fc" id="L176">                            Path p = Paths.get(filename);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">                            if (!Files.exists(p)) {</span>
+<span class="fc" id="L178">                                throw new CommandLineException(&quot;no such file: &quot; + filename);</span>
+                            }
+<span class="fc bfc" id="L180" title="All 2 branches covered.">                            if (!Files.isRegularFile(p)) {</span>
+<span class="fc" id="L181">                                throw new CommandLineException(&quot;not a regular file: &quot; + filename);</span>
+                            }
+                            
+<span class="fc" id="L184">                            Blob blob = tx.put(p);</span>
+                            
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">                            out.println(Long.toString(blob.id()) + '\t' + filename + '\t' + (humanSizes? readableFileSize(blob.size()) : blob.size() + &quot; B&quot;));</span>
+<span class="fc" id="L187">                        }</span>
+                        
+<span class="fc" id="L189">                        tx.commit();</span>
+<span class="pc bpc" id="L190" title="4 of 8 branches missed.">                    } catch (Exception e) {</span>
+<span class="fc" id="L191">                        err.println(&quot;Aborting, rolling back all changes...&quot;);</span>
+<span class="fc" id="L192">                        throw e;</span>
+<span class="fc" id="L193">                    }</span>
+                    
+<span class="fc" id="L195">                    out.println(&quot;Created &quot; + args.list.size() + &quot; blobs.&quot;);</span>
+                }
+<span class="fc" id="L197">            }</span>
         };
         
         final String descrption, parameters;
         
-<span class="fc" id="L84">        Command(String parameters, String description) {</span>
-<span class="fc" id="L85">            this.parameters = parameters;</span>
-<span class="fc" id="L86">            this.descrption = description;</span>
-<span class="fc" id="L87">        }</span>
+<span class="fc" id="L202">        Command(String parameters, String description) {</span>
+<span class="fc" id="L203">            this.parameters = parameters;</span>
+<span class="fc" id="L204">            this.descrption = description;</span>
+<span class="fc" id="L205">        }</span>
         
         abstract void execute(Arguments args) throws IOException;
         
+        Path getDossHome() {
+<span class="fc" id="L210">            String dir = System.getProperty(&quot;doss.home&quot;);</span>
+<span class="pc bpc" id="L211" title="1 of 2 branches missed.">            if (dir == null) {</span>
+<span class="nc" id="L212">                throw new CommandLineException(&quot;The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss &quot;);</span>
+            };
+<span class="fc" id="L214">            return Paths.get(dir);</span>
+        }
+        
+        BlobStore openBlobStore() throws CommandLineException, IOException {
+<span class="fc" id="L218">            return LocalBlobStore.open(getDossHome());</span>
+        }
+        
         String description() {
-<span class="nc" id="L92">            return this.descrption;</span>
+<span class="nc" id="L222">            return this.descrption;</span>
         }
 
         String parameters() {
-<span class="nc" id="L96">            return this.parameters;</span>
+<span class="nc" id="L226">            return this.parameters;</span>
         }
         
         void usage() {
-<span class="nc" id="L100">            out.println(&quot;usage: doss &quot; + name() + &quot; &quot; + parameters());</span>
-<span class="nc" id="L101">            out.println(description());</span>
-<span class="nc" id="L102">        }</span>
+<span class="nc" id="L230">            out.println(&quot;usage: doss &quot; + name() + &quot; &quot; + parameters());</span>
+<span class="nc" id="L231">            out.println(description());</span>
+<span class="nc" id="L232">        }</span>
         
         static Command get(String name) {
             try {
-<span class="fc" id="L106">                return valueOf(name);</span>
-<span class="nc" id="L107">            } catch (IllegalArgumentException e) {</span>
-<span class="nc" id="L108">                throw new NoSuchCommandException(name);</span>
+<span class="fc" id="L236">                return valueOf(name);</span>
+<span class="nc" id="L237">            } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L238">                throw new NoSuchCommandException(name);</span>
             }
         }
     }
     
-    public static void main(String... arguments) {
-        try {
-<span class="fc" id="L115">            Arguments args = new Arguments(Arrays.asList(arguments));</span>
-<span class="pc bpc" id="L116" title="1 of 2 branches missed.">            if (args.isEmpty()) {</span>
-<span class="nc" id="L117">                Command.help.execute(args);</span>
-            } else {
-<span class="fc" id="L119">                Command.get(args.first()).execute(args.rest());</span>
+    static void printError(Throwable e) {
+<span class="pc bpc" id="L244" title="1 of 2 branches missed.">        if (System.getProperty(&quot;doss.trace&quot;) != null) {</span>
+<span class="nc" id="L245">            e.printStackTrace();</span>
+        } else {
+<span class="fc" id="L247">            err.println(&quot;doss: &quot; + e.getLocalizedMessage());</span>
+<span class="fc" id="L248">            Throwable cause = e.getCause();</span>
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">            while (cause != null) {</span>
+<span class="nc" id="L250">                err.println(&quot;caused by &quot; + cause);</span>
+<span class="nc" id="L251">                cause = cause.getCause();</span>
             }
-<span class="nc" id="L121">        } catch (CommandLineException | IOException e) {</span>
-<span class="nc" id="L122">            err.println(&quot;doss: &quot; + e.getLocalizedMessage());</span>
-<span class="fc" id="L123">        }</span>
-<span class="fc" id="L124">    }</span>
+        }
+<span class="fc" id="L254">    }</span>
+    
+    public static void main(String... arguments) throws IOException {
+        try {
+<span class="fc" id="L258">            Arguments args = new Arguments(Arrays.asList(arguments));</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">            if (args.isEmpty()) {</span>
+<span class="nc" id="L260">                Command.help.execute(args);</span>
+            } else {
+<span class="fc" id="L262">                Command.get(args.first()).execute(args.rest());</span>
+            }
+<span class="fc" id="L264">        } catch (CommandLineException e) {</span>
+<span class="fc" id="L265">            printError(e);</span>
+<span class="nc" id="L266">        } catch (CorruptBlobStoreException e) {</span>
+<span class="nc" id="L267">            printError(e);</span>
+<span class="nc" id="L268">            err.println();</span>
+<span class="nc" id="L269">            err.println(&quot;Maybe you need to run 'doss init'?&quot;);</span>
+<span class="fc" id="L270">        }</span>
+<span class="fc" id="L271">    }</span>
+    
+    public static String readableFileSize(long size) {
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">        if(size &lt;= 0) return &quot;0&quot;;</span>
+<span class="fc" id="L275">        final String[] units = new String[] { &quot;B&quot;, &quot;KB&quot;, &quot;MB&quot;, &quot;GB&quot;, &quot;TB&quot; };</span>
+<span class="fc" id="L276">        int digitGroups = (int) (Math.log10(size)/Math.log10(1024));</span>
+<span class="fc" id="L277">        return new DecimalFormat(&quot;#,##0.#&quot;).format(size/Math.pow(1024, digitGroups)) + &quot; &quot; + units[digitGroups];</span>
+    }
 
     static class CommandLineException extends RuntimeException {
         CommandLineException(String message) {
-<span class="nc" id="L128">            super(message);</span>
-<span class="nc" id="L129">        }        </span>
+<span class="fc" id="L282">            super(message);</span>
+<span class="fc" id="L283">        }</span>
     }
 
     static class NoSuchCommandException extends CommandLineException {
         NoSuchCommandException(String command) {
-<span class="nc" id="L134">            super(String.format(&quot;'%s' is not a doss command&quot;, command));</span>
-<span class="nc" id="L135">        }</span>
+<span class="nc" id="L288">            super(String.format(&quot;'%s' is not a doss command&quot;, command));</span>
+<span class="nc" id="L289">        }</span>
     }
     
-<span class="nc" id="L138">    static class Arguments implements Iterable&lt;String&gt; {</span>
+<span class="nc" id="L292">    static class Arguments implements Iterable&lt;String&gt; {</span>
         final List&lt;String&gt; list;
         
-<span class="fc" id="L141">        Arguments(List&lt;String&gt; list) {</span>
-<span class="fc" id="L142">            this.list = list;</span>
-<span class="fc" id="L143">        }</span>
+<span class="fc" id="L295">        Arguments(List&lt;String&gt; list) {</span>
+<span class="fc" id="L296">            this.list = list;</span>
+<span class="fc" id="L297">        }</span>
         
         public Iterator&lt;String&gt; iterator() {
-<span class="fc" id="L146">            return list.iterator();</span>
+<span class="fc" id="L300">            return list.iterator();</span>
         }
 
         boolean isEmpty() {
-<span class="fc" id="L150">            return list.isEmpty();</span>
+<span class="fc" id="L304">            return list.isEmpty();</span>
         }
         
         String first() {
-<span class="fc" id="L154">            return list.get(0);</span>
+<span class="fc" id="L308">            return list.get(0);</span>
         }
 
         Arguments rest() {
-<span class="fc" id="L158">            return new Arguments(list.subList(1, list.size()));</span>
+<span class="fc" id="L312">            return new Arguments(list.subList(1, list.size()));</span>
         }
     }
-
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

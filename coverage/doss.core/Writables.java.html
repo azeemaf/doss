@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Writables.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.core</a> &gt; <span class="el_source">Writables.java</span></div><h1>Writables.java</h1><pre class="source lang-java linenums">package doss.core;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.WritableByteChannel;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+
+import doss.Writable;
+
+/**
+ * Utility methods for constructing Writables from various objects.
+ */
+<span class="nc" id="L17">public class Writables {</span>
+    
+    public static Writable wrap(final Path path) {
+<span class="fc" id="L20">        return new Writable() {</span>
+            public void writeTo(WritableByteChannel targetChannel)
+                    throws IOException {
+<span class="pc" id="L23">                try (FileChannel sourceChannel = (FileChannel) Files</span>
+                        .newByteChannel(path, StandardOpenOption.READ)) {
+<span class="fc" id="L25">                    sourceChannel.transferTo(0, Long.MAX_VALUE, targetChannel);</span>
+<span class="pc bpc" id="L26" title="6 of 8 branches missed.">                }</span>
+<span class="fc" id="L27">            }</span>
+
+            public long size() throws IOException {
+<span class="nc" id="L30">                return Files.size(path);</span>
+            }
+        };
+    }
+    
+    public static Writable wrap(final byte[] bytes) {
+<span class="fc" id="L36">        return new Writable() {</span>
+            public void writeTo(WritableByteChannel channel) throws IOException {
+<span class="fc" id="L38">                channel.write(ByteBuffer.wrap(bytes));</span>
+<span class="fc" id="L39">            }</span>
+
+            public long size() {
+<span class="nc" id="L42">                return bytes.length;</span>
+            }
+        };
+    }
+    
+    public static Writable wrap(String string) {
+<span class="fc" id="L48">        return wrap(string.getBytes(Charset.forName(&quot;UTF-8&quot;)));</span>
+    }
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
