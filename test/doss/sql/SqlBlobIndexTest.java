@@ -38,7 +38,8 @@ public class SqlBlobIndexTest {
 
         // DDL is going to commit the transaction in a h2 db no matter what,
         // FYI (unless you use TEMPORARY).
-        BlobIndexSchemaDAO schema = dbi.onDemand(BlobIndexSchemaDAO.class);
+        BlobIndexSchemaDAO schema = dbi
+                .onDemand(BlobIndexSchemaDAO.class);
         schema.createSchema();
     }
 
@@ -77,11 +78,11 @@ public class SqlBlobIndexTest {
         assertEquals("First blob position is OK", sharedPosition,
                 index.locate(firstBlob).offset());
 
-        assertEquals("Second blob position is OK", sharedPosition,
-                index.locate(secondBlob).offset());
+        assertEquals("Second blob position is OK", sharedPosition, index
+                .locate(secondBlob).offset());
 
-        assertEquals("Third blob position is OK", differentPosition,
-                index.locate(thirdBlob).offset());
+        assertEquals("Third blob position is OK", differentPosition, index
+                .locate(thirdBlob).offset());
     }
 
     @Test
@@ -99,8 +100,8 @@ public class SqlBlobIndexTest {
         assertEquals("First blob position is OK", sharedPosition,
                 index.locate(firstBlob).offset());
 
-        assertEquals("Second blob position is OK", sharedPosition,
-                index.locate(secondBlob).offset());
+        assertEquals("Second blob position is OK", sharedPosition, index
+                .locate(secondBlob).offset());
 
         index.delete(firstBlob);
         Boolean firstBlobDeleted = false;
@@ -196,6 +197,7 @@ public class SqlBlobIndexTest {
 
                     final BlobIndex totallyDifferentIndexInstance = new SqlBlobIndex(
                             conn);
+
                     totallyDifferentIndexInstance.remember(firstBlob, container, 1);
 
                     assertEquals(

@@ -32,7 +32,7 @@ public class SqlBlobIndex implements BlobIndex {
      */
     public SqlBlobIndex(final IDBI dbi) {
         dbi.onDemand(BlobIndexSchemaDAO.class).createSchema();
-    	this.dao = dbi.onDemand(BlobIndexDAO.class);
+        this.dao = dbi.onDemand(BlobIndexDAO.class);
     }
 
     /**
@@ -49,7 +49,7 @@ public class SqlBlobIndex implements BlobIndex {
      *            database.
      */
     public SqlBlobIndex(final Handle h) {
-    	h.attach(BlobIndexSchemaDAO.class).createSchema();
+        h.attach(BlobIndexSchemaDAO.class).createSchema();
         this.dao = h.attach(BlobIndexDAO.class);
     }
 

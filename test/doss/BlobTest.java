@@ -8,6 +8,8 @@ import java.nio.file.Path;
 
 import org.junit.Test;
 
+import doss.core.Tools;
+
 public class BlobTest extends DOSSTest {
     @Test(expected = NoSuchBlobException.class)
     public void bogusBlobsShouldNotBeFound() throws Exception {
@@ -43,6 +45,7 @@ public class BlobTest extends DOSSTest {
     @Test
     public void blobStoresReopenable() throws Exception {
         Path path = folder.newFolder().toPath();
+        Tools.createLocalStore(path);
         blobStore = DOSS.openLocalStore(path);
 
         Blob blob = null;
