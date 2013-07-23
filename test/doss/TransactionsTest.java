@@ -41,7 +41,7 @@ public class TransactionsTest extends DOSSTest {
 
     @Test(expected = NoSuchBlobTxException.class)
     public void closedTransactionsArentResumable() throws Exception {
-        String txId;
+        long txId;
         try (BlobTx tx = blobStore.begin()) {
             txId = tx.id();
             tx.commit();
@@ -51,7 +51,7 @@ public class TransactionsTest extends DOSSTest {
 
     @Test
     public void preparedTransactionsStayOpen() throws Exception {
-        String txId;
+        long txId;
         try (BlobTx tx = blobStore.begin()) {
             txId = tx.id();
             tx.prepare();
@@ -63,7 +63,7 @@ public class TransactionsTest extends DOSSTest {
 
     @Test(expected = NoSuchBlobTxException.class)
     public void preparedTransactionsAreClosedOnRollback() throws Exception {
-        String txId;
+        long txId;
         try (BlobTx tx = blobStore.begin()) {
             txId = tx.id();
             tx.prepare();
@@ -74,7 +74,7 @@ public class TransactionsTest extends DOSSTest {
 
     @Test(expected = NoSuchBlobTxException.class)
     public void preparedTransactionsAreClosedOnCommit() throws Exception {
-        String txId;
+        long txId;
         try (BlobTx tx = blobStore.begin()) {
             txId = tx.id();
             tx.prepare();

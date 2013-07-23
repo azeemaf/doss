@@ -3,10 +3,8 @@ package doss.core;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.channels.WritableByteChannel;
 
 import org.junit.After;
 import org.junit.Rule;
@@ -14,11 +12,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import doss.Blob;
-import doss.Writable;
-import doss.core.Container;
 
 public abstract class ContainerTest {
-    protected static final String TEST_ID = "weird\nid\0a\r\nwith\tstrange\u2601characters";
     protected static final String TEST_DATA = "test\nstring\0a\r\nwith\tstrange\u2603characters";
 
     @Rule
@@ -35,16 +30,16 @@ public abstract class ContainerTest {
 
     @Test
     public void offsetsMustBeUnique() throws Exception {
-        long offset1 = container.put("a", Tools.stringOutput("hello world"));
-        long offset2 = container.put("b", Tools.stringOutput("how are you?"));
+        long offset1 = container.put(1, Writables.wrap("hello world"));
+        long offset2 = container.put(2, Writables.wrap("how are you?"));
         assertNotEquals(offset1, offset2);
     }
 
     @Test
     public void readAndWrite() throws Exception {
-        long offset = container.put(TEST_ID, Tools.stringOutput(TEST_DATA));
+        long offset = container.put(1, Writables.wrap(TEST_DATA));
         Blob blob = container.get(offset);
-        assertEquals(TEST_ID, blob.id());
+        assertEquals(1, blob.id());
 
         byte[] buf = new byte[(int) blob.size()];
         try (SeekableByteChannel channel = blob.openChannel()) {
@@ -55,3 +50,4 @@ public abstract class ContainerTest {
     }
 
 }
+

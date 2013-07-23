@@ -7,8 +7,8 @@ public class NoSuchBlobException extends BlobException {
     public NoSuchBlobException() {
     }
 
-    public NoSuchBlobException(String message) {
-        super(message);
+    public NoSuchBlobException(Long blobId) {
+        super(blobId.toString());
     }
 
     public NoSuchBlobException(Throwable cause) {

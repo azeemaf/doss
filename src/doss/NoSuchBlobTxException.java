@@ -24,4 +24,8 @@ public class NoSuchBlobTxException extends BlobException {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 
+    public NoSuchBlobTxException(Long txId) {
+        super(txId.toString());
+    }
+
 }

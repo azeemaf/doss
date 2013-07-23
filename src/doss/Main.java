@@ -18,6 +18,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import doss.local.LocalBlobStore;
+
 
 /**
  * DOSS command-line interface
@@ -65,11 +67,16 @@ public class Main {
                 }
             }
         },
+        init("", "Initialize the blob store") {
+            void execute(Arguments args) throws IOException {
+                LocalBlobStore.init(getDossHome());
+            }
+        },
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
           
             void outputBlob(String blobId) throws IOException {
             	try (BlobStore bs = openBlobStore()) {
-                    Blob blob = bs.get(blobId);
+                    Blob blob = bs.get(Long.parseLong(blobId));
                     ReadableByteChannel channel = blob.openChannel();
                     WritableByteChannel dest = Channels.newChannel(out);
 
@@ -98,7 +105,7 @@ public class Main {
             void outputBlob(String blobId) throws IOException {
             	
                 try (BlobStore bs = openBlobStore()) {
-                    Blob blob = bs.get(blobId);
+                    Blob blob = bs.get(Long.parseLong(blobId));
                     ReadableByteChannel channel = blob.openChannel();
                     FileChannel dest = FileChannel.open(Paths.get(blobId), StandardOpenOption.WRITE,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING );
                     long bytesTransferred = dest.transferFrom(channel, 0, Long.MAX_VALUE);
@@ -136,7 +143,7 @@ public class Main {
                     } 
                     
                     for (String arg : args) {
-                        Blob blob = bs.get(arg);
+                        Blob blob = bs.get(Long.parseLong(arg));
                         
                         out.println(blob.id() + ": ");
                         
@@ -176,7 +183,7 @@ public class Main {
                             
                             Blob blob = tx.put(p);
                             
-                            out.println(blob.id() + '\t' + filename + '\t' + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
+                            out.println(Long.toString(blob.id()) + '\t' + filename + '\t' + (humanSizes? readableFileSize(blob.size()) : blob.size() + " B"));
                         }
                         
                         tx.commit();
@@ -199,13 +206,16 @@ public class Main {
         
         abstract void execute(Arguments args) throws IOException;
         
-        BlobStore openBlobStore() throws CommandLineException, IOException {
+        Path getDossHome() {
             String dir = System.getProperty("doss.home");
             if (dir == null) {
                 throw new CommandLineException("The doss.home system property must be set, eg.: -Ddoss.home=/path/to/doss ");
             };
-            
-            return DOSS.openLocalStore(Paths.get(dir));
+            return Paths.get(dir);
+        }
+        
+        BlobStore openBlobStore() throws CommandLineException, IOException {
+            return LocalBlobStore.open(getDossHome());
         }
         
         String description() {
@@ -230,6 +240,19 @@ public class Main {
         }
     }
     
+    static void printError(Throwable e) {
+        if (System.getProperty("doss.trace") != null) {
+            e.printStackTrace();
+        } else {
+            err.println("doss: " + e.getLocalizedMessage());
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                err.println("caused by " + cause);
+                cause = cause.getCause();
+            }
+        }
+    }
+    
     public static void main(String... arguments) throws IOException {
         try {
             Arguments args = new Arguments(Arrays.asList(arguments));
@@ -239,7 +262,11 @@ public class Main {
                 Command.get(args.first()).execute(args.rest());
             }
         } catch (CommandLineException e) {
-            err.println("doss: " + e.getLocalizedMessage());
+            printError(e);
+        } catch (CorruptBlobStoreException e) {
+            printError(e);
+            err.println();
+            err.println("Maybe you need to run 'doss init'?");
         }
     }
     
@@ -285,6 +312,5 @@ public class Main {
             return new Arguments(list.subList(1, list.size()));
         }
     }
-
 
 }

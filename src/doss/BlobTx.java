@@ -5,7 +5,6 @@ import java.nio.file.Path;
 
 import doss.core.Named;
 import doss.core.Transaction;
-import doss.core.TransactionState;
 
 /**
  * A transaction for writing to a BlobStore.

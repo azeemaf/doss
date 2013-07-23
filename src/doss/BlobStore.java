@@ -13,7 +13,7 @@ public interface BlobStore extends AutoCloseable {
      * @throws IOException if an I/O error occurs
      * @throws NoSuchFileException if the blob does not exist 
      */
-    Blob get(String blobId) throws NoSuchBlobException, IOException;
+    Blob get(long blobId) throws NoSuchBlobException, IOException;
 
     /**
      * Begins a new write transaction.
@@ -28,7 +28,7 @@ public interface BlobStore extends AutoCloseable {
      * @param txId an id previously obtained from {@link BlobTx#id()}
      * @return the resumed transaction
      */
-    BlobTx resume(String txId) throws NoSuchBlobTxException;
+    BlobTx resume(long txId) throws NoSuchBlobTxException;
 
     void close();
 }

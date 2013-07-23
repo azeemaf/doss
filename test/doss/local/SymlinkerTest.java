@@ -14,7 +14,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import doss.core.Tools;
+import doss.core.Writables;
+
 
 public class SymlinkerTest {
 
@@ -23,13 +24,14 @@ public class SymlinkerTest {
     public DirectoryContainer container;
     public Symlinker symlinker;
     public Path root;
+    public Path symlinkerPath;
+    
 
     @Before
     public void setup() throws IOException {
-        root = folder.newFolder().toPath();
-        Tools.createLocalStore(root);
-        container = new DirectoryContainer(root.resolve("data"));
-        symlinker = new Symlinker(root.resolve("blob"));
+        symlinkerPath = folder.newFolder().toPath();
+        container = new DirectoryContainer(0, folder.newFolder().toPath());
+        symlinker = new Symlinker(symlinkerPath);
     }
 
     @After
@@ -44,11 +46,11 @@ public class SymlinkerTest {
     public void testRemember() throws IOException {
         String testString = "foo";
         long blobId = 1;
-        long offset = container.put(Long.toString(blobId),
-                Tools.stringOutput(testString));
+        long offset = container.put(blobId,
+                Writables.wrap(testString));
         symlinker.link(blobId, container, offset);
 
-        Path path = root.resolve("blob").resolve(Long.toString(blobId));
+        Path path = symlinkerPath.resolve(Long.toString(blobId));
         String storedString = org.apache.commons.io.IOUtils.toString(container
                 .get(offset).openStream());
         String linkedString = org.apache.commons.io.IOUtils.toString(Files
@@ -62,10 +64,10 @@ public class SymlinkerTest {
     public void testDelete() throws IOException {
         String testString = "foo";
         long blobId = 1;
-        long offset = container.put(Long.toString(blobId),
-                Tools.stringOutput(testString));
+        long offset = container.put(blobId,
+                Writables.wrap(testString));
         symlinker.link(blobId, container, offset);
-        Path path = root.resolve("blob").resolve(Long.toString(blobId));
+        Path path = symlinkerPath.resolve(Long.toString(blobId));
         assertTrue("link path exists after remember", Files.exists(path));
         symlinker.unlink(blobId);
         assertFalse("link path does not exist after delete", Files.exists(path));

@@ -9,16 +9,14 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-import doss.core.TransactionState;
-
-public class TransactionStateTest {
+public class ManagedTransactionTest {
 
     // Open
     @Test
     public void testOpenPrepare() throws IOException {
         Transaction t = mock(Transaction.class);
-        assertEquals(TransactionState.OPEN.prepare(t),
-                TransactionState.PREPARED);
+        assertEquals(ManagedTransaction.State.OPEN.prepare(t),
+                ManagedTransaction.State.PREPARED);
         verify(t).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -28,8 +26,8 @@ public class TransactionStateTest {
     @Test
     public void testOpenCommit() throws IOException {
         Transaction t = mock(Transaction.class);
-        assertEquals(TransactionState.OPEN.commit(t),
-                TransactionState.COMMITTED);
+        assertEquals(ManagedTransaction.State.OPEN.commit(t),
+                ManagedTransaction.State.COMMITTED);
         verify(t).prepare();
         verify(t).commit();
         verify(t, never()).rollback();
@@ -39,8 +37,8 @@ public class TransactionStateTest {
     @Test
     public void testOpenRollback() throws IOException {
         Transaction t = mock(Transaction.class);
-        assertEquals(TransactionState.OPEN.rollback(t),
-                TransactionState.ROLLEDBACK);
+        assertEquals(ManagedTransaction.State.OPEN.rollback(t),
+                ManagedTransaction.State.ROLLEDBACK);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t).rollback();
@@ -50,7 +48,7 @@ public class TransactionStateTest {
     @Test(expected = IllegalStateException.class)
     public void testOpenClose() throws IOException {
         Transaction t = mock(Transaction.class);
-        TransactionState.OPEN.close(t);
+        ManagedTransaction.State.OPEN.close(t);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -61,7 +59,7 @@ public class TransactionStateTest {
     @Test(expected = IllegalStateException.class)
     public void testPreparePrepare() throws IOException {
         Transaction t = mock(Transaction.class);
-        TransactionState.PREPARED.prepare(t);
+        ManagedTransaction.State.PREPARED.prepare(t);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -71,8 +69,8 @@ public class TransactionStateTest {
     @Test
     public void testPrepareCommit() throws IOException {
         Transaction t = mock(Transaction.class);
-        assertEquals(TransactionState.PREPARED.commit(t),
-                TransactionState.COMMITTED);
+        assertEquals(ManagedTransaction.State.PREPARED.commit(t),
+                ManagedTransaction.State.COMMITTED);
         verify(t, never()).prepare();
         verify(t).commit();
         verify(t, never()).rollback();
@@ -82,8 +80,8 @@ public class TransactionStateTest {
     @Test
     public void testPrepareRollback() throws IOException {
         Transaction t = mock(Transaction.class);
-        assertEquals(TransactionState.PREPARED.rollback(t),
-                TransactionState.ROLLEDBACK);
+        assertEquals(ManagedTransaction.State.PREPARED.rollback(t),
+                ManagedTransaction.State.ROLLEDBACK);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t).rollback();
@@ -93,8 +91,8 @@ public class TransactionStateTest {
     @Test
     public void testPrepareClose() throws IOException {
         Transaction t = mock(Transaction.class);
-        assertEquals(TransactionState.PREPARED.close(t),
-                TransactionState.PREPARED);
+        assertEquals(ManagedTransaction.State.PREPARED.close(t),
+                ManagedTransaction.State.PREPARED);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -105,7 +103,7 @@ public class TransactionStateTest {
     @Test(expected = IllegalStateException.class)
     public void testCommitPrepare() throws IOException {
         Transaction t = mock(Transaction.class);
-        TransactionState.COMMITTED.prepare(t);
+        ManagedTransaction.State.COMMITTED.prepare(t);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -115,7 +113,7 @@ public class TransactionStateTest {
     @Test(expected = IllegalStateException.class)
     public void testCommitCommit() throws IOException {
         Transaction t = mock(Transaction.class);
-        TransactionState.COMMITTED.commit(t);
+        ManagedTransaction.State.COMMITTED.commit(t);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -126,7 +124,7 @@ public class TransactionStateTest {
     @Test(expected = IllegalStateException.class)
     public void testCommitRollback() throws IOException {
         Transaction t = mock(Transaction.class);
-        TransactionState.COMMITTED.rollback(t);
+        ManagedTransaction.State.COMMITTED.rollback(t);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -136,8 +134,8 @@ public class TransactionStateTest {
     @Test
     public void testCommitClose() throws IOException {
         Transaction t = mock(Transaction.class);
-        assertEquals(TransactionState.COMMITTED.close(t),
-                TransactionState.COMMITTED);
+        assertEquals(ManagedTransaction.State.COMMITTED.close(t),
+                ManagedTransaction.State.COMMITTED);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -148,7 +146,7 @@ public class TransactionStateTest {
     @Test(expected = IllegalStateException.class)
     public void testRolledbackPrepare() throws IOException {
         Transaction t = mock(Transaction.class);
-        TransactionState.ROLLEDBACK.prepare(t);
+        ManagedTransaction.State.ROLLEDBACK.prepare(t);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -158,7 +156,7 @@ public class TransactionStateTest {
     @Test(expected = IllegalStateException.class)
     public void testRolledbackCommit() throws IOException {
         Transaction t = mock(Transaction.class);
-        TransactionState.ROLLEDBACK.commit(t);
+        ManagedTransaction.State.ROLLEDBACK.commit(t);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -168,7 +166,7 @@ public class TransactionStateTest {
     @Test(expected = IllegalStateException.class)
     public void testRolledbackRollback() throws IOException {
         Transaction t = mock(Transaction.class);
-        TransactionState.ROLLEDBACK.rollback(t);
+        ManagedTransaction.State.ROLLEDBACK.rollback(t);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();
@@ -178,8 +176,8 @@ public class TransactionStateTest {
     @Test
     public void testRolledbackClose() throws IOException {
         Transaction t = mock(Transaction.class);
-        assertEquals(TransactionState.ROLLEDBACK.close(t),
-                TransactionState.ROLLEDBACK);
+        assertEquals(ManagedTransaction.State.ROLLEDBACK.close(t),
+                ManagedTransaction.State.ROLLEDBACK);
         verify(t, never()).prepare();
         verify(t, never()).commit();
         verify(t, never()).rollback();

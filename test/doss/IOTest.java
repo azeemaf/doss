@@ -10,7 +10,7 @@ import doss.core.Named;
 
 public class IOTest extends DOSSTest {
     public void testChannelIO() throws Exception {
-        String blobId;
+        long blobId;
 
         try (BlobTx tx = blobStore.begin()) {
             blobId = tx.put(TEST_BYTES).id();
@@ -25,7 +25,7 @@ public class IOTest extends DOSSTest {
     }
 
     public void testStreamIO() throws Exception {
-        String id = writeTempBlob(blobStore, TEST_STRING).id();
+        long id = writeTempBlob(blobStore, TEST_STRING).id();
         assertNotNull(id);
 
         Blob blob = blobStore.get(id);

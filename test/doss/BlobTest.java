@@ -8,29 +8,18 @@ import java.nio.file.Path;
 
 import org.junit.Test;
 
-import doss.core.Tools;
+import doss.local.LocalBlobStore;
 
 public class BlobTest extends DOSSTest {
     @Test(expected = NoSuchBlobException.class)
     public void bogusBlobsShouldNotBeFound() throws Exception {
-        blobStore.get("999");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void pathHijinksShouldBeIllegal() throws Exception {
-        blobStore.get("../secret");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void blankIdsShouldBeIllegal() throws Exception {
-        blobStore.get("");
+        blobStore.get(999);
     }
 
     @Test
     public void blobsHaveAUniqueId() throws Exception {
-        String id1 = writeTempBlob(blobStore, "one").id();
-        String id2 = writeTempBlob(blobStore, "two").id();
-        assertNotNull(id1);
+        long id1 = writeTempBlob(blobStore, "1").id();
+        long id2 = writeTempBlob(blobStore, "2").id();
         assertNotEquals(id1, id2);
     }
 
@@ -45,8 +34,8 @@ public class BlobTest extends DOSSTest {
     @Test
     public void blobStoresReopenable() throws Exception {
         Path path = folder.newFolder().toPath();
-        Tools.createLocalStore(path);
-        blobStore = DOSS.openLocalStore(path);
+        LocalBlobStore.init(path);
+        blobStore = LocalBlobStore.open(path);
 
         Blob blob = null;
 
@@ -57,7 +46,7 @@ public class BlobTest extends DOSSTest {
         assertEquals(TEST_STRING, slurp(blobStore.get(blob.id())));
         blobStore.close();
 
-        blobStore = DOSS.openLocalStore(path);
+        blobStore = LocalBlobStore.open(path);
         assertEquals(TEST_STRING, slurp(blobStore.get(blob.id())));
     }
 }

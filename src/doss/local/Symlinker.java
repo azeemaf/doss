@@ -28,7 +28,7 @@ class Symlinker {
     public void unlink(long blobId) {
         Path link = resolveLinkPath(blobId);
         if (!Files.exists(link)) {
-            throw new NoSuchBlobException(Long.toString(blobId));
+            throw new NoSuchBlobException(blobId);
         }
 
         try {

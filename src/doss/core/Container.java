@@ -22,12 +22,11 @@ import doss.Writable;
  * verification at a whole container level as most storage hardware is far more
  * efficient at large sequential reads and writes than small random ones.
  */
-public interface Container extends AutoCloseable {
+public interface Container extends AutoCloseable, Named {
 
     public Blob get(long offset) throws IOException;
 
-    public long put(String id, Writable output)
-            throws IOException;
+    public long put(long blobId, Writable output) throws IOException;
 
     void close();
 }

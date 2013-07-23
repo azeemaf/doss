@@ -10,7 +10,7 @@ import java.nio.channels.SeekableByteChannel;
  * SubChannel is read only so write and truncate methods are not implemented
  *
  */
-public class SubChannel implements SeekableByteChannel{
+class SubChannel implements SeekableByteChannel{
     
     final SeekableByteChannel containerChannel;
     final long offset;

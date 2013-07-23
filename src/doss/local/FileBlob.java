@@ -11,18 +11,21 @@ import java.nio.file.attribute.FileTime;
 
 import doss.Blob;
 
-public class LocalBlob implements Blob {
+/**
+ * A blob backed by a local file.
+ */
+class FileBlob implements Blob {
 
     private final Path path;
-    private final String id;
+    private final long id;
     
-    LocalBlob(String id, Path path) {
+    FileBlob(long id, Path path) {
         this.id = id;
         this.path = path;
     }
 
     @Override
-    public String id() {
+    public long id() {
         return id;
     }
       
@@ -42,7 +45,7 @@ public class LocalBlob implements Blob {
     }
 
     @Override
-    public FileTime created() throws IOException {        
+    public FileTime created() throws IOException {
         return Files.readAttributes(path, BasicFileAttributes.class).creationTime();
     }
 

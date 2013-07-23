@@ -2,62 +2,66 @@ package doss.local;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.skife.jdbi.v2.DBI;
-
-import doss.Blob;
-import doss.BlobStore;
-import doss.BlobTx;
-import doss.NoSuchBlobTxException;
-import doss.core.BlobIndex;
-import doss.core.BlobIndexEntry;
-import doss.sql.SqlBlobIndex;
+import doss.*;
+import doss.core.ManagedTransaction;
+import doss.core.Transaction;
+import doss.core.Writables;
 
 public class LocalBlobStore implements BlobStore {
 
-    public static LocalBlobStore open(Path root) throws IOException {
-        Path dataStorage = root.resolve("data");
-        assertStorageLocationExists(dataStorage, "DirectoryContainer storage");
-        DirectoryContainer container = new DirectoryContainer(dataStorage);
+    final DirectoryContainer container;
+    final Symlinker symlinker;
+    final Database db;
+    final Map<Long, BlobTx> txs = new ConcurrentHashMap<>();
+    final Path rootDir;
 
-        Path sqlIndexStorage = root.resolve("index/index");
-        assertStorageLocationExists(dataStorage, "SqlContainerIndex storage");
-        DBI dbi = new DBI("jdbc:h2:file:" + sqlIndexStorage
-                + ";AUTO_SERVER=TRUE");
-        SqlBlobIndex sqlIndex = new SqlBlobIndex(dbi);
-
-        Path symlinkRoot = root.resolve("blob");
-        assertStorageLocationExists(dataStorage,
-                "SymlinkContainerIndex storage");
-
-        Symlinker symlinker = new Symlinker(symlinkRoot);
-
-        return new LocalBlobStore(container, sqlIndex, symlinker);
+    private LocalBlobStore(Path rootDir) throws IOException {
+        this.rootDir = rootDir;
+        container = new DirectoryContainer(0, subdir("data"));
+        db = Database.open(subdir("db"));
+        symlinker = new Symlinker(subdir("blob"));
     }
 
-    private static void assertStorageLocationExists(Path storageLocation,
-            String storageDescription) {
-        if (!Files.exists(storageLocation)) {
-            throw new RuntimeException(storageDescription + " not found");
+    public static void init(Path root) throws IOException {
+        Files.createDirectories(root.resolve("data"));
+        Files.createDirectories(root.resolve("db"));
+        Files.createDirectories(root.resolve("blob"));
+        try (Database db = Database.open(root.resolve("db"))) {
+            db.migrate();
+        }
+    }
+    
+    /**
+     * Opens a BlobStore that stores all its data and indexes on the local file
+     * system.
+     * 
+     * @param root
+     *            directory to store data and indexes in
+     * @return a new BlobStore
+     * @throws CorruptBlobStoreException
+     *             if the blob store is missing or corrupt
+     */
+    public static BlobStore open(Path root) throws CorruptBlobStoreException {
+        try {
+            return new LocalBlobStore(root);
+        } catch (IOException e) {
+            throw new CorruptBlobStoreException(root, e);
         }
     }
 
-    final RunningNumber blobNumber = new RunningNumber();
-    final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
-    final DirectoryContainer container;
-    final BlobIndex blobIndex;
-    final Symlinker symlinker;
-
-    private final RunningNumber txNumber = new RunningNumber();
-
-    public LocalBlobStore(DirectoryContainer container, BlobIndex index,
-            Symlinker symlinker) throws IOException {
-        this.container = container;
-        this.blobIndex = index;
-        this.symlinker = symlinker;
+    private Path subdir(String name) throws NotDirectoryException {
+        Path path = rootDir.resolve(name);
+        if (!Files.isDirectory(path)) {
+            throw new NotDirectoryException(path.toString());
+        }
+        return path;
     }
 
     @Override
@@ -66,20 +70,24 @@ public class LocalBlobStore implements BlobStore {
     }
 
     @Override
-    public Blob get(String blobId) throws IOException {
-        BlobIndexEntry entry = blobIndex.locate(parseId(blobId));
-        return container.get(entry.offset());
+    public Blob get(long blobId) throws IOException, NoSuchBlobException {
+        BlobLocation location = db.locateBlob(blobId);
+        if (location == null) {
+            throw new NoSuchBlobException(blobId);
+        }
+        // TODO: support multiple containers
+        return container.get(location.offset());
     }
 
     @Override
     public BlobTx begin() {
-        BlobTx tx = new LocalBlobTx(Long.toString(txNumber.next()), this);
+        BlobTx tx = new Tx();
         txs.put(tx.id(), tx);
         return tx;
     }
 
     @Override
-    public BlobTx resume(String txId) throws NoSuchBlobTxException {
+    public BlobTx resume(long txId) throws NoSuchBlobTxException {
         BlobTx tx = txs.get(txId);
         if (tx == null) {
             throw new NoSuchBlobTxException(txId);
@@ -92,7 +100,64 @@ public class LocalBlobStore implements BlobStore {
             return Long.parseLong(blobId);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("invalid blob id: "
-                  + blobId, e);
+                    + blobId, e);
+        }
+    }
+    
+    protected class Tx extends ManagedTransaction implements BlobTx {
+        
+        final long id = db.nextBlobTxId();
+        final List<Long> addedBlobs = new ArrayList<Long>();
+
+        // ManagedTransaction will call back into this private Transaction when
+        // the transaction changes state.
+        // This allows us to have transaction state transition logic controlled
+        // separately to the central data management concerns of this class.
+        Transaction callbacks = new Transaction() {
+            public void commit() throws IOException {
+                txs.remove(id);
+            }
+
+            public void rollback() throws IOException {
+                for (Long blobId : addedBlobs) {
+                    db.deleteBlob(blobId);
+                    symlinker.unlink(blobId);
+                }
+                txs.remove(id);
+            }
+
+            public void prepare() {
+                // TODO Auto-generated method stub
+            }
+
+            public void close() throws IllegalStateException {
+            }
+        };
+
+        public synchronized Blob put(Writable output) throws IOException {
+            state.assertOpen();
+            long blobId = db.nextBlobId();
+            long offset = container.put(blobId, output);
+            db.insertBlob(blobId, container.id(), offset);
+            symlinker.link(blobId, container, offset);
+            addedBlobs.add(blobId);
+            return container.get(offset);
+        }
+
+        public Blob put(final Path source) throws IOException {
+            return put(Writables.wrap(source));
+        }
+
+        public Blob put(final byte[] bytes) throws IOException {
+            return put(Writables.wrap(bytes));
+        }
+
+        public long id() {
+            return id;
+        }
+
+        protected Transaction getCallbacks() {
+            return callbacks;
         }
     }
 }

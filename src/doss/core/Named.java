@@ -10,6 +10,6 @@ public interface Named {
      * 
      * @return the object's identifier
      */
-    public abstract String id();
+    public abstract long id();
 
 }

@@ -7,6 +7,6 @@ import doss.core.ContainerTest;
 public class DirectoryContainerTest extends ContainerTest {
     @Before
     public void setUp() throws Exception {
-        container = new DirectoryContainer(folder.newFolder().toPath());
+        container = new DirectoryContainer(0, folder.newFolder().toPath());
     }
 }
