@@ -12,18 +12,23 @@ import doss.NoSuchBlobTxException;
 import doss.core.BlobIndex;
 import doss.core.Container;
 import doss.core.BlobIndexEntry;
+import doss.sql.RunningNumber;
 
 public class LocalBlobStore implements BlobStore {
 
-    final RunningNumber blobNumber = new RunningNumber();
-    final RunningNumber txNumber = new RunningNumber();
+    final RunningNumber blobNumber;
+    final RunningNumber txNumber;
     final Container container;
     final BlobIndex blobIndex;
     final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
 
-    public LocalBlobStore(Path rootDir, BlobIndex index) throws IOException {
+    public LocalBlobStore(Path rootDir, BlobIndex index,
+            RunningNumber blobIdSource, RunningNumber txIdSource)
+            throws IOException {
         container = new DirectoryContainer(rootDir.resolve("data"));
         this.blobIndex = index;
+        this.blobNumber = blobIdSource;
+        this.txNumber = txIdSource;
     }
 
     @Override

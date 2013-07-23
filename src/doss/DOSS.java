@@ -7,6 +7,11 @@ import org.skife.jdbi.v2.DBI;
 
 import doss.core.BlobIndex;
 import doss.local.LocalBlobStore;
+import doss.sql.BlobIdDAO;
+import doss.sql.BlobIdRunningNumber;
+import doss.sql.BlobTxIdDAO;
+import doss.sql.BlobTxIdRunningNumber;
+import doss.sql.RunningNumber;
 import doss.sql.SqlBlobIndex;
 
 /**
@@ -23,7 +28,17 @@ public class DOSS {
     public static BlobStore openLocalStore(Path root) throws IOException {
         DBI dbi = new DBI("jdbc:h2:file:" + root.resolve("index/index")+";AUTO_SERVER=TRUE");
         BlobIndex index = new SqlBlobIndex(dbi);
-        return new LocalBlobStore(root, index);
+
+        DBI accountingDbi = new DBI("jdbc:h2:file:"
+                + root.resolve("accounting/accounting") + ";AUTO_SERVER=TRUE");
+        BlobIdDAO blobIdDao = accountingDbi.onDemand(BlobIdDAO.class);
+        blobIdDao.createSchema();
+        BlobTxIdDAO blobTxIdDao = accountingDbi.onDemand(BlobTxIdDAO.class);
+        blobTxIdDao.createSchema();
+
+        RunningNumber blobIdSource = new BlobIdRunningNumber(accountingDbi);
+        RunningNumber blobTxIdSource = new BlobTxIdRunningNumber(accountingDbi);
+        return new LocalBlobStore(root, index, blobIdSource, blobTxIdSource);
     }
 
 }

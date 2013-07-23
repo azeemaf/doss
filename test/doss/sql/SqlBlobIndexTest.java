@@ -34,7 +34,7 @@ public class SqlBlobIndexTest {
         dbi = new DBI("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
         SQLLog sqlLog = new PrintStreamLog(new PrintStream(System.out));
         dbi.setSQLLog(sqlLog);
-        killemall();
+        Tools.dropAllObjects(dbi);
 
         // DDL is going to commit the transaction in a h2 db no matter what,
         // FYI (unless you use TEMPORARY).
@@ -44,19 +44,7 @@ public class SqlBlobIndexTest {
 
     @After
     public void teardown() {
-        killemall();
-    }
-
-    private void killemall() {
-        Handle h = null;
-        try {
-            h = dbi.open();
-            h.execute("DROP ALL OBJECTS");
-        } finally {
-            if (h != null) {
-                h.close();
-            }
-        }
+        Tools.dropAllObjects(dbi);
     }
 
     @Test
@@ -77,16 +65,16 @@ public class SqlBlobIndexTest {
         assertEquals("First blob position is OK", sharedPosition,
                 index.locate(firstBlob).offset());
 
-        assertEquals("Second blob position is OK", sharedPosition,
-                index.locate(secondBlob).offset());
+        assertEquals("Second blob position is OK", sharedPosition, index
+                .locate(secondBlob).offset());
 
-        assertEquals("Third blob position is OK", differentPosition,
-                index.locate(thirdBlob).offset());
+        assertEquals("Third blob position is OK", differentPosition, index
+                .locate(thirdBlob).offset());
     }
 
     @Test
     public void testDelete() {
-        
+
         BlobIndex index = new SqlBlobIndex(dbi);
 
         long firstBlob = 0L;
@@ -99,8 +87,8 @@ public class SqlBlobIndexTest {
         assertEquals("First blob position is OK", sharedPosition,
                 index.locate(firstBlob).offset());
 
-        assertEquals("Second blob position is OK", sharedPosition,
-                index.locate(secondBlob).offset());
+        assertEquals("Second blob position is OK", sharedPosition, index
+                .locate(secondBlob).offset());
 
         index.delete(firstBlob);
         Boolean firstBlobDeleted = false;
@@ -184,7 +172,8 @@ public class SqlBlobIndexTest {
         index.remember(firstBlob, container, 0);
         index.remember(secondBlob, container, 0);
 
-        assertEquals("First blob position is OK", 0, index.locate(firstBlob).offset());
+        assertEquals("First blob position is OK", 0, index.locate(firstBlob)
+                .offset());
 
         Boolean rolledBack = false;
         try {
@@ -196,11 +185,13 @@ public class SqlBlobIndexTest {
 
                     final BlobIndex totallyDifferentIndexInstance = new SqlBlobIndex(
                             conn);
-                    totallyDifferentIndexInstance.remember(firstBlob, container, 1);
+                    totallyDifferentIndexInstance.remember(firstBlob,
+                            container, 1);
 
                     assertEquals(
                             "First blob position is OK after update in transaction",
-                            1, totallyDifferentIndexInstance.locate(firstBlob).offset());
+                            1, totallyDifferentIndexInstance.locate(firstBlob)
+                                    .offset());
 
                     assertEquals(
                             "First blob position is OK after update /outside/ transaction",
