@@ -10,7 +10,7 @@ import org.skife.jdbi.v2.DBI;
 
 import doss.Writable;
 import doss.local.DirectoryContainer;
-import doss.sql.SqlContainerIndex;
+import doss.sql.SqlBlobIndex;
 
 public class Tools {
     public static Writable stringOutput(String s) {

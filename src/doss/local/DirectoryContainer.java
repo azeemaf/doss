@@ -51,7 +51,7 @@ public class DirectoryContainer implements Container {
         return dir.resolve(offset.toString());
     }
 
-    Path idPathFor(Long offset) {
+    protected Path idPathFor(Long offset) {
         return dir.resolve(offset.toString() + ".id");
     }
 

@@ -12,11 +12,9 @@ import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
 import doss.NoSuchBlobTxException;
-import doss.core.Container;
-import doss.core.ContainerIndexReader;
-import doss.core.ContainerIndexWriter;
-import doss.core.ContainerIndexWriterProxy;
-import doss.sql.SqlContainerIndex;
+import doss.core.BlobIndex;
+import doss.core.BlobIndexEntry;
+import doss.sql.SqlBlobIndex;
 
 public class LocalBlobStore implements BlobStore {
 
@@ -29,19 +27,15 @@ public class LocalBlobStore implements BlobStore {
         assertStorageLocationExists(dataStorage, "SqlContainerIndex storage");
         DBI dbi = new DBI("jdbc:h2:file:" + sqlIndexStorage
                 + ";AUTO_SERVER=TRUE");
-        SqlContainerIndex sqlIndex = new SqlContainerIndex(dbi);
+        SqlBlobIndex sqlIndex = new SqlBlobIndex(dbi);
 
-        Path symlinkIndexStorage = root.resolve("blob");
+        Path symlinkRoot = root.resolve("blob");
         assertStorageLocationExists(dataStorage,
                 "SymlinkContainerIndex storage");
-        SymlinkContainerIndex symlinkIndex = new SymlinkContainerIndex(
-                container, symlinkIndexStorage);
 
-        ContainerIndexWriterProxy indexWriterProxy = new ContainerIndexWriterProxy();
-        indexWriterProxy.addContainerIndex(symlinkIndex);
-        indexWriterProxy.addContainerIndex(sqlIndex);
+        Symlinker symlinker = new Symlinker(symlinkRoot);
 
-        return new LocalBlobStore(container, sqlIndex, indexWriterProxy);
+        return new LocalBlobStore(container, sqlIndex, symlinker);
     }
 
     private static void assertStorageLocationExists(Path storageLocation,
@@ -53,19 +47,17 @@ public class LocalBlobStore implements BlobStore {
 
     final RunningNumber blobNumber = new RunningNumber();
     final Map<String, BlobTx> txs = new ConcurrentHashMap<>();
-    final Container container;
-    final ContainerIndexWriter indexWriter;
+    final DirectoryContainer container;
+    final BlobIndex blobIndex;
+    final Symlinker symlinker;
 
-    private final ContainerIndexReader indexReader;
     private final RunningNumber txNumber = new RunningNumber();
-    
 
-    public LocalBlobStore(Container container,
-            ContainerIndexReader indexReader, ContainerIndexWriter indexWriter)
-            throws IOException {
+    public LocalBlobStore(DirectoryContainer container, BlobIndex index,
+            Symlinker symlinker) throws IOException {
         this.container = container;
-        this.indexReader = indexReader;
-        this.indexWriter = indexWriter;
+        this.blobIndex = index;
+        this.symlinker = symlinker;
     }
 
     @Override
@@ -75,8 +67,8 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public Blob get(String blobId) throws IOException {
-        long offset = indexReader.locate(parseId(blobId));
-        return container.get(offset);
+        BlobIndexEntry entry = blobIndex.locate(parseId(blobId));
+        return container.get(entry.offset());
     }
 
     @Override
@@ -99,7 +91,8 @@ public class LocalBlobStore implements BlobStore {
         try {
             return Long.parseLong(blobId);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("invalid blob id: " + blobId, e);
+            throw new IllegalArgumentException("invalid blob id: "
+                  + blobId, e);
         }
     }
 }

@@ -4,7 +4,9 @@ import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.IDBI;
 
 import doss.NoSuchBlobException;
-import doss.core.ContainerIndex;
+import doss.core.BlobIndex;
+import doss.core.Container;
+import doss.core.BlobIndexEntry;
 
 /**
  * BlobIndex backed by a SQL database using jDBI.
@@ -12,9 +14,9 @@ import doss.core.ContainerIndex;
  * This class does not own any jDBI resources and is not responsible for any
  * jDBI resource management.
  */
-public class SqlContainerIndex implements ContainerIndex {
+public class SqlBlobIndex implements BlobIndex {
 
-    final ContainerIndexDAO dao;
+    final BlobIndexDAO dao;
 
     /**
      * Connects to the database using the supplied DBI instance. This
@@ -28,9 +30,9 @@ public class SqlContainerIndex implements ContainerIndex {
      * @param dbi
      *            The jDBI instance to access the database through
      */
-    public SqlContainerIndex(final IDBI dbi) {
-        dbi.onDemand(ContainerIndexSchemaDAO.class).createSchema();
-        this.dao = dbi.onDemand(ContainerIndexDAO.class);
+    public SqlBlobIndex(final IDBI dbi) {
+        dbi.onDemand(BlobIndexSchemaDAO.class).createSchema();
+        this.dao = dbi.onDemand(BlobIndexDAO.class);
     }
 
     /**
@@ -46,22 +48,24 @@ public class SqlContainerIndex implements ContainerIndex {
      *            The connection Handle that will be used to connect to the
      *            database.
      */
-    public SqlContainerIndex(final Handle h) {
-        h.attach(ContainerIndexSchemaDAO.class).createSchema();
-        this.dao = h.attach(ContainerIndexDAO.class);
+    public SqlBlobIndex(final Handle h) {
+        h.attach(BlobIndexSchemaDAO.class).createSchema();
+        this.dao = h.attach(BlobIndexDAO.class);
     }
 
     @Override
-    public long locate(final long blobId) throws NoSuchBlobException {
+    public BlobIndexEntry locate(final long blobId) throws NoSuchBlobException {
         Long offset = dao.locate(blobId);
         if (offset == null) {
             throw new NoSuchBlobException(new Long(blobId).toString());
         }
-        return offset;
+        // TODO: handle multiple containers
+        return new BlobIndexEntry(0, offset);
     }
 
     @Override
-    public void remember(final long blobId, final long offset) {
+    public void remember(long blobId, Container container, long offset) {
+        // TODO: handle multiple containers
         if (dao.locate(blobId) != null) {
             dao.update(blobId, offset);
         } else {

@@ -72,7 +72,8 @@ public class LocalBlobTx implements BlobTx {
         }
         long blobId = blobStore.blobNumber.next();
         long offset = blobStore.container.put(Long.toString(blobId), output);
-        blobStore.indexWriter.remember(blobId, offset);
+        blobStore.blobIndex.remember(blobId, blobStore.container, offset);
+        blobStore.symlinker.link(blobId, blobStore.container, offset);
         addedBlobs.add(blobId);
         return blobStore.container.get(offset);
     }
@@ -93,7 +94,8 @@ public class LocalBlobTx implements BlobTx {
         @Override
         public void rollback() throws IOException {
             for (Long blobId : addedBlobs) {
-                blobStore.indexWriter.delete(blobId);
+                blobStore.blobIndex.delete(blobId);
+                blobStore.symlinker.unlink(blobId);
             }
             blobStore.txs.remove(id());
         }
@@ -121,13 +123,11 @@ public class LocalBlobTx implements BlobTx {
         state = state.commit(controlledTransaction);
     }
 
-    public synchronized void rollback() throws IllegalStateException,
-            IOException {
+    public synchronized void rollback() throws IllegalStateException, IOException {
         state = state.rollback(controlledTransaction);
     }
 
-    public synchronized void prepare() throws IllegalStateException,
-            IOException {
+    public synchronized void prepare() throws IllegalStateException, IOException {
         state = state.prepare(controlledTransaction);
     }
 
