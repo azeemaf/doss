@@ -43,20 +43,20 @@ abstract class Database implements Closeable, GetHandle {
     }
 
     interface Schema {
-        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS blob_id_seq")
+        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS BLOB_ID_SEQ")
         void createBlobIdSequence();
 
-        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS blob_tx_id_seq")
+        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS BLOB_TX_ID_SEQ")
         void createBlobTxIdSequence();
 
         @SqlUpdate("CREATE TABLE IF NOT EXISTS blobs (blob_id BIGINT PRIMARY KEY, container_id BIGINT, offset BIGINT)")
         void createBlobsTable();
     }
 
-    @SqlQuery("SELECT NEXTVAL('blob_id_seq')")
+    @SqlQuery("SELECT NEXTVAL('BLOB_ID_SEQ')")
     public abstract long nextBlobId();
 
-    @SqlQuery("SELECT NEXTVAL('blob_tx_id_seq')")
+    @SqlQuery("SELECT NEXTVAL('BLOB_TX_ID_SEQ')")
     public abstract long nextBlobTxId();
 
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
