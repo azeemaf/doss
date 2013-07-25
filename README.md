@@ -10,7 +10,9 @@ deleted.
 
 [![Build Status](https://travis-ci.org/nla/doss.png?branch=master)](https://travis-ci.org/nla/doss)
 (Huboard: [Tasks](http://huboard.com/nla/doss/board),
-[Backlog](http://huboard.com/nla/doss/backlog))
+          [Backlog](http://huboard.com/nla/doss/backlog))
+([Javadoc](http://nla.github.io/doss/apidocs/))
+([Test coverage](http://nla.github.io/doss/coverage/))
 
 **Status**
 
