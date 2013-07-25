@@ -94,15 +94,6 @@ public class LocalBlobStore implements BlobStore {
         }
         return tx;
     }
-
-    protected long parseId(String blobId) {
-        try {
-            return Long.parseLong(blobId);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("invalid blob id: "
-                    + blobId, e);
-        }
-    }
     
     protected class Tx extends ManagedTransaction implements BlobTx {
         
