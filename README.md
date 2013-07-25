@@ -42,7 +42,7 @@ See [java-api.md](doc/java-api.md) for more examples.
 ### Ingesting files
 
 ```java
-try (BlobStore bs = DOSS.openLocalStore("/doss-devel");
+try (BlobStore bs = LocalBlobStore.open("/doss-devel");
      BlobTx tx = bs.begin()) {    
     Blob blob1 = tx.put(Paths.get("/tmp/myimage.jpg"));
     Blob blob2 = tx.put(Paths.get("/tmp/mytext.txt"));
@@ -55,8 +55,8 @@ try (BlobStore bs = DOSS.openLocalStore("/doss-devel");
 ### Random access
 
 ```java
-try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
-    Blob blob = bs.get("962b6910");
+try (BlobStore bs = LocalBlobStore.open("/doss-devel")) {
+    Blob blob = bs.get(273);
     try (Channel channel = blob.openChannel()) {
         // do something with the channel
     }
