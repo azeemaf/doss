@@ -1,7 +1,9 @@
-DOSS Java API
-=============
+DOSS Java API Examples
+======================
 
-These examples use `DOSS.openLocalStore` which opens a local directory
+See also: [API Javadoc](http://nla.github.io/doss/apidocs/).
+
+These examples use `LocalBlobStore.open` which opens a local directory
 as a read-write data store.  In a large-scale production system the
 majoriy of clients would only have read-only access and writes would
 be performed via a remote privileged daemon that authenticates the
@@ -10,7 +12,7 @@ clients.
 ### Reading sequentially
 
 ```java
-try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
+try (BlobStore bs = LocalBlobStore.open("/doss-devel")) {
     Blob blob = bs.get("962b6910");
     try (InputStream stream = blob.openStream()) {
         return ImageIO.read(stream);
@@ -21,7 +23,7 @@ try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
 ### Random access
 
 ```java
-try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
+try (BlobStore bs = LocalBlobStore.open("/doss-devel")) {
     Blob blob = bs.get("962b6910");
     try (Channel channel = blob.openChannel()) {
         // do something with the channel
@@ -32,7 +34,7 @@ try (BlobStore bs = DOSS.openLocalStore("/doss-devel")) {
 ### Ingesting files
 
 ```java
-try (BlobStore bs = DOSS.openLocalStore("/doss-devel");
+try (BlobStore bs = LocalBlobStore.open("/doss-devel");
      BlobTx tx = bs.begin()) {    
     Blob blob1 = tx.put(Paths.get("/tmp/myimage.jpg"));
     Blob blob2 = tx.put(Paths.get("/tmp/mytext.txt"));
