@@ -21,11 +21,6 @@ class DirectoryContainer implements Container {
     public DirectoryContainer(long id, Path dir) throws IOException {
         this.id = id;
         this.dir = dir;
-        try {
-            Files.createDirectory(dir);
-        } catch (FileAlreadyExistsException e) {
-            // cool
-        }
     }
 
     @Override
