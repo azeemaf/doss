@@ -1,6 +1,7 @@
 package doss.local;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -46,7 +47,7 @@ public class TarContainerTest {
 	
 	   
 	    Path testTar = testPath.resolve("testget" + getTimestamp() +  ".tar");
-		TarContainer tarContainer = new TarContainer(testTar);
+		TarContainer tarContainer = new TarContainer(1, testTar);
 		
 
 		File file1 = createFile(testPath, "1000", "file 1 content");
@@ -74,7 +75,7 @@ public class TarContainerTest {
 	public void append() throws Exception {
 	    Path testTar = testPath.resolve("testappend" + getTimestamp() + ".tar");
 	
-		TarContainer tarContainer = new TarContainer(testTar);
+		TarContainer tarContainer = new TarContainer(2, testTar);
 		
 		File file1 = createFile(testPath, "4000", "file 4 content");
 		Writable newFileBytes = writableOutput(file1.toPath());
@@ -83,6 +84,7 @@ public class TarContainerTest {
 		TarBlob tarBlob = (TarBlob) tarContainer.get(512);
 		String content = tarBlob.slurp();
 		assertEquals("file 4 content", content);
+		assertNotNull(tarBlob.created());
 	
 
 		File file2 = createFile(testPath, "5000", "file 5 content");
@@ -90,10 +92,11 @@ public class TarContainerTest {
 		tarContainer.put(Long.parseLong("5000"), newFileBytes);
 		assertEquals(2048, tarContainer.getPosition());
 		
+		
 		tarBlob = (TarBlob) tarContainer.get(1536);
         content = tarBlob.slurp();
         assertEquals("file 5 content", content);
-
+        assertNotNull(tarBlob.created());
 	
 		File file3 = createFile(testPath, "6000", "file 6 content");
 		newFileBytes = writableOutput(file3.toPath());
@@ -104,6 +107,7 @@ public class TarContainerTest {
         tarBlob = (TarBlob) tarContainer.get(2560);
         content = tarBlob.slurp();
         assertEquals("file 6 content", content);
+        assertNotNull(tarBlob.created());
 
 	}
 

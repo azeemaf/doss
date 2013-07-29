@@ -10,6 +10,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 
@@ -65,8 +66,8 @@ public class TarBlob implements Blob {
 
     @Override
     public FileTime created() throws IOException {
-        //TODO not sure how to obtain this informatiom
-        return null;
+        return FileTime.from(tarEntry.getModTime().getTime(), TimeUnit.MILLISECONDS);
+
     }
 
 }

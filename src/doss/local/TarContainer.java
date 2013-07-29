@@ -22,11 +22,12 @@ import doss.core.Container;
 public class TarContainer implements Container {
 
     Path path;
+    final private long id;
 
-    TarContainer(Path path) throws IOException, ArchiveException {
-        // we assume that the tar is already created
+    TarContainer( long id, Path path) throws IOException, ArchiveException {
       
         this.path = path;
+        this.id = id;
 
         if (!path.toFile().exists()) {
             path.toFile().createNewFile();
@@ -154,10 +155,10 @@ public class TarContainer implements Container {
         return position;
     }
 
-    //TODO not sure what the if of the tar container should be
+ 
     public long id() {
 
-        return 0;
+        return id;
     }
 
 }
