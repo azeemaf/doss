@@ -4,6 +4,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,102 +24,103 @@ public class TarContainer implements Container {
 
     Path path;
     final private long id;
+    SeekableByteChannel containerChannel;
 
-    TarContainer( long id, Path path) throws IOException, ArchiveException {
-      
+    TarContainer(long id, Path path) throws IOException, ArchiveException {
+
         this.path = path;
         this.id = id;
 
         if (!path.toFile().exists()) {
             path.toFile().createNewFile();
         }
-
+        containerChannel = Files.newByteChannel(path,
+                EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE));
     }
 
     public void close() {
-
+        try {
+            containerChannel.close();
+        } catch (IOException e) {
+            throw new TarContainerException("Unable to close tar container "
+                    + path, e.getCause());
+        }
     }
 
     public Blob get(long offset) throws IOException {
-        
+
         if (offset < 512) {
             throw new IllegalArgumentException(
                     "Tar offset can not be less than 512");
         }
         TarBlob tarBlob = null;
-        try (SeekableByteChannel channel = Files.newByteChannel(path,
-                EnumSet.of(StandardOpenOption.READ))) {
-            
-            SubChannel subChannel = new SubChannel(channel, offset - 512, 512);
-            ByteBuffer byteBuffer = ByteBuffer.allocate(512);
-            subChannel.read(byteBuffer);
-            byteBuffer.flip();
-            TarArchiveEntry entry = new TarArchiveEntry(byteBuffer.array());
-            tarBlob = new TarBlob(path, offset, entry);
-        }
+
+        SubChannel subChannel = new SubChannel(containerChannel, offset - 512,
+                512);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(512);
+        subChannel.read(byteBuffer);
+        byteBuffer.flip();
+        TarArchiveEntry entry = new TarArchiveEntry(byteBuffer.array());
+        tarBlob = new TarBlob(path, offset, entry);
 
         return tarBlob;
     }
 
-    
-    
     public long put(long id, Writable output) throws IOException {
         Long offset = 0L;
 
         TarArchiveOutputStream os = null;
-        try (SeekableByteChannel channel = Files.newByteChannel(path,
-                EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE))) {
-            if (channel.size() == 0) {
-                FileOutputStream outputStream = new FileOutputStream(
-                        path.toFile());
+        ArchiveOutputStream tarOut = null;
+        FileOutputStream outputStream = null;
+        if (containerChannel.size() == 0) {
+            try {
+                outputStream = new FileOutputStream(path.toFile());
 
-                ArchiveOutputStream tarOut = null;
-                try {
-                    tarOut = new ArchiveStreamFactory()
-                            .createArchiveOutputStream(
-                                    ArchiveStreamFactory.TAR, outputStream);
-                    TarArchiveEntry entry = new TarArchiveEntry(
-                            String.valueOf(id));
-                    entry.setSize(output.size());
-                    tarOut.putArchiveEntry(entry);
-                    output.writeTo(Channels.newChannel(tarOut));
-                  
-                    offset = 512L;
-
-                } catch (ArchiveException e) {
-                    throw new TarContainerException("Problems Creating tar archive: " + id,e.getCause());
-                } finally {
-                    tarOut.closeArchiveEntry();
-                    tarOut.close();
-
-                }
-
-            } else {
-
-                long pos = getPosition();
+                tarOut = new ArchiveStreamFactory().createArchiveOutputStream(
+                        ArchiveStreamFactory.TAR, outputStream);
                 TarArchiveEntry entry = new TarArchiveEntry(String.valueOf(id));
                 entry.setSize(output.size());
+                tarOut.putArchiveEntry(entry);
+                output.writeTo(Channels.newChannel(tarOut));
 
-                byte[] entryData = new byte[512];
-                
-                byte[] endTarDta = new byte[1024];
-                ByteBuffer endByteByffer = ByteBuffer.wrap(endTarDta);
+                offset = 512L;
 
-               
-                entry.writeEntryHeader(entryData);
-                ByteBuffer bb = ByteBuffer.wrap(entryData);
+            } catch (ArchiveException e) {
+                throw new TarContainerException(
+                        "Problems Creating tar archive: " + id, e.getCause());
+            } finally {
 
-              
-                channel.position(pos);
-                channel.write(bb);
-                output.writeTo(channel);
+                tarOut.closeArchiveEntry();
+                tarOut.close();
 
-                endByteByffer.flip();
-                endByteByffer.rewind();
-                //write the 1024 empty bytes, they are end of archive bytes
-                channel.write(endByteByffer);
+                tarOut.flush();
+                // tarOut.finish();
 
             }
+
+        } else {
+
+            long pos = getPosition();
+            TarArchiveEntry entry = new TarArchiveEntry(String.valueOf(id));
+            entry.setSize(output.size());
+
+            byte[] entryData = new byte[512];
+
+            byte[] endTarDta = new byte[1024];
+            ByteBuffer endByteByffer = ByteBuffer.wrap(endTarDta);
+
+            entry.writeEntryHeader(entryData);
+            ByteBuffer bb = ByteBuffer.wrap(entryData);
+
+            containerChannel.position(pos);
+            containerChannel.write(bb);
+            output.writeTo(containerChannel);
+
+            endByteByffer.flip();
+            endByteByffer.rewind();
+            // write the 1024 empty bytes, they are end of archive bytes
+            containerChannel.write(endByteByffer);
+            ((FileChannel) containerChannel).force(false);
 
         }
 
@@ -155,7 +157,6 @@ public class TarContainer implements Container {
         return position;
     }
 
- 
     public long id() {
 
         return id;
