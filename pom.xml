@@ -55,7 +55,8 @@
     </plugins>
     <pluginManagement>
       <plugins>
-        <!--Tells M2Eclipse to stop needlessly worrying. It has no influence on the Maven build itself.-->
+        <!--Tells M2Eclipse to stop needlessly worrying. It has no influence 
+          on the Maven build itself. -->
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
@@ -114,10 +115,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-	  <groupId>org.apache.commons</groupId>
-	  <artifactId>commons-io</artifactId>
-	  <version>1.3.2</version>
-	  <scope>test</scope>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>1.3.2</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

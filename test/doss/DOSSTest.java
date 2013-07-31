@@ -25,7 +25,6 @@ public class DOSSTest {
     public BlobStore blobStore;
     public Path blobStoreRoot;
 
-
     @Before
     public void openBlobStore() throws IOException {
         blobStoreRoot = folder.newFolder().toPath();
@@ -37,8 +36,8 @@ public class DOSSTest {
     public void closeBlobStore() throws Exception {
         blobStore.close();
         blobStore = null;
-    }    
-    
+    }
+
     /**
      * Reads the contents of the blob into a string (decodes with UTF-8).
      * 
@@ -52,7 +51,7 @@ public class DOSSTest {
         }
         return new String(buf, "UTF-8");
     }
-    
+
     /**
      * Make a blob from a temporary file with the provided contents
      * 
@@ -67,7 +66,7 @@ public class DOSSTest {
             return blob;
         }
     }
-    
+
     /**
      * Make a temporary file somewhere harmless with some test contents in it.
      * 

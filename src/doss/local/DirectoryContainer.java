@@ -1,5 +1,8 @@
 package doss.local;
 
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
@@ -8,13 +11,12 @@ import java.nio.file.Path;
 
 import doss.Writable;
 import doss.core.Container;
-import static java.nio.file.StandardOpenOption.*;
 
 /**
  * A very simple container that just stores blobs as files in a directory.
  */
 class DirectoryContainer implements Container {
-    
+
     final long id;
     final Path dir;
 
@@ -36,8 +38,8 @@ class DirectoryContainer implements Container {
             try (WritableByteChannel channel = Files.newByteChannel(
                     dataPathFor(offset), CREATE_NEW, WRITE)) {
                 output.writeTo(channel);
-                Files.write(idPathFor(offset), Long.toString(id).getBytes("UTF-8"),
-                        CREATE_NEW, WRITE);
+                Files.write(idPathFor(offset),
+                        Long.toString(id).getBytes("UTF-8"), CREATE_NEW, WRITE);
                 return offset;
             } catch (FileAlreadyExistsException e) {
                 offset++;

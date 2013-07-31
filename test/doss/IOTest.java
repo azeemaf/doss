@@ -1,8 +1,9 @@
 package doss;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-import java.io.*;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 
@@ -43,7 +44,7 @@ public class IOTest extends DOSSTest {
             blob = tx.put(TEST_BYTES);
             tx.commit();
         }
-        
+
         assertNotNull(blob.id());
         assertEquals(TEST_STRING, slurp(blobStore.get(blob.id())));
     }

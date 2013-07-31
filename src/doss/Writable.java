@@ -13,9 +13,11 @@ public interface Writable extends Sized {
     /**
      * Writes this object to a byte channel.
      * 
-     * @param channel the channel to write to
-     * @throws IOException if I/O error occurs
+     * @param channel
+     *            the channel to write to
+     * @throws IOException
+     *             if I/O error occurs
      */
     void writeTo(WritableByteChannel channel) throws IOException;
-    
+
 }

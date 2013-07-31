@@ -5,21 +5,24 @@ import java.nio.ByteBuffer;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.channels.SeekableByteChannel;
 
-
 /**
  * SubChannel is read only so write and truncate methods are not implemented
- *
+ * 
  */
-class SubChannel implements SeekableByteChannel{
-    
+class SubChannel implements SeekableByteChannel {
+
     final SeekableByteChannel containerChannel;
     final long offset;
     final long length;
-    
-    SubChannel(SeekableByteChannel containerChannel, long blobOffset, long blobLength) throws IOException {
-        if (blobOffset > containerChannel.size() || blobLength > containerChannel.size() - blobOffset) {
-            throw new IllegalArgumentException("Can not create SubChannel for the container channel size " + containerChannel.size() +
-                    " with offset = " + blobOffset + " and length = " + blobLength);
+
+    SubChannel(SeekableByteChannel containerChannel, long blobOffset,
+            long blobLength) throws IOException {
+        if (blobOffset > containerChannel.size()
+                || blobLength > containerChannel.size() - blobOffset) {
+            throw new IllegalArgumentException(
+                    "Can not create SubChannel for the container channel size "
+                            + containerChannel.size() + " with offset = "
+                            + blobOffset + " and length = " + blobLength);
         }
 
         this.containerChannel = containerChannel;
@@ -36,7 +39,7 @@ class SubChannel implements SeekableByteChannel{
     @Override
     public void close() throws IOException {
         containerChannel.close();
-        
+
     }
 
     @Override
@@ -48,7 +51,8 @@ class SubChannel implements SeekableByteChannel{
                 // buffer has more space available than we've got left in the
                 // blob so temporarily change its limit so we don't read past
                 // the end of the blob
-                b.limit((int) (b.position() + capacity - containerChannel.position()));
+                b.limit((int) (b.position() + capacity - containerChannel
+                        .position()));
             }
             return containerChannel.read(b);
         } finally {
@@ -59,7 +63,7 @@ class SubChannel implements SeekableByteChannel{
 
     @Override
     public int write(ByteBuffer src) throws IOException {
-    	throw new NonWritableChannelException();
+        throw new NonWritableChannelException();
     }
 
     @Override

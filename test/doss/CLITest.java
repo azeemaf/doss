@@ -84,13 +84,13 @@ public class CLITest extends DOSSTest {
         assertTrue(output.toString().contains("Java version:"));
         assertTrue(output.toString().contains("Java home:"));
     }
-    
+
     private String execute(Object... args) throws IOException {
         PrintStream oldOut = System.out;
         PrintStream oldErr = System.err;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(outputStream);
-       
+
         String[] stringArgs = new String[args.length];
         for (int i = 0; i < args.length; i++) {
             stringArgs[i] = args[i].toString();
