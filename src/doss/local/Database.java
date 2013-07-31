@@ -36,27 +36,20 @@ abstract class Database implements Closeable, GetHandle {
         // soon as we need to start altering existing tables
         Schema schema = getHandle().attach(Schema.class);
         schema.createBlobsTable();
-        schema.createBlobIdSequence();
-        schema.createBlobTxIdSequence();
+        schema.createIdSequence();
         return this;
     }
 
     interface Schema {
-        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS BLOB_ID_SEQ")
-        void createBlobIdSequence();
-
-        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS BLOB_TX_ID_SEQ")
-        void createBlobTxIdSequence();
+        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS ID_SEQ")
+        void createIdSequence();
 
         @SqlUpdate("CREATE TABLE IF NOT EXISTS blobs (blob_id BIGINT PRIMARY KEY, container_id BIGINT, offset BIGINT)")
         void createBlobsTable();
     }
 
-    @SqlQuery("SELECT NEXTVAL('BLOB_ID_SEQ')")
-    public abstract long nextBlobId();
-
-    @SqlQuery("SELECT NEXTVAL('BLOB_TX_ID_SEQ')")
-    public abstract long nextBlobTxId();
+    @SqlQuery("SELECT NEXTVAL('ID_SEQ')")
+    public abstract long nextId();
 
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
     public abstract void insertBlob(@Bind("blobId") long blobId,

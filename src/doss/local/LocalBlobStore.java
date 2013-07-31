@@ -103,7 +103,7 @@ public class LocalBlobStore implements BlobStore {
 
     protected class Tx extends ManagedTransaction implements BlobTx {
 
-        final long id = db.nextBlobTxId();
+        final long id = db.nextId();
         final List<Long> addedBlobs = new ArrayList<Long>();
 
         // ManagedTransaction will call back into this private Transaction when
@@ -138,7 +138,7 @@ public class LocalBlobStore implements BlobStore {
         @Override
         public synchronized Blob put(Writable output) throws IOException {
             state.assertOpen();
-            long blobId = db.nextBlobId();
+            long blobId = db.nextId();
             long offset = container.put(blobId, output);
             db.insertBlob(blobId, container.id(), offset);
             symlinker.link(blobId, container, offset);

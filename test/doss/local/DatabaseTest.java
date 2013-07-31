@@ -40,15 +40,8 @@ public class DatabaseTest {
     }
 
     @Test
-    public void testNextBlobId() {
-        assertNotEquals("ids should be unique", db.nextBlobId(),
-                db.nextBlobId());
-    }
-
-    @Test
-    public void testNextBlobTxId() {
-        assertNotEquals("ids should be unique", db.nextBlobTxId(),
-                db.nextBlobTxId());
+    public void testNextId() {
+        assertNotEquals("ids should be unique", db.nextId(), db.nextId());
     }
 
     @Test
