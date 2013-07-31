@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.skife.jdbi.v2.DBI;
-import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
@@ -21,7 +20,8 @@ abstract class Database implements Closeable, GetHandle {
      * Opens a DOSS database stored on the local filesystem.
      */
     public static Database open(Path dbPath) {
-        return open(new DBI("jdbc:h2:file:" + dbPath + ";AUTO_SERVER=TRUE"));
+        return open(new DBI("jdbc:h2:file:" + dbPath
+                + ";AUTO_SERVER=FALSE;FILE_LOCK=NO"));
 
     }
 
@@ -37,30 +37,24 @@ abstract class Database implements Closeable, GetHandle {
         // soon as we need to start altering existing tables
         Schema schema = getHandle().attach(Schema.class);
         schema.createBlobsTable();
-        schema.createBlobIdSequence();
-        schema.createBlobTxIdSequence();
+        schema.createIdSequence();
         return this;
     }
 
     interface Schema {
-        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS BLOB_ID_SEQ")
-        void createBlobIdSequence();
-
-        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS BLOB_TX_ID_SEQ")
-        void createBlobTxIdSequence();
+        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS ID_SEQ")
+        void createIdSequence();
 
         @SqlUpdate("CREATE TABLE IF NOT EXISTS blobs (blob_id BIGINT PRIMARY KEY, container_id BIGINT, offset BIGINT)")
         void createBlobsTable();
     }
 
-    @SqlQuery("SELECT NEXTVAL('BLOB_ID_SEQ')")
-    public abstract long nextBlobId();
-
-    @SqlQuery("SELECT NEXTVAL('BLOB_TX_ID_SEQ')")
-    public abstract long nextBlobTxId();
+    @SqlQuery("SELECT NEXTVAL('ID_SEQ')")
+    public abstract long nextId();
 
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
-    public abstract void insertBlob(@Bind("blobId") long blobId, @Bind("containerId") long containerId, @Bind("offset") long offset);
+    public abstract void insertBlob(@Bind("blobId") long blobId,
+            @Bind("containerId") long containerId, @Bind("offset") long offset);
 
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract void deleteBlob(@Bind("blobId") long blobId);
@@ -69,9 +63,13 @@ abstract class Database implements Closeable, GetHandle {
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
-    public static class BlobLocationMapper implements ResultSetMapper<BlobLocation> {
-        public BlobLocation map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-            return new BlobLocation(r.getLong("container_id"), r.getLong("offset"));
+    public static class BlobLocationMapper implements
+            ResultSetMapper<BlobLocation> {
+        @Override
+        public BlobLocation map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new BlobLocation(r.getLong("container_id"),
+                    r.getLong("offset"));
         }
     }
 }

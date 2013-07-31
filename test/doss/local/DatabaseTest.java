@@ -1,6 +1,9 @@
 package doss.local;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -12,11 +15,10 @@ import org.junit.rules.TemporaryFolder;
 
 public class DatabaseTest {
     static Database db;
-    
+
     @ClassRule
     public static TemporaryFolder folder = new TemporaryFolder();
 
-    
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         db = Database.open(folder.newFolder().toPath());
@@ -38,13 +40,8 @@ public class DatabaseTest {
     }
 
     @Test
-    public void testNextBlobId() {
-        assertNotEquals("ids should be unique", db.nextBlobId(), db.nextBlobId());
-    }
-
-    @Test
-    public void testNextBlobTxId() {
-        assertNotEquals("ids should be unique", db.nextBlobTxId(), db.nextBlobTxId());
+    public void testNextId() {
+        assertNotEquals("ids should be unique", db.nextId(), db.nextId());
     }
 
     @Test
@@ -56,7 +53,8 @@ public class DatabaseTest {
         assertLocatable(1L, 2L, 3L);
     }
 
-    private void assertInsertAndLocatable(long blobId, long containerId, long offset) {
+    private void assertInsertAndLocatable(long blobId, long containerId,
+            long offset) {
         assertNull(db.locateBlob(blobId));
         db.insertBlob(blobId, containerId, offset);
         assertLocatable(blobId, containerId, offset);
