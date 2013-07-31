@@ -34,7 +34,8 @@ public class SubChannelTest {
 
     @Before
     public void setUp() throws Exception {
-        testPath = FileSystems.getDefault().getPath(folder.newFolder().toPath().toString(), "test");
+        testPath = FileSystems.getDefault().getPath(
+                folder.newFolder().toPath().toString(), "test");
         writeFileBytes(testPath.toString(), getSomeContent());
     }
 
@@ -51,19 +52,24 @@ public class SubChannelTest {
             int r1 = channel1.read(buffer);
             buffer.flip();
             String s1 = Charset.forName(encoding).decode(buffer).toString();
-            assertEquals("Checking that it reads frm the right part of the file ", "All the world's", s1);
+            assertEquals(
+                    "Checking that it reads frm the right part of the file ",
+                    "All the world's", s1);
             buffer.clear();
             int r2 = channel1.read(buffer);
-            assertEquals("Checking reading remaining bytes in the subchannel", 10, r2);
+            assertEquals("Checking reading remaining bytes in the subchannel",
+                    10, r2);
 
             buffer.flip();
             String s2 = Charset.forName(encoding).decode(buffer).toString();
-            assertEquals("Checking that remaining bytes read are correct ", " a stage,A", s2);
+            assertEquals("Checking that remaining bytes read are correct ",
+                    " a stage,A", s2);
 
             buffer.clear();
             // can not read any more, all bytes are read
             int r3 = channel1.read(buffer);
-            assertEquals("No more bytes to read, bytest read should be 0", 0, r3);
+            assertEquals("No more bytes to read, bytest read should be 0", 0,
+                    r3);
 
         }
 
@@ -82,18 +88,23 @@ public class SubChannelTest {
             int r1 = channel1.read(buffer);
             buffer.flip();
             String s1 = Charset.forName(encoding).decode(buffer).toString();
-            assertEquals("Checking that it reads frm the right part of the file ", "nd all the men ", s1);
+            assertEquals(
+                    "Checking that it reads frm the right part of the file ",
+                    "nd all the men ", s1);
             buffer.clear();
             int r2 = channel1.read(buffer);
-            assertEquals("Checking reading remaining bytes in the subchannel", 10, r2);
+            assertEquals("Checking reading remaining bytes in the subchannel",
+                    10, r2);
             buffer.flip();
             String s2 = Charset.forName(encoding).decode(buffer).toString();
-            assertEquals("Checking that remaining bytes read are correct ", "and women ", s2);
+            assertEquals("Checking that remaining bytes read are correct ",
+                    "and women ", s2);
 
             buffer.clear();
             // can not read any more, all bytes are read
             int r3 = channel1.read(buffer);
-            assertEquals("No more bytes to read, bytest read should be 0", 0, r3);
+            assertEquals("No more bytes to read, bytest read should be 0", 0,
+                    r3);
 
         }
 
@@ -149,7 +160,9 @@ public class SubChannelTest {
             buffer.flip();
             String s1 = Charset.forName(encoding).decode(buffer).toString();
             System.out.println(s1);
-            assertEquals("Checking if we are reading from the correct position ", "and wom", s1);
+            assertEquals(
+                    "Checking if we are reading from the correct position ",
+                    "and wom", s1);
 
         } catch (IOException ioe) {
             fail(ioe.getClass().getName() + " not expected");
@@ -190,8 +203,8 @@ public class SubChannelTest {
     @Test(expected = NonWritableChannelException.class)
     public void testWrite() throws IOException {
 
-        try (SeekableByteChannel sbt = Files.newByteChannel(testPath, EnumSet.of(StandardOpenOption.READ)))
-        {
+        try (SeekableByteChannel sbt = Files.newByteChannel(testPath,
+                EnumSet.of(StandardOpenOption.READ))) {
             channel1 = new SubChannel(sbt, 1, 25);
             String s = "traralaah";
             final byte[] bytes = s.getBytes();
@@ -202,8 +215,8 @@ public class SubChannelTest {
     @Test(expected = NonWritableChannelException.class)
     public void tesTruncatee() throws IOException {
 
-        try (SeekableByteChannel sbt = Files.newByteChannel(testPath, EnumSet.of(StandardOpenOption.READ)))
-        {
+        try (SeekableByteChannel sbt = Files.newByteChannel(testPath,
+                EnumSet.of(StandardOpenOption.READ))) {
             channel1 = new SubChannel(sbt, 1, 25);
             channel1.truncate(5);
         }
@@ -212,8 +225,7 @@ public class SubChannelTest {
     private static void writeFileBytes(String filename, String content) {
         try {
             Files.write(FileSystems.getDefault().getPath(filename),
-                    content.getBytes(),
-                    StandardOpenOption.CREATE);
+                    content.getBytes(), StandardOpenOption.CREATE);
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }

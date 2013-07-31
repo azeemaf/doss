@@ -16,7 +16,6 @@ import org.junit.rules.TemporaryFolder;
 
 import doss.core.Writables;
 
-
 public class SymlinkerTest {
 
     @Rule
@@ -25,7 +24,6 @@ public class SymlinkerTest {
     public Symlinker symlinker;
     public Path root;
     public Path symlinkerPath;
-    
 
     @Before
     public void setup() throws IOException {
@@ -46,8 +44,7 @@ public class SymlinkerTest {
     public void testRemember() throws IOException {
         String testString = "foo";
         long blobId = 1;
-        long offset = container.put(blobId,
-                Writables.wrap(testString));
+        long offset = container.put(blobId, Writables.wrap(testString));
         symlinker.link(blobId, container, offset);
 
         Path path = symlinkerPath.resolve(Long.toString(blobId));
@@ -64,8 +61,7 @@ public class SymlinkerTest {
     public void testDelete() throws IOException {
         String testString = "foo";
         long blobId = 1;
-        long offset = container.put(blobId,
-                Writables.wrap(testString));
+        long offset = container.put(blobId, Writables.wrap(testString));
         symlinker.link(blobId, container, offset);
         Path path = symlinkerPath.resolve(Long.toString(blobId));
         assertTrue("link path exists after remember", Files.exists(path));

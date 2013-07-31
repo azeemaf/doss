@@ -43,7 +43,7 @@ public class IOTest extends DOSSTest {
             blob = tx.put(TEST_BYTES);
             tx.commit();
         }
-        
+
         assertNotNull(blob.id());
         assertEquals(TEST_STRING, slurp(blobStore.get(blob.id())));
     }

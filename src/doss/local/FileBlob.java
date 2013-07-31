@@ -18,7 +18,7 @@ class FileBlob implements Blob {
 
     private final Path path;
     private final long id;
-    
+
     FileBlob(long id, Path path) {
         this.id = id;
         this.path = path;
@@ -28,7 +28,7 @@ class FileBlob implements Blob {
     public long id() {
         return id;
     }
-      
+
     @Override
     public InputStream openStream() throws IOException {
         return Files.newInputStream(path);
@@ -46,7 +46,8 @@ class FileBlob implements Blob {
 
     @Override
     public FileTime created() throws IOException {
-        return Files.readAttributes(path, BasicFileAttributes.class).creationTime();
+        return Files.readAttributes(path, BasicFileAttributes.class)
+                .creationTime();
     }
 
 }

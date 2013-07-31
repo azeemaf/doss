@@ -1,7 +1,7 @@
 package doss;
 
 public class NoSuchBlobTxException extends BlobException {
-    
+
     private static final long serialVersionUID = -3830901000693747244L;
 
     public NoSuchBlobTxException() {

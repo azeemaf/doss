@@ -37,7 +37,7 @@ public class LocalBlobStore implements BlobStore {
             db.migrate();
         }
     }
-    
+
     /**
      * Opens a BlobStore that stores all its data and indexes on the local file
      * system.
@@ -94,9 +94,9 @@ public class LocalBlobStore implements BlobStore {
         }
         return tx;
     }
-    
+
     protected class Tx extends ManagedTransaction implements BlobTx {
-        
+
         final long id = db.nextBlobTxId();
         final List<Long> addedBlobs = new ArrayList<Long>();
 

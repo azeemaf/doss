@@ -6,9 +6,9 @@ import java.io.IOException;
  * A transaction with a managed lifecycle.
  */
 public abstract class ManagedTransaction implements Transaction {
-    
+
     protected State state = State.OPEN;
-    
+
     abstract protected Transaction getCallbacks();
 
     public synchronized void close() throws IllegalStateException, IOException {
@@ -19,14 +19,16 @@ public abstract class ManagedTransaction implements Transaction {
         state = state.commit(getCallbacks());
     }
 
-    public synchronized void rollback() throws IllegalStateException, IOException {
+    public synchronized void rollback() throws IllegalStateException,
+            IOException {
         state = state.rollback(getCallbacks());
     }
 
-    public synchronized void prepare() throws IllegalStateException, IOException {
+    public synchronized void prepare() throws IllegalStateException,
+            IOException {
         state = state.prepare(getCallbacks());
     }
-    
+
     /**
      * Transaction state machine.
      * 
@@ -37,14 +39,13 @@ public abstract class ManagedTransaction implements Transaction {
     protected static enum State {
 
         OPEN {
-            public State close(Transaction t)
-                    throws IllegalStateException, IOException {
+            public State close(Transaction t) throws IllegalStateException,
+                    IOException {
                 rollback(t);
                 return assertPreparedCommittedOrRolledback();
             }
 
-            public State prepare(Transaction t)
-                    throws IOException {
+            public State prepare(Transaction t) throws IOException {
                 t.prepare();
                 return PREPARED;
             }
@@ -53,8 +54,7 @@ public abstract class ManagedTransaction implements Transaction {
                 return prepare(t).commit(t);
             }
 
-            public State rollback(Transaction t)
-                    throws IOException {
+            public State rollback(Transaction t) throws IOException {
                 t.rollback();
                 return ROLLEDBACK;
             }
@@ -74,8 +74,7 @@ public abstract class ManagedTransaction implements Transaction {
                 return COMMITTED;
             }
 
-            public State rollback(Transaction t)
-                    throws IOException {
+            public State rollback(Transaction t) throws IOException {
                 t.rollback();
                 return ROLLEDBACK;
             }
@@ -111,7 +110,8 @@ public abstract class ManagedTransaction implements Transaction {
         }
 
         public State assertOpenOrPrepared() {
-            throw new IllegalStateException(name() + "; must be OPEN or PREPARED");
+            throw new IllegalStateException(name()
+                    + "; must be OPEN or PREPARED");
         }
 
         public State assertPreparedCommittedOrRolledback() {

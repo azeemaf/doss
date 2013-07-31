@@ -60,7 +60,8 @@ abstract class Database implements Closeable, GetHandle {
     public abstract long nextBlobTxId();
 
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
-    public abstract void insertBlob(@Bind("blobId") long blobId, @Bind("containerId") long containerId, @Bind("offset") long offset);
+    public abstract void insertBlob(@Bind("blobId") long blobId,
+            @Bind("containerId") long containerId, @Bind("offset") long offset);
 
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract void deleteBlob(@Bind("blobId") long blobId);
@@ -69,9 +70,12 @@ abstract class Database implements Closeable, GetHandle {
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
-    public static class BlobLocationMapper implements ResultSetMapper<BlobLocation> {
-        public BlobLocation map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-            return new BlobLocation(r.getLong("container_id"), r.getLong("offset"));
+    public static class BlobLocationMapper implements
+            ResultSetMapper<BlobLocation> {
+        public BlobLocation map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new BlobLocation(r.getLong("container_id"),
+                    r.getLong("offset"));
         }
     }
 }
