@@ -3,6 +3,7 @@ package doss;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import doss.core.ManagedTransaction;
 import doss.core.Named;
 import doss.core.Transaction;
 
@@ -88,8 +89,8 @@ public interface BlobTx extends Named, Transaction {
      * {@link IllegalStateException} will be thrown and the transaction will be
      * rolled back.
      * 
-     * Implementors should look at {@link TransactionState} for how to get this
-     * behaviour.
+     * Implementors should look at {@link ManagedTransaction} for how to get
+     * this behaviour.
      * 
      * @throws IllegalStateException
      *             If called while the transaction is not in a valid state to be

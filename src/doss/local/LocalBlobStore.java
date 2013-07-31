@@ -9,7 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import doss.*;
+import doss.Blob;
+import doss.BlobStore;
+import doss.BlobTx;
+import doss.CorruptBlobStoreException;
+import doss.NoSuchBlobException;
+import doss.NoSuchBlobTxException;
+import doss.Writable;
 import doss.core.ManagedTransaction;
 import doss.core.Transaction;
 import doss.core.Writables;
@@ -105,10 +111,12 @@ public class LocalBlobStore implements BlobStore {
         // This allows us to have transaction state transition logic controlled
         // separately to the central data management concerns of this class.
         Transaction callbacks = new Transaction() {
+            @Override
             public void commit() throws IOException {
                 txs.remove(id);
             }
 
+            @Override
             public void rollback() throws IOException {
                 for (Long blobId : addedBlobs) {
                     db.deleteBlob(blobId);
@@ -117,14 +125,17 @@ public class LocalBlobStore implements BlobStore {
                 txs.remove(id);
             }
 
+            @Override
             public void prepare() {
                 // TODO Auto-generated method stub
             }
 
+            @Override
             public void close() throws IllegalStateException {
             }
         };
 
+        @Override
         public synchronized Blob put(Writable output) throws IOException {
             state.assertOpen();
             long blobId = db.nextBlobId();
@@ -135,18 +146,22 @@ public class LocalBlobStore implements BlobStore {
             return container.get(offset);
         }
 
+        @Override
         public Blob put(final Path source) throws IOException {
             return put(Writables.wrap(source));
         }
 
+        @Override
         public Blob put(final byte[] bytes) throws IOException {
             return put(Writables.wrap(bytes));
         }
 
+        @Override
         public long id() {
             return id;
         }
 
+        @Override
         protected Transaction getCallbacks() {
             return callbacks;
         }

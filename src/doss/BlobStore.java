@@ -34,5 +34,6 @@ public interface BlobStore extends AutoCloseable {
      */
     BlobTx resume(long txId) throws NoSuchBlobTxException;
 
+    @Override
     void close();
 }

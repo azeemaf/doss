@@ -18,6 +18,7 @@ public class Writables {
 
     public static Writable wrap(final Path path) {
         return new Writable() {
+            @Override
             public void writeTo(WritableByteChannel targetChannel)
                     throws IOException {
                 try (FileChannel sourceChannel = (FileChannel) Files
@@ -26,6 +27,7 @@ public class Writables {
                 }
             }
 
+            @Override
             public long size() throws IOException {
                 return Files.size(path);
             }
@@ -34,10 +36,12 @@ public class Writables {
 
     public static Writable wrap(final byte[] bytes) {
         return new Writable() {
+            @Override
             public void writeTo(WritableByteChannel channel) throws IOException {
                 channel.write(ByteBuffer.wrap(bytes));
             }
 
+            @Override
             public long size() {
                 return bytes.length;
             }

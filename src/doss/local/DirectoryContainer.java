@@ -1,5 +1,8 @@
 package doss.local;
 
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
@@ -8,7 +11,6 @@ import java.nio.file.Path;
 
 import doss.Writable;
 import doss.core.Container;
-import static java.nio.file.StandardOpenOption.*;
 
 /**
  * A very simple container that just stores blobs as files in a directory.

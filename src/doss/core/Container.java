@@ -1,6 +1,7 @@
 package doss.core;
 
 import java.io.IOException;
+
 import doss.Blob;
 import doss.Writable;
 
@@ -28,5 +29,6 @@ public interface Container extends AutoCloseable, Named {
 
     public long put(long blobId, Writable output) throws IOException;
 
+    @Override
     void close();
 }

@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.skife.jdbi.v2.DBI;
-import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
@@ -72,6 +71,7 @@ abstract class Database implements Closeable, GetHandle {
 
     public static class BlobLocationMapper implements
             ResultSetMapper<BlobLocation> {
+        @Override
         public BlobLocation map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
             return new BlobLocation(r.getLong("container_id"),

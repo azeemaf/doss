@@ -11,19 +11,23 @@ public abstract class ManagedTransaction implements Transaction {
 
     abstract protected Transaction getCallbacks();
 
+    @Override
     public synchronized void close() throws IllegalStateException, IOException {
         state = state.close(getCallbacks());
     }
 
+    @Override
     public synchronized void commit() throws IllegalStateException, IOException {
         state = state.commit(getCallbacks());
     }
 
+    @Override
     public synchronized void rollback() throws IllegalStateException,
             IOException {
         state = state.rollback(getCallbacks());
     }
 
+    @Override
     public synchronized void prepare() throws IllegalStateException,
             IOException {
         state = state.prepare(getCallbacks());
@@ -39,46 +43,55 @@ public abstract class ManagedTransaction implements Transaction {
     protected static enum State {
 
         OPEN {
+            @Override
             public State close(Transaction t) throws IllegalStateException,
                     IOException {
                 rollback(t);
                 return assertPreparedCommittedOrRolledback();
             }
 
+            @Override
             public State prepare(Transaction t) throws IOException {
                 t.prepare();
                 return PREPARED;
             }
 
+            @Override
             public State commit(Transaction t) throws IOException {
                 return prepare(t).commit(t);
             }
 
+            @Override
             public State rollback(Transaction t) throws IOException {
                 t.rollback();
                 return ROLLEDBACK;
             }
 
+            @Override
             public State assertOpen() {
                 return this;
             }
 
+            @Override
             public State assertOpenOrPrepared() {
                 return this;
             }
         },
 
         PREPARED {
+            @Override
             public State commit(Transaction t) throws IOException {
                 t.commit();
                 return COMMITTED;
             }
 
+            @Override
             public State rollback(Transaction t) throws IOException {
                 t.rollback();
                 return ROLLEDBACK;
             }
 
+            @Override
             public State assertOpenOrPrepared() {
                 return this;
             }

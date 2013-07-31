@@ -4,13 +4,15 @@ import static java.lang.System.err;
 import static java.lang.System.out;
 
 import java.io.IOException;
-import java.nio.channels.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.nio.channels.FileChannel;
 import java.nio.file.attribute.FileTime;
 import java.text.DecimalFormat;
 import java.util.Arrays;
@@ -40,6 +42,7 @@ public class Main {
                 }
             }
 
+            @Override
             void execute(Arguments args) {
                 if (args.isEmpty()) {
                     listCommands();
@@ -51,6 +54,7 @@ public class Main {
         },
         version("", "Displays the version number.") {
 
+            @Override
             void execute(Arguments args) throws IOException {
                 if (!args.isEmpty()) {
                     usage();
@@ -73,6 +77,7 @@ public class Main {
             }
         },
         init("", "Initialize the blob store") {
+            @Override
             void execute(Arguments args) throws IOException {
                 LocalBlobStore.init(getDossHome());
             }
@@ -96,6 +101,7 @@ public class Main {
                 }
             }
 
+            @Override
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
@@ -124,6 +130,7 @@ public class Main {
                 }
             }
 
+            @Override
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
@@ -141,6 +148,7 @@ public class Main {
                 return date.toString();
             }
 
+            @Override
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
@@ -170,6 +178,7 @@ public class Main {
             }
         },
         put("[-b] <file ...>", "Stores files as blobs.") {
+            @Override
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
@@ -322,6 +331,7 @@ public class Main {
             this.list = list;
         }
 
+        @Override
         public Iterator<String> iterator() {
             return list.iterator();
         }
