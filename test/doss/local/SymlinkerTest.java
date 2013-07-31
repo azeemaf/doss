@@ -43,7 +43,7 @@ public class SymlinkerTest {
     }
 
     @Test
-    public void testRemember() throws IOException {
+    public void testLink() throws IOException {
         String testString = "foo";
         long blobId = 1;
         long offset = container.put(blobId,
@@ -61,7 +61,7 @@ public class SymlinkerTest {
     }
 
     @Test
-    public void testDelete() throws IOException {
+    public void testUnlink() throws IOException {
         String testString = "foo";
         long blobId = 1;
         long offset = container.put(blobId,
