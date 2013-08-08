@@ -47,7 +47,7 @@ public class SymlinkerTest {
         long offset = container.put(blobId, Writables.wrap(testString));
         symlinker.link(blobId, container, offset);
 
-        Path path = symlinkerPath.resolve(Long.toString(blobId));
+        Path path = symlinkerPath.resolve(Long.toString(blobId) + ".jp2");
         String storedString = org.apache.commons.io.IOUtils.toString(container
                 .get(offset).openStream());
         String linkedString = org.apache.commons.io.IOUtils.toString(Files
@@ -63,7 +63,7 @@ public class SymlinkerTest {
         long blobId = 1;
         long offset = container.put(blobId, Writables.wrap(testString));
         symlinker.link(blobId, container, offset);
-        Path path = symlinkerPath.resolve(Long.toString(blobId));
+        Path path = symlinkerPath.resolve(Long.toString(blobId) + ".jp2");
         assertTrue("link path exists after remember", Files.exists(path));
         symlinker.unlink(blobId);
         assertFalse("link path does not exist after delete", Files.exists(path));
