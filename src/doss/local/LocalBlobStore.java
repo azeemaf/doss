@@ -137,18 +137,12 @@ public class LocalBlobStore implements BlobStore {
 
         @Override
         public synchronized Blob put(Writable output) throws IOException {
-            state.assertOpen();
-            long blobId = db.nextId();
-            long offset = container.put(blobId, output);
-            db.insertBlob(blobId, container.id(), offset);
-            symlinker.link(blobId, container, offset);
-            addedBlobs.add(blobId);
-            return container.get(offset);
+            return put(output, null);
         }
 
         @Override
         public Blob put(final Path source) throws IOException {
-            return put(Writables.wrap(source));
+            return put(Writables.wrap(source), source);
         }
 
         @Override
@@ -164,6 +158,19 @@ public class LocalBlobStore implements BlobStore {
         @Override
         protected Transaction getCallbacks() {
             return callbacks;
+        }
+
+        private Blob put(Writable output, Path path) throws IOException {
+            state.assertOpen();
+            long blobId = db.nextId();
+            long offset = container.put(blobId, output);
+            db.insertBlob(blobId, container.id(), offset);
+            if (path != null)
+                symlinker.link(blobId, container, offset, path);
+            else
+                symlinker.link(blobId, container, offset);
+            addedBlobs.add(blobId);
+            return container.get(offset);
         }
     }
 }
