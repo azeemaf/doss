@@ -9,10 +9,19 @@
 
   <name>doss</name>
 
+  <scm>
+    <developerConnection>scm:git:ssh://git@github.com/nla/doss.git</developerConnection>
+  </scm>
+
   <build>
     <sourceDirectory>${basedir}/src</sourceDirectory>
     <testSourceDirectory>${basedir}/test</testSourceDirectory>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.4.1</version>
+      </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
@@ -55,8 +64,7 @@
     </plugins>
     <pluginManagement>
       <plugins>
-        <!--Tells M2Eclipse to stop needlessly worrying. It has no influence 
-          on the Maven build itself. -->
+        <!--Tells M2Eclipse to stop needlessly worrying. It has no influence on the Maven build itself. -->
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
