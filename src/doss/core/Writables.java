@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
+import doss.SizedWritable;
 import doss.Writable;
 
 /**
@@ -17,7 +18,7 @@ import doss.Writable;
 public class Writables {
 
     public static Writable wrap(final Path path) {
-        return new Writable() {
+        return new SizedWritable() {
             @Override
             public void writeTo(WritableByteChannel targetChannel)
                     throws IOException {
@@ -35,7 +36,7 @@ public class Writables {
     }
 
     public static Writable wrap(final byte[] bytes) {
-        return new Writable() {
+        return new SizedWritable() {
             @Override
             public void writeTo(WritableByteChannel channel) throws IOException {
                 channel.write(ByteBuffer.wrap(bytes));
