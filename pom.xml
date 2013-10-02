@@ -97,8 +97,8 @@
     <extensions>
         <extension>
             <groupId>org.apache.maven.wagon</groupId>
-            <artifactId>wagon-ssh</artifactId>
-            <version>2.4</version>
+            <artifactId>wagon-ssh-external</artifactId>
+            <version>2.5</version>
         </extension>
     </extensions>
   </build>
@@ -143,11 +143,11 @@
   <distributionManagement>
     <repository>
       <id>nla-public-releases</id>
-      <url>scp://spitfire.nla.gov.au/www/prod/maven/htdocs/releases</url>
+      <url>scpexe://spitfire.nla.gov.au/www/prod/maven/htdocs/releases</url>
     </repository>
     <snapshotRepository>
       <id>nla-public-snapshots</id>
-      <url>scp://spitfire.nla.gov.au/www/prod/maven/htdocs/snapshots</url>
+      <url>scpexe://spitfire.nla.gov.au/www/prod/maven/htdocs/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
 
