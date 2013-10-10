@@ -3,12 +3,15 @@ package doss.net;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
 
 import org.apache.thrift.TException;
 
 import doss.Blob;
 import doss.BlobStore;
 import doss.NoSuchBlobException;
+import doss.NoSuchBlobTxException;
+import doss.Writable;
 
 class DossServiceHandler implements DossService.Iface {
 
@@ -69,18 +72,46 @@ class DossServiceHandler implements DossService.Iface {
     }
 
     @Override
-    public long beginPut(final long txId) throws TException {
-        // awkward
-        return 0;
+    public long put(long txId, final ByteBuffer data) throws TException {
+        try {
+            return blobStore.resume(txId).put(new Writable() {
+
+                @Override
+                public void writeTo(WritableByteChannel channel)
+                        throws IOException {
+                    channel.write(data);
+                }
+            }).id();
+        } catch (IOException e) {
+            throw buildIOException(-1, e);
+        }
     }
 
     @Override
-    public void write(long putHandle, ByteBuffer data) throws TException {
+    public void commitTx(long txId) throws TException {
+        try {
+            blobStore.resume(txId).commit();
+        } catch (NoSuchBlobTxException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public long finishPut(long putHandle) throws TException {
-        return 0;
+    public void rollbackTx(long txId) throws TException {
+        try {
+            blobStore.resume(txId).rollback();
+        } catch (NoSuchBlobTxException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void prepareTx(long txId) throws TException {
+        try {
+            blobStore.resume(txId).prepare();
+        } catch (NoSuchBlobTxException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

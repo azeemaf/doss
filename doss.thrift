@@ -30,8 +30,9 @@ service DossService {
                 2:RemoteIOException ioException),
 
     BlobTxId beginTx(),
+    void commitTx(1:BlobTxId txId),
+    void rollbackTx(1:BlobTxId txId),
+    void prepareTx(1:BlobTxId txId),
 
-    PutHandle beginPut(1:BlobTxId txId),
-    void write(1:PutHandle putHandle, 2:binary data),
-    BlobId finishPut(1:PutHandle putHandle),
+    BlobId put(1:BlobTxId txId, 2:binary data),
 }

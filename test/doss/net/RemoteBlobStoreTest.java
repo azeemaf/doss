@@ -74,12 +74,22 @@ public class RemoteBlobStoreTest {
     }
 
     @Test(timeout = 1000)
-    public void testBegin() throws Exception {
+    public void testWriteAndRead() throws Exception {
+        long id;
         try (BlobTx tx = remoteStore.begin()) {
             assertNotNull(tx);
             Blob b = tx.put(s.getBytes(UTF8));
             assertNotNull(b);
+            id = b.id();
+            tx.commit();
         }
+        Blob blob = remoteStore.get(id);
+        assertNotNull(blob);
+        ByteBuffer b = ByteBuffer.allocate(s.getBytes(UTF8).length);
+        try (SeekableByteChannel channel = blob.openChannel()) {
+            channel.read(b);
+        }
+        assertEquals(s, new String(b.array(), UTF8));
     }
 
 }

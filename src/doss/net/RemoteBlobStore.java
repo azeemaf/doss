@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -19,14 +20,17 @@ import doss.BlobTx;
 import doss.NoSuchBlobException;
 import doss.NoSuchBlobTxException;
 import doss.Writable;
+import doss.core.ManagedTransaction;
+import doss.core.Transaction;
 import doss.core.Writables;
 
 public class RemoteBlobStore implements BlobStore {
     private final DossService.Client client;
+    private final TTransport transport;
 
     public RemoteBlobStore(Socket socket) throws IOException,
             TTransportException {
-        TTransport transport = new TSocket(socket);
+        transport = new TSocket(socket);
         TProtocol protocol = new TBinaryProtocol(transport);
         client = new DossService.Client(protocol);
     }
@@ -54,16 +58,16 @@ public class RemoteBlobStore implements BlobStore {
 
     @Override
     public BlobTx resume(long txId) throws NoSuchBlobTxException {
-        return null;
+        // TODO: check if tx exists first?
+        return new RemoteBlobTx(txId);
     }
 
     @Override
     public void close() {
-        // TODO Auto-generated method stub
-
+        transport.close();
     }
 
-    private class RemoteBlobTx implements BlobTx {
+    private class RemoteBlobTx extends ManagedTransaction implements BlobTx {
         private final long id;
 
         RemoteBlobTx(long id) {
@@ -77,34 +81,38 @@ public class RemoteBlobStore implements BlobStore {
 
         @Override
         public Blob put(Writable output) throws IOException {
-            try {
-                final long handle = client.beginPut(id);
-                output.writeTo(new WritableByteChannel() {
+            final AtomicLong blobId = new AtomicLong();
+            output.writeTo(new WritableByteChannel() {
+                boolean bug = false;
 
-                    @Override
-                    public boolean isOpen() {
-                        return true;
-                    }
+                @Override
+                public boolean isOpen() {
+                    return true;
+                }
 
-                    @Override
-                    public void close() throws IOException {
-                    }
+                @Override
+                public void close() throws IOException {
+                }
 
-                    @Override
-                    public int write(ByteBuffer b) throws IOException {
-                        try {
-                            int start = b.position();
-                            client.write(handle, b);
-                            return b.position() - start;
-                        } catch (TException e) {
-                            throw new RuntimeException(e);
+                @Override
+                public int write(ByteBuffer b) throws IOException {
+                    int nbytes = b.remaining();
+                    try {
+                        // FIXME: super buggy, this will break if write gets
+                        // called more than once
+                        if (bug) {
+                            throw new RuntimeException(
+                                    "horribly broken, this protocol needs redesigning");
                         }
+                        blobId.set(client.put(id, b));
+                        bug = true;
+                    } catch (TException e) {
+                        throw new RuntimeException(e);
                     }
-                });
-                return get(client.finishPut(handle));
-            } catch (NoSuchBlobException | TException e) {
-                throw new RuntimeException(e);
-            }
+                    return nbytes;
+                }
+            });
+            return get(blobId.get());
         }
 
         @Override
@@ -118,19 +126,40 @@ public class RemoteBlobStore implements BlobStore {
         }
 
         @Override
-        public void commit() throws IllegalStateException, IOException {
-        }
+        protected Transaction getCallbacks() {
+            return new Transaction() {
 
-        @Override
-        public void rollback() throws IllegalStateException, IOException {
-        }
+                @Override
+                public void rollback() throws IOException {
+                    try {
+                        client.rollbackTx(id);
+                    } catch (TException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
-        @Override
-        public void prepare() throws IllegalStateException, IOException {
-        }
+                @Override
+                public void prepare() throws IOException {
+                    try {
+                        client.prepareTx(id);
+                    } catch (TException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
-        @Override
-        public void close() throws IllegalStateException, IOException {
+                @Override
+                public void commit() throws IOException {
+                    try {
+                        client.commitTx(id);
+                    } catch (TException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                @Override
+                public void close() throws IOException {
+                }
+            };
         }
 
     }
