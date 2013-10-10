@@ -17,6 +17,7 @@ import org.junit.rules.TemporaryFolder;
 
 import doss.Blob;
 import doss.BlobStore;
+import doss.BlobTx;
 import doss.DOSSTest;
 import doss.local.LocalBlobStore;
 
@@ -74,7 +75,11 @@ public class RemoteBlobStoreTest {
 
     @Test(timeout = 1000)
     public void testBegin() throws Exception {
-        assertNotNull(remoteStore.begin());
+        try (BlobTx tx = remoteStore.begin()) {
+            assertNotNull(tx);
+            Blob b = tx.put(s.getBytes(UTF8));
+            assertNotNull(b);
+        }
     }
 
 }

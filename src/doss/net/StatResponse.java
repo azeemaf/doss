@@ -123,7 +123,7 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.BLOB_ID, new org.apache.thrift.meta_data.FieldMetaData("blobId", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64        , "BlobId")));
     tmpMap.put(_Fields.SIZE, new org.apache.thrift.meta_data.FieldMetaData("size", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.CREATED_MILLIS, new org.apache.thrift.meta_data.FieldMetaData("createdMillis", org.apache.thrift.TFieldRequirementType.OPTIONAL, 

@@ -67,4 +67,20 @@ class DossServiceHandler implements DossService.Iface {
                 .setType(e.getClass().getName())
                 .setMesssage(e.getMessage());
     }
+
+    @Override
+    public long beginPut(final long txId) throws TException {
+        // awkward
+        return 0;
+    }
+
+    @Override
+    public void write(long putHandle, ByteBuffer data) throws TException {
+    }
+
+    @Override
+    public long finishPut(long putHandle) throws TException {
+        return 0;
+    }
+
 }
