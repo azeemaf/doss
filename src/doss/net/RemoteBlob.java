@@ -39,6 +39,10 @@ class RemoteBlob implements Blob {
 
     @Override
     public FileTime created() throws IOException {
-        return null;
+        if (stat.isSetCreatedMillis()) {
+            return FileTime.fromMillis(stat.getCreatedMillis());
+        } else {
+            return null;
+        }
     }
 }

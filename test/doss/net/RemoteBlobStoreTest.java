@@ -57,6 +57,7 @@ public class RemoteBlobStoreTest {
         assertNotNull(blob);
         assertEquals(id, blob.id());
         assertEquals(s.getBytes(UTF8).length, blob.size());
+        assertNotNull(blob.created());
     }
 
     @Test(timeout = 1000)

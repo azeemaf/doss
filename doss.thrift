@@ -3,6 +3,7 @@ namespace java doss.net
 struct StatResponse {
     1:required i64 blobId,
     2:required i64 size,
+    3:optional i64 createdMillis,
 }
 
 exception RemoteNoSuchBlobException {

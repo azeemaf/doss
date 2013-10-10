@@ -37,6 +37,7 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
 
   private static final org.apache.thrift.protocol.TField BLOB_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("blobId", org.apache.thrift.protocol.TType.I64, (short)1);
   private static final org.apache.thrift.protocol.TField SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("size", org.apache.thrift.protocol.TType.I64, (short)2);
+  private static final org.apache.thrift.protocol.TField CREATED_MILLIS_FIELD_DESC = new org.apache.thrift.protocol.TField("createdMillis", org.apache.thrift.protocol.TType.I64, (short)3);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -46,11 +47,13 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
 
   public long blobId; // required
   public long size; // required
+  public long createdMillis; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     BLOB_ID((short)1, "blobId"),
-    SIZE((short)2, "size");
+    SIZE((short)2, "size"),
+    CREATED_MILLIS((short)3, "createdMillis");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -69,6 +72,8 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
           return BLOB_ID;
         case 2: // SIZE
           return SIZE;
+        case 3: // CREATED_MILLIS
+          return CREATED_MILLIS;
         default:
           return null;
       }
@@ -111,13 +116,17 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
   // isset id assignments
   private static final int __BLOBID_ISSET_ID = 0;
   private static final int __SIZE_ISSET_ID = 1;
+  private static final int __CREATEDMILLIS_ISSET_ID = 2;
   private byte __isset_bitfield = 0;
+  private _Fields optionals[] = {_Fields.CREATED_MILLIS};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.BLOB_ID, new org.apache.thrift.meta_data.FieldMetaData("blobId", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.SIZE, new org.apache.thrift.meta_data.FieldMetaData("size", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.CREATED_MILLIS, new org.apache.thrift.meta_data.FieldMetaData("createdMillis", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(StatResponse.class, metaDataMap);
@@ -144,6 +153,7 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
     __isset_bitfield = other.__isset_bitfield;
     this.blobId = other.blobId;
     this.size = other.size;
+    this.createdMillis = other.createdMillis;
   }
 
   public StatResponse deepCopy() {
@@ -156,6 +166,8 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
     this.blobId = 0;
     setSizeIsSet(false);
     this.size = 0;
+    setCreatedMillisIsSet(false);
+    this.createdMillis = 0;
   }
 
   public long getBlobId() {
@@ -204,6 +216,29 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SIZE_ISSET_ID, value);
   }
 
+  public long getCreatedMillis() {
+    return this.createdMillis;
+  }
+
+  public StatResponse setCreatedMillis(long createdMillis) {
+    this.createdMillis = createdMillis;
+    setCreatedMillisIsSet(true);
+    return this;
+  }
+
+  public void unsetCreatedMillis() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __CREATEDMILLIS_ISSET_ID);
+  }
+
+  /** Returns true if field createdMillis is set (has been assigned a value) and false otherwise */
+  public boolean isSetCreatedMillis() {
+    return EncodingUtils.testBit(__isset_bitfield, __CREATEDMILLIS_ISSET_ID);
+  }
+
+  public void setCreatedMillisIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __CREATEDMILLIS_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case BLOB_ID:
@@ -222,6 +257,14 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
       }
       break;
 
+    case CREATED_MILLIS:
+      if (value == null) {
+        unsetCreatedMillis();
+      } else {
+        setCreatedMillis((Long)value);
+      }
+      break;
+
     }
   }
 
@@ -232,6 +275,9 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
 
     case SIZE:
       return Long.valueOf(getSize());
+
+    case CREATED_MILLIS:
+      return Long.valueOf(getCreatedMillis());
 
     }
     throw new IllegalStateException();
@@ -248,6 +294,8 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
       return isSetBlobId();
     case SIZE:
       return isSetSize();
+    case CREATED_MILLIS:
+      return isSetCreatedMillis();
     }
     throw new IllegalStateException();
   }
@@ -280,6 +328,15 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
       if (!(this_present_size && that_present_size))
         return false;
       if (this.size != that.size)
+        return false;
+    }
+
+    boolean this_present_createdMillis = true && this.isSetCreatedMillis();
+    boolean that_present_createdMillis = true && that.isSetCreatedMillis();
+    if (this_present_createdMillis || that_present_createdMillis) {
+      if (!(this_present_createdMillis && that_present_createdMillis))
+        return false;
+      if (this.createdMillis != that.createdMillis)
         return false;
     }
 
@@ -319,6 +376,16 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetCreatedMillis()).compareTo(other.isSetCreatedMillis());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetCreatedMillis()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.createdMillis, other.createdMillis);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -346,6 +413,12 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
     sb.append("size:");
     sb.append(this.size);
     first = false;
+    if (isSetCreatedMillis()) {
+      if (!first) sb.append(", ");
+      sb.append("createdMillis:");
+      sb.append(this.createdMillis);
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }
@@ -409,6 +482,14 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 3: // CREATED_MILLIS
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.createdMillis = iprot.readI64();
+              struct.setCreatedMillisIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -436,6 +517,11 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
       oprot.writeFieldBegin(SIZE_FIELD_DESC);
       oprot.writeI64(struct.size);
       oprot.writeFieldEnd();
+      if (struct.isSetCreatedMillis()) {
+        oprot.writeFieldBegin(CREATED_MILLIS_FIELD_DESC);
+        oprot.writeI64(struct.createdMillis);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -455,6 +541,14 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
       TTupleProtocol oprot = (TTupleProtocol) prot;
       oprot.writeI64(struct.blobId);
       oprot.writeI64(struct.size);
+      BitSet optionals = new BitSet();
+      if (struct.isSetCreatedMillis()) {
+        optionals.set(0);
+      }
+      oprot.writeBitSet(optionals, 1);
+      if (struct.isSetCreatedMillis()) {
+        oprot.writeI64(struct.createdMillis);
+      }
     }
 
     @Override
@@ -464,6 +558,11 @@ public class StatResponse implements org.apache.thrift.TBase<StatResponse, StatR
       struct.setBlobIdIsSet(true);
       struct.size = iprot.readI64();
       struct.setSizeIsSet(true);
+      BitSet incoming = iprot.readBitSet(1);
+      if (incoming.get(0)) {
+        struct.createdMillis = iprot.readI64();
+        struct.setCreatedMillisIsSet(true);
+      }
     }
   }
 

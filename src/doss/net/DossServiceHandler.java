@@ -22,7 +22,10 @@ class DossServiceHandler implements DossService.Iface {
     public StatResponse stat(long blobId) throws TException {
         try {
             Blob blob = blobStore.get(blobId);
-            return new StatResponse(blobId, blob.size());
+            return new StatResponse()
+                    .setBlobId(blobId)
+                    .setCreatedMillis(blob.created().toMillis())
+                    .setSize(blob.size());
         } catch (NoSuchBlobException e) {
             throw new RemoteNoSuchBlobException().setBlobId(blobId);
         } catch (IOException e) {
