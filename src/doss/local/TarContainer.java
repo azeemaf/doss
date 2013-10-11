@@ -11,14 +11,18 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.EnumSet;
+
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveOutputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+
 import doss.Blob;
+import doss.SizedWritable;
 import doss.Writable;
 import doss.core.Container;
+import doss.core.Writables;
 
 public class TarContainer implements Container {
 
@@ -40,6 +44,7 @@ public class TarContainer implements Container {
                 EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE));
     }
 
+    @Override
     public void close() {
 
         try {
@@ -53,6 +58,7 @@ public class TarContainer implements Container {
         }
     }
 
+    @Override
     public Blob get(long offset) throws IOException {
 
         if (offset < TAR_ENTRY_HEADER_LENGTH) {
@@ -72,7 +78,9 @@ public class TarContainer implements Container {
         return tarBlob;
     }
 
-    public long put(long id, Writable output) throws IOException {
+    @Override
+    public long put(long id, Writable data) throws IOException {
+        SizedWritable output = Writables.toSized(data);
         Long offset = 0L;
 
         TarArchiveOutputStream os = null;
@@ -162,6 +170,7 @@ public class TarContainer implements Container {
         return position;
     }
 
+    @Override
     public long id() {
 
         return id;
