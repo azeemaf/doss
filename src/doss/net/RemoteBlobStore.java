@@ -1,117 +1,167 @@
 package doss.net;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Socket;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.attribute.FileTime;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.Descriptors.FieldDescriptor;
-import com.google.protobuf.Message;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
 import doss.NoSuchBlobException;
 import doss.NoSuchBlobTxException;
-import doss.net.DossProtocol.Request;
-import doss.net.DossProtocol.Response;
-import doss.net.DossProtocol.StatRequest;
-import doss.net.DossProtocol.StatResponse;
+import doss.Writable;
+import doss.core.ManagedTransaction;
+import doss.core.Transaction;
+import doss.core.Writables;
 
 public class RemoteBlobStore implements BlobStore {
-    final CodedOutputStream out;
-    final InputStream in;
+    private final DossService.Client client;
+    private final TTransport transport;
 
-    public RemoteBlobStore(Socket socket) throws IOException {
-        out = CodedOutputStream.newInstance(socket.getOutputStream());
-        in = socket.getInputStream();
+    public RemoteBlobStore(Socket socket) throws IOException,
+            TTransportException {
+        transport = new TSocket(socket);
+        TProtocol protocol = new TBinaryProtocol(transport);
+        client = new DossService.Client(protocol);
     }
 
     @Override
     public synchronized Blob get(long blobId) throws NoSuchBlobException,
             IOException {
-        write(StatRequest.newBuilder().setBlobId(blobId).build());
-        Response msg = read();
-        if (!msg.hasStatResponse()) {
-            throw new RuntimeException("unexpected " + msg);
+        try {
+            return new RemoteBlob(client, client.stat(blobId));
+        } catch (RemoteNoSuchBlobException e) {
+            throw new NoSuchBlobException(e.getBlobId());
+        } catch (TException e) {
+            throw new RuntimeException(e);
         }
-        final StatResponse stat = msg.getStatResponse();
-        return new Blob() {
-
-            @Override
-            public long size() throws IOException {
-                return stat.getBlobId();
-            }
-
-            @Override
-            public long id() {
-                return stat.getBlobId();
-            }
-
-            @Override
-            public InputStream openStream() throws IOException {
-                return null;
-            }
-
-            @Override
-            public SeekableByteChannel openChannel() throws IOException {
-                return null;
-            }
-
-            @Override
-            public FileTime created() throws IOException {
-                return null;
-            }
-        };
     }
 
     @Override
     public BlobTx begin() {
-        return null;
+        try {
+            return new RemoteBlobTx(client.beginTx());
+        } catch (TException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public BlobTx resume(long txId) throws NoSuchBlobTxException {
-        return null;
+        // TODO: check if tx exists first?
+        return new RemoteBlobTx(txId);
     }
 
     @Override
     public void close() {
-        // TODO Auto-generated method stub
-
+        transport.close();
     }
 
-    private void write(Message message) throws IOException {
-        // writes out a Request wrapper union
-        // this is the same as
-        // Request.newBuilder().setGetRequest(message).build().writeDelimitedTo(out);
-        // but automatically fills in the appropriate field for any message type
-        int typeTag = (requestType(message) << 3) | 2;
-        int msgSize = message.getSerializedSize();
-        out.writeRawVarint32(CodedOutputStream.computeRawVarint32Size(typeTag) +
-                CodedOutputStream.computeRawVarint32Size(msgSize) +
-                msgSize);
-        out.writeRawVarint32(typeTag);
-        out.writeRawVarint32(message.getSerializedSize());
-        message.writeTo(out);
-        out.flush();
-        System.out.println("client wrote " + message);
-    }
+    private class RemoteBlobTx extends ManagedTransaction implements BlobTx {
+        private final long id;
 
-    private int requestType(Message message) {
-        String className = message.getClass().getSimpleName();
-        for (FieldDescriptor field : Request.getDescriptor().getFields()) {
-            if (field.getMessageType().getName().equals(className)) {
-                return field.getNumber();
-            }
+        RemoteBlobTx(long id) {
+            this.id = id;
         }
-        throw new IllegalArgumentException(message.getClass().getName()
-                + " not in Request union");
+
+        @Override
+        public long id() {
+            return id;
+        }
+
+        @Override
+        public Blob put(Writable output) throws IOException {
+            final AtomicLong blobId = new AtomicLong();
+            output.writeTo(new WritableByteChannel() {
+                boolean bug = false;
+
+                @Override
+                public boolean isOpen() {
+                    return true;
+                }
+
+                @Override
+                public void close() throws IOException {
+                }
+
+                @Override
+                public int write(ByteBuffer b) throws IOException {
+                    int nbytes = b.remaining();
+                    try {
+                        // FIXME: super buggy, this will break if write gets
+                        // called more than once
+                        if (bug) {
+                            throw new RuntimeException(
+                                    "horribly broken, this protocol needs redesigning");
+                        }
+                        blobId.set(client.put(id, b));
+                        bug = true;
+                    } catch (TException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return nbytes;
+                }
+            });
+            return get(blobId.get());
+        }
+
+        @Override
+        public Blob put(Path source) throws IOException {
+            return put(Writables.wrap(source));
+        }
+
+        @Override
+        public Blob put(byte[] bytes) throws IOException {
+            return put(Writables.wrap(bytes));
+        }
+
+        @Override
+        protected Transaction getCallbacks() {
+            return new Transaction() {
+
+                @Override
+                public void rollback() throws IOException {
+                    try {
+                        client.rollbackTx(id);
+                    } catch (TException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                @Override
+                public void prepare() throws IOException {
+                    try {
+                        client.prepareTx(id);
+                    } catch (TException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                @Override
+                public void commit() throws IOException {
+                    try {
+                        client.commitTx(id);
+                    } catch (TException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                @Override
+                public void close() throws IOException {
+                }
+            };
+        }
+
     }
 
-    private Response read() throws IOException {
-        return Response.parseDelimitedFrom(in);
-    }
 }
