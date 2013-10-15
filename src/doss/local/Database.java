@@ -20,7 +20,8 @@ abstract class Database implements Closeable, GetHandle {
      * Opens a DOSS database stored on the local filesystem.
      */
     public static Database open(Path dbPath) {
-        return open(new DBI("jdbc:h2:file:" + dbPath + ";AUTO_SERVER=TRUE"));
+        return open(new DBI("jdbc:h2:file:" + dbPath
+                + ";FILE_LOCK=FS"));
 
     }
 
