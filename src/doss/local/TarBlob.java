@@ -2,12 +2,9 @@ package doss.local;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.concurrent.TimeUnit;
@@ -16,21 +13,16 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 
 import doss.Blob;
 
-
 public class TarBlob implements Blob {
-    
-    
-    Path containerPath;
-    long offset;
-    TarArchiveEntry tarEntry;
-    
-    
-    public TarBlob(Path  containerPath, long offset, TarArchiveEntry tarEntry){
+    final private Path containerPath;
+    final private long offset;
+    final private TarArchiveEntry tarEntry;
+
+    public TarBlob(Path containerPath, long offset, TarArchiveEntry tarEntry) {
         this.containerPath = containerPath;
         this.offset = offset;
-        this.tarEntry =  tarEntry;
+        this.tarEntry = tarEntry;
     }
-
 
     @Override
     public long id() {
@@ -52,23 +44,10 @@ public class TarBlob implements Blob {
         return new SubChannel(FileChannel.open(containerPath), offset, size());
     }
 
-
-    public String slurp() throws IOException {
-        SeekableByteChannel sbc = this.openChannel();
-         ByteBuffer buf = ByteBuffer.allocate(new Long(size()).intValue());
-         sbc.read(buf);
-         buf.flip();
-         String encoding = System.getProperty("file.encoding");
-         CharBuffer result = Charset.forName(encoding).decode(buf);
-        return result.toString();
-    }
-
-
     @Override
     public FileTime created() throws IOException {
-        return FileTime.from(tarEntry.getModTime().getTime(), TimeUnit.MILLISECONDS);
+        return FileTime.from(tarEntry.getModTime().getTime(),
+                TimeUnit.MILLISECONDS);
 
     }
-
 }
-

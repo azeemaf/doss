@@ -3,10 +3,9 @@ package doss.local;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,6 +18,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import doss.DOSSTest;
 import doss.Writable;
 import doss.core.Writables;
 
@@ -35,7 +35,6 @@ public class TarContainerTest {
         if (!testPath.toFile().exists()) {
             Files.createDirectory(testPath);
         }
-
     }
 
     @Test
@@ -46,23 +45,21 @@ public class TarContainerTest {
 
         File file1 = createFile(testPath, "1000", "file 1 content");
         Writable newFileBytes = Writables.wrap(file1.toPath());
-        tarContainer.put(Long.parseLong("1000"), newFileBytes);
-        long position = tarContainer.getPosition();
-        assertEquals(1024L, position);
+        long offset1 = tarContainer.put(Long.parseLong("1000"), newFileBytes);
 
         File file2 = createFile(testPath, "2000", "file2 content");
         newFileBytes = Writables.wrap(file2.toPath());
-        tarContainer.put(Long.parseLong("2000"), newFileBytes);
-        position = tarContainer.getPosition();
-        assertEquals(2048L, position);
+        long offset2 = tarContainer.put(Long.parseLong("2000"), newFileBytes);
+        assertEquals(1024, offset2);
 
-        TarBlob blob = (TarBlob) tarContainer.get(512);
-        String content = blob.slurp();
+        TarBlob blob = (TarBlob) tarContainer.get(offset1);
+        String content = DOSSTest.slurp(blob);
         assertEquals(content, "file 1 content");
-        TarBlob blob1 = (TarBlob) tarContainer.get(1536);
-        content = blob1.slurp();
+        TarBlob blob1 = (TarBlob) tarContainer.get(offset2);
+        content = DOSSTest.slurp(blob1);
         assertEquals(content, "file2 content");
 
+        tarContainer.close();
     }
 
     @Test
@@ -71,35 +68,35 @@ public class TarContainerTest {
 
         TarContainer tarContainer = new TarContainer(2, testTar);
 
-        File file1 = createFile(testPath, "4000", "file 4 content");
-        Writable newFileBytes = Writables.wrap(file1.toPath());
-        tarContainer.put(Long.parseLong("4000"), newFileBytes);
-        assertEquals(1024, tarContainer.getPosition());
-        TarBlob tarBlob = (TarBlob) tarContainer.get(512);
-        String content = tarBlob.slurp();
+        byte[] bytes = "file 4 content".getBytes("UTF-8");
+        Writable newFileBytes = Writables.wrap(bytes);
+        long offset = tarContainer.put(1234, newFileBytes);
+        TarBlob tarBlob = (TarBlob) tarContainer.get(offset);
+        String content = DOSSTest.slurp(tarBlob);
+        assertEquals(bytes.length, tarBlob.size());
+        assertEquals("file 4 content".length(), content.length());
         assertEquals("file 4 content", content);
         assertNotNull(tarBlob.created());
 
         File file2 = createFile(testPath, "5000", "file 5 content");
         newFileBytes = Writables.wrap(file2.toPath());
-        tarContainer.put(Long.parseLong("5000"), newFileBytes);
-        assertEquals(2048, tarContainer.getPosition());
+        long offset2 = tarContainer.put(Long.parseLong("5000"), newFileBytes);
 
-        tarBlob = (TarBlob) tarContainer.get(1536);
-        content = tarBlob.slurp();
+        tarBlob = (TarBlob) tarContainer.get(offset2);
+        content = DOSSTest.slurp(tarBlob);
         assertEquals("file 5 content", content);
         assertNotNull(tarBlob.created());
 
         File file3 = createFile(testPath, "6000", "file 6 content");
         newFileBytes = Writables.wrap(file3.toPath());
-        tarContainer.put(Long.parseLong("6000"), newFileBytes);
+        long offset3 = tarContainer.put(Long.parseLong("6000"), newFileBytes);
 
-        assertEquals(3072, tarContainer.getPosition());
-
-        tarBlob = (TarBlob) tarContainer.get(2560);
-        content = tarBlob.slurp();
+        tarBlob = (TarBlob) tarContainer.get(offset3);
+        content = DOSSTest.slurp(tarBlob);
         assertEquals("file 6 content", content);
         assertNotNull(tarBlob.created());
+
+        tarContainer.close();
 
     }
 
@@ -115,13 +112,7 @@ public class TarContainerTest {
 
         Path filePath = parentFolder.resolve(fileName);
         File newFile = filePath.toFile();
-
-        filePath.toFile().createNewFile();
-        // write some content tofile
-        FileWriter fw = new FileWriter(newFile.getAbsoluteFile());
-        BufferedWriter bw = new BufferedWriter(fw);
-        bw.write(content);
-        bw.close();
+        Files.write(filePath, content.getBytes(Charset.forName("UTF-8")));
         return newFile;
     }
 
