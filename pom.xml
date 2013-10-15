@@ -24,10 +24,7 @@
         <version>2.4.1</version>
         <configuration>
           <tagNameFormat>@{project.version}</tagNameFormat>
-<<<<<<< HEAD
           <goals>deploy</goals>
-=======
->>>>>>> 1338799... A couple of simple benchmarks
         </configuration>
       </plugin>
       <plugin>
@@ -158,7 +155,7 @@
       <artifactId>slf4j-api</artifactId>
       <version>1.7.5</version>
     </dependency>
-     <dependency>
+    <dependency>
 	  <groupId>org.apache.commons</groupId>
 	  <artifactId>commons-compress</artifactId>
 	  <version>1.5</version>
