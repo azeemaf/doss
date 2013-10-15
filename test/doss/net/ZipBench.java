@@ -18,14 +18,13 @@ import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
 import doss.Writable;
-import doss.local.TempBlobStore;
 
 public class ZipBench {
 
     public static void main(String[] args) throws Exception {
         int nBlobs = 50;
         int nEntries = 50;
-        try (BlobStore bs = new TempBlobStore()) {
+        try (BlobStore bs = LoopbackBlobStore.open()) {
             List<Blob> blobs = createDummyZips(bs, nBlobs, nEntries);
 
             for (int i = 0; i < 50; i++) {

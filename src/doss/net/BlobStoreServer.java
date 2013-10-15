@@ -2,6 +2,7 @@ package doss.net;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.ServerSocket;
 
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TSimpleServer;
@@ -20,6 +21,17 @@ public class BlobStoreServer implements Runnable, Closeable {
         DossService.Processor<DossServiceHandler> processor =
                 new DossService.Processor<>(handler);
         TServerTransport serverTransport = new TServerSocket(1234);
+        server = new TSimpleServer(
+                new TServer.Args(serverTransport).processor(processor));
+    }
+
+    public BlobStoreServer(BlobStore blobStore, ServerSocket socket)
+            throws IOException,
+            TTransportException {
+        DossServiceHandler handler = new DossServiceHandler(blobStore);
+        DossService.Processor<DossServiceHandler> processor =
+                new DossService.Processor<>(handler);
+        TServerTransport serverTransport = new TServerSocket(socket);
         server = new TSimpleServer(
                 new TServer.Args(serverTransport).processor(processor));
     }

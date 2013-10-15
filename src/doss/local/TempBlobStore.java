@@ -7,18 +7,13 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import doss.Blob;
-import doss.BlobStore;
-import doss.BlobTx;
-import doss.NoSuchBlobException;
-import doss.NoSuchBlobTxException;
+import doss.core.WrappedBlobStore;
 
 /**
  * Wrapper around LocalBlobStore that creates the blobstore in a temporary
  * directory and deletes it on close or JVM shutdown.
  */
-public class TempBlobStore implements BlobStore {
-    final BlobStore wrapped;
+public class TempBlobStore extends WrappedBlobStore {
     final Path root;
     final Thread shutdownHook = new Thread() {
         @Override
@@ -27,31 +22,21 @@ public class TempBlobStore implements BlobStore {
         }
     };
 
-    public TempBlobStore() throws IOException {
+    private TempBlobStore(Path root) {
+        super(LocalBlobStore.open(root));
+        this.root = root;
         Runtime.getRuntime().addShutdownHook(shutdownHook);
-        root = Files.createTempDirectory("doss-tempstore");
+    }
+
+    public static TempBlobStore open() throws IOException {
+        Path root = Files.createTempDirectory("doss-tempstore");
         LocalBlobStore.init(root);
-        wrapped = LocalBlobStore.open(root);
-    }
-
-    @Override
-    public Blob get(long blobId) throws NoSuchBlobException, IOException {
-        return wrapped.get(blobId);
-    }
-
-    @Override
-    public BlobTx begin() {
-        return wrapped.begin();
-    }
-
-    @Override
-    public BlobTx resume(long txId) throws NoSuchBlobTxException {
-        return wrapped.resume(txId);
+        return new TempBlobStore(root);
     }
 
     @Override
     public void close() {
-        wrapped.close();
+        super.close();
         deleteRecursively();
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
     }

@@ -3,51 +3,35 @@ package doss.net;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
 import doss.DOSSTest;
-import doss.local.LocalBlobStore;
+import doss.local.TempBlobStore;
 
 public class RemoteBlobStoreTest {
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
     BlobStore localStore;
-    BlobStoreServer server;
-    RemoteBlobStore remoteStore;
-    Thread serverThread;
+    BlobStore remoteStore;
     private static final Charset UTF8 = Charset.forName("UTF-8");
     private static final String s = "hello world";
 
     @Before
     public void setup() throws Exception {
-        Path root = folder.getRoot().toPath();
-        LocalBlobStore.init(root);
-        localStore = LocalBlobStore.open(root);
-        server = new BlobStoreServer(localStore);
-        serverThread = new Thread(server);
-        serverThread.start();
-        Thread.sleep(100);
-        remoteStore = new RemoteBlobStore(new Socket(
-                "localhost", 1234));
+        localStore = TempBlobStore.open();
+        remoteStore = LoopbackBlobStore.open(localStore);
     }
 
     @After
     public void tearDown() {
         remoteStore.close();
-        server.close();
         localStore.close();
     }
 
