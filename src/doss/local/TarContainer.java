@@ -1,169 +1,105 @@
 package doss.local;
 
-import java.io.FileOutputStream;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.EnumSet;
+
 import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.compress.archivers.ArchiveOutputStream;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+
 import doss.Blob;
+import doss.SizedWritable;
 import doss.Writable;
 import doss.core.Container;
+import doss.core.Writables;
 
 public class TarContainer implements Container {
 
-    Path path;
+    final private Path path;
     final private long id;
-    SeekableByteChannel containerChannel;
-    ArchiveOutputStream tarOut;
+    final private SeekableByteChannel channel;
+    final private ByteBuffer headerBuffer = ByteBuffer
+            .allocate(TAR_ENTRY_HEADER_LENGTH);
     private static final int TAR_ENTRY_HEADER_LENGTH = 512;
+    private static final byte[] FOOTER_BYTES = new byte[2 * TAR_ENTRY_HEADER_LENGTH];
 
     TarContainer(long id, Path path) throws IOException, ArchiveException {
-
         this.path = path;
         this.id = id;
-
-        if (!path.toFile().exists()) {
-            path.toFile().createNewFile();
-        }
-        containerChannel = Files.newByteChannel(path,
-                EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE));
+        channel = Files.newByteChannel(path, READ, WRITE, CREATE);
     }
 
-    public void close() {
-
+    @Override
+    public synchronized void close() {
         try {
-            if (tarOut != null) {
-                tarOut.finish();
-            }
-            containerChannel.close();
+            channel.close();
         } catch (IOException e) {
-            throw new TarContainerException("Unable to close tar container "
-                    + path, e.getCause());
+            throw new RuntimeException(e);
         }
     }
 
-    public Blob get(long offset) throws IOException {
-
-        if (offset < TAR_ENTRY_HEADER_LENGTH) {
-            throw new IllegalArgumentException(
-                    "Tar offset can not be less than 512");
-        }
+    @Override
+    public synchronized Blob get(long offset) throws IOException {
         TarBlob tarBlob = null;
 
-        SubChannel subChannel = new SubChannel(containerChannel, offset
-                - TAR_ENTRY_HEADER_LENGTH, 512);
-        ByteBuffer byteBuffer = ByteBuffer.allocate(TAR_ENTRY_HEADER_LENGTH);
-        subChannel.read(byteBuffer);
-        byteBuffer.flip();
-        TarArchiveEntry entry = new TarArchiveEntry(byteBuffer.array());
-        tarBlob = new TarBlob(path, offset, entry);
+        channel.position(offset);
+        headerBuffer.clear();
+        channel.read(headerBuffer);
+        headerBuffer.flip();
+        TarArchiveEntry entry = new TarArchiveEntry(headerBuffer.array());
+        tarBlob = new TarBlob(path, offset + 512, entry);
 
         return tarBlob;
     }
 
-    public long put(long id, Writable output) throws IOException {
-        Long offset = 0L;
-
-        TarArchiveOutputStream os = null;
-        tarOut = null;
-        FileOutputStream outputStream = null;
-        if (containerChannel.size() == 0) {
-            try {
-                outputStream = new FileOutputStream(path.toFile());
-
-                tarOut = new ArchiveStreamFactory().createArchiveOutputStream(
-                        ArchiveStreamFactory.TAR, outputStream);
-                TarArchiveEntry entry = new TarArchiveEntry(String.valueOf(id));
-                entry.setSize(output.size());
-                tarOut.putArchiveEntry(entry);
-                output.writeTo(Channels.newChannel(tarOut));
-
-                offset = new Integer(TAR_ENTRY_HEADER_LENGTH).longValue();
-
-            } catch (ArchiveException e) {
-                throw new TarContainerException(
-                        "Problems Creating tar archive: " + id, e.getCause());
-            } finally {
-
-                tarOut.closeArchiveEntry();
-                tarOut.close();
-
-                tarOut.flush();
-
-            }
-
-        } else {
-
-            long pos = getPosition();
-            TarArchiveEntry entry = new TarArchiveEntry(String.valueOf(id));
-            entry.setSize(output.size());
-
-            byte[] entryData = new byte[TAR_ENTRY_HEADER_LENGTH];
-
-            byte[] endTarDta = new byte[2 * (TAR_ENTRY_HEADER_LENGTH)];
-            ByteBuffer endByteByffer = ByteBuffer.wrap(endTarDta);
-
-            entry.writeEntryHeader(entryData);
-            ByteBuffer bb = ByteBuffer.wrap(entryData);
-
-            containerChannel.position(pos);
-            containerChannel.write(bb);
-
-            output.writeTo(containerChannel);
-
-            endByteByffer.flip();
-            endByteByffer.rewind();
-            // write the 1024 empty bytes, they are end of archive bytes
-            containerChannel.write(endByteByffer);
-            ((FileChannel) containerChannel).force(false);
-
+    @Override
+    public synchronized long put(long id, Writable data) throws IOException {
+        SizedWritable output = Writables.toSized(data);
+        if (channel.size() > 1024) {
+            channel.position(channel.size() - 1024);
         }
 
+        long offset = channel.position();
+        writeRecordHeader(id, output);
+        output.writeTo(channel);
+        writeRecordPadding();
+        writeArchiveFooter();
         return offset;
 
     }
 
-    public long getPosition() throws IOException {
-        long offset = 0L;
-        long p = -512;
-        byte[] emptyBlock = new byte[TAR_ENTRY_HEADER_LENGTH];
-        boolean condition = true;
-        byte[] bytes = new byte[TAR_ENTRY_HEADER_LENGTH];
-        long position = 0L;
-
-        while (condition) {
-
-            p = p + TAR_ENTRY_HEADER_LENGTH;
-            containerChannel.position(p);
-
-            ByteBuffer bb = ByteBuffer.wrap(bytes);
-            offset = containerChannel.read(bb);
-            bb.flip();
-            if (Arrays.equals(bb.array(), emptyBlock)) {
-                condition = false;
-            }
-            bb.clear();
-
-        }
-
-        position = containerChannel.position() - TAR_ENTRY_HEADER_LENGTH;
-
-        return position;
+    private void writeRecordPadding() throws IOException {
+        int padding = (int) (512L - channel.position() % 512L);
+        channel.write(ByteBuffer.allocate(padding));
     }
 
-    public long id() {
+    /**
+     * Write the 1024 zero byte end of archive marker.
+     */
+    private void writeArchiveFooter() throws IOException {
+        ByteBuffer endByteByffer = ByteBuffer.wrap(FOOTER_BYTES);
+        endByteByffer.flip();
+        endByteByffer.rewind();
+        channel.write(endByteByffer);
+    }
 
+    private void writeRecordHeader(long id, SizedWritable output)
+            throws IOException {
+        TarArchiveEntry entry = new TarArchiveEntry(String.valueOf(id));
+        entry.setSize(output.size());
+        headerBuffer.clear();
+        entry.writeEntryHeader(headerBuffer.array());
+        channel.write(headerBuffer);
+    }
+
+    @Override
+    public long id() {
         return id;
     }
 

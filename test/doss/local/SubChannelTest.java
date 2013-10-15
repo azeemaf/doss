@@ -48,7 +48,7 @@ public class SubChannelTest {
 
             channel1 = new SubChannel(sbt, 0, 25);
             ByteBuffer buffer = ByteBuffer.allocate(15);
-            String encoding = System.getProperty("file.encoding");
+            String encoding = "UTF-8";
             // reads first 15 bytes
             int r1 = channel1.read(buffer);
             buffer.flip();
@@ -84,7 +84,7 @@ public class SubChannelTest {
 
             channel1 = new SubChannel(sbt, 25, 25);
             ByteBuffer buffer = ByteBuffer.allocate(15);
-            String encoding = System.getProperty("file.encoding");
+            String encoding = "UTF-8";
             // reads first 15 bytes
             int r1 = channel1.read(buffer);
             buffer.flip();
@@ -156,7 +156,7 @@ public class SubChannelTest {
             channel1 = new SubChannel(sbt, 25, 25);
             SeekableByteChannel sbt1 = channel1.position(15);
             ByteBuffer buffer = ByteBuffer.allocate(7);
-            String encoding = System.getProperty("file.encoding");
+            String encoding = "UTF-8";
             int r1 = channel1.read(buffer);
             buffer.flip();
             String s1 = Charset.forName(encoding).decode(buffer).toString();
@@ -164,6 +164,30 @@ public class SubChannelTest {
             assertEquals(
                     "Checking if we are reading from the correct position ",
                     "and wom", s1);
+
+        } catch (IOException ioe) {
+            fail(ioe.getClass().getName() + " not expected");
+        }
+
+    }
+
+    @Test
+    public void testReadLimit() {
+
+        try (SeekableByteChannel sbt = Files.newByteChannel(testPath,
+                EnumSet.of(StandardOpenOption.READ))) {
+
+            channel1 = new SubChannel(sbt, 25, 25);
+            SeekableByteChannel sbt1 = channel1.position(15);
+            ByteBuffer buffer = ByteBuffer.allocate(100);
+            String encoding = "UTF-8";
+            int r1 = channel1.read(buffer);
+            buffer.flip();
+            String s1 = Charset.forName(encoding).decode(buffer).toString();
+            System.out.println(s1);
+            assertEquals(
+                    "Checking if we are reading from the correct position ",
+                    "and women ", s1);
 
         } catch (IOException ioe) {
             fail(ioe.getClass().getName() + " not expected");
@@ -226,7 +250,7 @@ public class SubChannelTest {
     private static void writeFileBytes(String filename, String content) {
         try {
             Files.write(FileSystems.getDefault().getPath(filename),
-                    content.getBytes(), StandardOpenOption.CREATE);
+                    content.getBytes("UTF-8"), StandardOpenOption.CREATE);
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }

@@ -45,11 +45,11 @@ public class DOSSTest {
      *             if an I/O occurs
      */
     public static String slurp(Blob blob) throws IOException {
-        byte[] buf = new byte[TEST_BYTES.length];
         try (SeekableByteChannel channel = blob.openChannel()) {
+            byte[] buf = new byte[(int) channel.size()];
             channel.read(ByteBuffer.wrap(buf));
+            return new String(buf, "UTF-8");
         }
-        return new String(buf, "UTF-8");
     }
 
     /**

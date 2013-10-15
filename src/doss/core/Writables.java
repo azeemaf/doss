@@ -53,4 +53,12 @@ public class Writables {
         return wrap(string.getBytes(Charset.forName("UTF-8")));
     }
 
+    public static SizedWritable toSized(Writable writable) {
+        if (writable instanceof SizedWritable) {
+            return (SizedWritable) writable;
+        }
+        throw new IllegalArgumentException("toSized not yet impemented for "
+                + writable.getClass());
+    }
+
 }
