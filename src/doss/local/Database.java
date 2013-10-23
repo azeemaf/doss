@@ -2,8 +2,11 @@ package doss.local;
 
 import java.io.Closeable;
 import java.nio.file.Path;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.StatementContext;
@@ -14,8 +17,9 @@ import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 import org.skife.jdbi.v2.sqlobject.mixins.GetHandle;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
-abstract class Database implements Closeable, GetHandle {
+import com.googlecode.flyway.core.Flyway;
 
+abstract class Database implements Closeable, GetHandle {
     /**
      * Opens a DOSS database stored on the local filesystem.
      */
@@ -32,20 +36,18 @@ abstract class Database implements Closeable, GetHandle {
      * Runs database migrations to populate or upgrade the schema.
      */
     public Database migrate() {
-        // replace this with Flyway schema migrations (http://flywaydb.org/) as
-        // soon as we need to start altering existing tables
-        Schema schema = getHandle().attach(Schema.class);
-        schema.createBlobsTable();
-        schema.createIdSequence();
+        try {
+            // silence flyway's annoying default logging
+            Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
+            DatabaseMetaData md = getHandle().getConnection().getMetaData();
+            Flyway flyway = new Flyway();
+            flyway.setDataSource(md.getURL(), md.getUserName(), "");
+            flyway.setLocations("doss/migrations");
+            flyway.migrate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         return this;
-    }
-
-    interface Schema {
-        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS ID_SEQ")
-        void createIdSequence();
-
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS blobs (blob_id BIGINT PRIMARY KEY, container_id BIGINT, offset BIGINT)")
-        void createBlobsTable();
     }
 
     @SqlQuery("SELECT NEXTVAL('ID_SEQ')")
