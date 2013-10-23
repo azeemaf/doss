@@ -1,5 +1,6 @@
 package doss.net;
 
+import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,8 +23,8 @@ import doss.Writable;
 public class ZipBench {
 
     public static void main(String[] args) throws Exception {
-        int nBlobs = 50;
-        int nEntries = 50;
+        int nBlobs = 10;
+        int nEntries = 10;
         try (BlobStore bs = LoopbackBlobStore.open()) {
             List<Blob> blobs = createDummyZips(bs, nBlobs, nEntries);
 
@@ -79,7 +80,8 @@ public class ZipBench {
             @Override
             public void writeTo(WritableByteChannel channel) throws IOException {
                 try (ZipOutputStream out = new ZipOutputStream(
-                        Channels.newOutputStream(channel))) {
+                        new BufferedOutputStream(
+                                Channels.newOutputStream(channel), 8192))) {
                     for (int i = 0; i < nEntries; i++) {
                         out.putNextEntry(new ZipEntry(Integer.toString(i)));
                         out.write(testData);

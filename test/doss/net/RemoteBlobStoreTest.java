@@ -3,8 +3,10 @@ package doss.net;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 
 import org.junit.After;
@@ -15,6 +17,7 @@ import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
 import doss.DOSSTest;
+import doss.Writable;
 import doss.local.TempBlobStore;
 
 public class RemoteBlobStoreTest {
@@ -76,4 +79,29 @@ public class RemoteBlobStoreTest {
         assertEquals(s, new String(b.array(), UTF8));
     }
 
+    @Test(timeout = 5000)
+    public void stressWriteAndRead() throws Exception {
+        long id;
+        try (BlobTx tx = remoteStore.begin()) {
+            assertNotNull(tx);
+            Blob b = tx.put(new Writable() {
+                @Override
+                public void writeTo(WritableByteChannel channel)
+                        throws IOException {
+                    channel.write(ByteBuffer.wrap(s.getBytes(UTF8)));
+                    channel.write(ByteBuffer.wrap(s.getBytes(UTF8)));
+                }
+            });
+            assertNotNull(b);
+            id = b.id();
+            tx.commit();
+        }
+        Blob blob = remoteStore.get(id);
+        assertNotNull(blob);
+        ByteBuffer b = ByteBuffer.allocate(s.getBytes(UTF8).length);
+        try (SeekableByteChannel channel = blob.openChannel()) {
+            channel.read(b);
+        }
+        assertEquals(s, new String(b.array(), UTF8));
+    }
 }

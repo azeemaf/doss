@@ -3,21 +3,28 @@ package doss.net;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.channels.WritableByteChannel;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.thrift.TException;
+import org.apache.thrift.server.ServerContext;
 
 import doss.Blob;
 import doss.BlobStore;
+import doss.BlobTx;
 import doss.NoSuchBlobException;
 import doss.NoSuchBlobTxException;
-import doss.Writable;
 
-class DossServiceHandler implements DossService.Iface {
+/**
+ * Server's view of a DOSS connection.
+ */
+class Connection implements DossService.Iface, ServerContext {
 
     private final BlobStore blobStore;
+    private final Map<Long, Upload> uploads = new HashMap<>();
+    private long nextUploadId = 0;
 
-    DossServiceHandler(BlobStore blobStore) {
+    Connection(BlobStore blobStore) {
         this.blobStore = blobStore;
     }
 
@@ -42,6 +49,10 @@ class DossServiceHandler implements DossService.Iface {
         try {
             ByteBuffer b = ByteBuffer.allocate(length);
             Blob blob = blobStore.get(blobId);
+            if (offset > blob.size() || offset < 0) {
+                throw new IOException("out of bounds read " + offset + " > "
+                        + blob.size());
+            }
             try (SeekableByteChannel channel = blob.openChannel()) {
                 channel.position(offset);
                 channel.read(b);
@@ -72,22 +83,6 @@ class DossServiceHandler implements DossService.Iface {
     }
 
     @Override
-    public long put(long txId, final ByteBuffer data) throws TException {
-        try {
-            return blobStore.resume(txId).put(new Writable() {
-
-                @Override
-                public void writeTo(WritableByteChannel channel)
-                        throws IOException {
-                    channel.write(data);
-                }
-            }).id();
-        } catch (IOException e) {
-            throw buildIOException(-1, e);
-        }
-    }
-
-    @Override
     public void commitTx(long txId) throws TException {
         try {
             blobStore.resume(txId).commit();
@@ -99,6 +94,7 @@ class DossServiceHandler implements DossService.Iface {
     @Override
     public void rollbackTx(long txId) throws TException {
         try {
+            abortUploads();
             blobStore.resume(txId).rollback();
         } catch (NoSuchBlobTxException | IOException e) {
             throw new RuntimeException(e);
@@ -114,4 +110,41 @@ class DossServiceHandler implements DossService.Iface {
         }
     }
 
+    /**
+     * Called when the client disconnects, cleanup any state.
+     */
+    public void disconnect() {
+        System.out.println("Disconnected " + this);
+        abortUploads();
+    }
+
+    private void abortUploads() {
+        // cleanup any unfinished uploads
+        for (Upload upload : uploads.values()) {
+            upload.finish();
+        }
+    }
+
+    @Override
+    public long beginPut(long txId) throws TException {
+        BlobTx tx = blobStore.resume(txId);
+        long id = nextUploadId++;
+        uploads.put(id, new Upload(tx));
+        return id;
+    }
+
+    @Override
+    public void write(long handle, ByteBuffer data) throws TException {
+        uploads.get(handle).write(data);
+    }
+
+    @Override
+    public long finishPut(long handle) throws TException {
+        System.out.println(" finishing " + handle);
+        try {
+            return uploads.remove(handle).finish();
+        } finally {
+            System.out.println(" finished " + handle);
+        }
+    }
 }

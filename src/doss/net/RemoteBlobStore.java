@@ -5,7 +5,6 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Path;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -67,6 +66,17 @@ public class RemoteBlobStore implements BlobStore {
         transport.close();
     }
 
+    public static int transfer(ByteBuffer src, ByteBuffer dest) {
+        int n = Math.min(dest.remaining(), src.remaining());
+        if (n > 0) {
+            ByteBuffer tmp = src.duplicate();
+            tmp.limit(src.position() + n);
+            dest.put(tmp);
+            src.position(src.position() + n);
+        }
+        return n;
+    }
+
     private class RemoteBlobTx extends ManagedTransaction implements BlobTx {
         private final long id;
 
@@ -81,38 +91,35 @@ public class RemoteBlobStore implements BlobStore {
 
         @Override
         public Blob put(Writable output) throws IOException {
-            final AtomicLong blobId = new AtomicLong();
-            output.writeTo(new WritableByteChannel() {
-                boolean bug = false;
+            try {
+                final long putHandle = client.beginPut(id);
+                output.writeTo(new WritableByteChannel() {
 
-                @Override
-                public boolean isOpen() {
-                    return true;
-                }
-
-                @Override
-                public void close() throws IOException {
-                }
-
-                @Override
-                public int write(ByteBuffer b) throws IOException {
-                    int nbytes = b.remaining();
-                    try {
-                        // FIXME: super buggy, this will break if write gets
-                        // called more than once
-                        if (bug) {
-                            throw new RuntimeException(
-                                    "horribly broken, this protocol needs redesigning");
-                        }
-                        blobId.set(client.put(id, b));
-                        bug = true;
-                    } catch (TException e) {
-                        throw new RuntimeException(e);
+                    @Override
+                    public boolean isOpen() {
+                        return true;
                     }
-                    return nbytes;
-                }
-            });
-            return get(blobId.get());
+
+                    @Override
+                    public void close() throws IOException {
+                    }
+
+                    @Override
+                    public int write(ByteBuffer b) throws IOException {
+                        int nbytes = b.remaining();
+                        try {
+                            client.write(putHandle, b);
+                            b.position(b.limit());
+                        } catch (TException e) {
+                            throw new RuntimeException(e);
+                        }
+                        return nbytes;
+                    }
+                });
+                return get(client.finishPut(putHandle));
+            } catch (TException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override

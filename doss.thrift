@@ -34,5 +34,7 @@ service DossService {
     void rollbackTx(1:BlobTxId txId),
     void prepareTx(1:BlobTxId txId),
 
-    BlobId put(1:BlobTxId txId, 2:binary data),
+    PutHandle beginPut(1:BlobTxId txId),
+    void write(1:PutHandle handle, 2:binary data),
+    BlobId finishPut(1:PutHandle handle),
 }

@@ -48,8 +48,13 @@ class RemoteChannel implements SeekableByteChannel {
     public int read(ByteBuffer dst) throws IOException {
         ByteBuffer bytes;
         try {
-            bytes = client.read(stat.getBlobId(), position,
-                    dst.remaining());
+            if (remaining() == 0) {
+                return -1;
+            }
+            System.out.println(position);
+            int len = (int) Math.min(remaining(), dst.remaining());
+            bytes = client.read(stat.getBlobId(), position, len
+                    );
         } catch (TException e) {
             throw new RuntimeException(e);
         }
@@ -61,6 +66,8 @@ class RemoteChannel implements SeekableByteChannel {
     @Override
     public SeekableByteChannel position(long newPosition)
             throws IOException {
+        if (newPosition < 0)
+            throw new IllegalArgumentException();
         position = newPosition;
         return this;
     }
@@ -68,5 +75,9 @@ class RemoteChannel implements SeekableByteChannel {
     @Override
     public long position() throws IOException {
         return position;
+    }
+
+    private long remaining() throws IOException {
+        return size() - position();
     }
 }
