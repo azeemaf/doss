@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import doss.Writable;
-import doss.core.Container;
 
 /**
  * A very simple container that just stores blobs as files in a directory.

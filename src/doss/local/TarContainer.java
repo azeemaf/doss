@@ -16,7 +16,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import doss.Blob;
 import doss.SizedWritable;
 import doss.Writable;
-import doss.core.Container;
 import doss.core.Writables;
 
 public class TarContainer implements Container {

@@ -1,9 +1,10 @@
-package doss.core;
+package doss.local;
 
 import java.io.IOException;
 
 import doss.Blob;
 import doss.Writable;
+import doss.core.Named;
 
 /**
  * A container (usually a tar file) is a sequence of blobs that have been

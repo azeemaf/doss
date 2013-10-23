@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import doss.Blob;
+import doss.local.Container;
 
 public abstract class ContainerTest {
     protected static final String TEST_DATA = "test\nstring\0a\r\nwith\tstrange\u2603characters";

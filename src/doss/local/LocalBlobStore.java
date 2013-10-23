@@ -22,17 +22,21 @@ import doss.core.Writables;
 
 public class LocalBlobStore implements BlobStore {
 
-    final DirectoryContainer container;
     final Symlinker symlinker;
     final Database db;
     final Map<Long, BlobTx> txs = new ConcurrentHashMap<>();
     final Path rootDir;
+    final List<Area> areas = new ArrayList<>();
+    final Area stagingArea;
 
     private LocalBlobStore(Path rootDir) throws IOException {
         this.rootDir = rootDir;
-        container = new DirectoryContainer(0, subdir("data"));
         db = Database.open(subdir("db"));
         symlinker = new Symlinker(subdir("blob"));
+        List<Filesystem> fslist = new ArrayList<>();
+        fslist.add(new Filesystem("fs.local", subdir("data")));
+        stagingArea = new Area("area.local", fslist, "directory");
+        areas.add(stagingArea);
     }
 
     public static void init(Path root) throws IOException {
@@ -72,7 +76,9 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public void close() {
-        container.close();
+        for (Area area : areas) {
+            area.close();
+        }
     }
 
     @Override
@@ -82,7 +88,7 @@ public class LocalBlobStore implements BlobStore {
             throw new NoSuchBlobException(blobId);
         }
         // TODO: support multiple containers
-        return container.get(location.offset());
+        return stagingArea.currentContainer().get(location.offset());
     }
 
     @Override
@@ -136,13 +142,8 @@ public class LocalBlobStore implements BlobStore {
         };
 
         @Override
-        public synchronized Blob put(Writable output) throws IOException {
-            return put(output, null);
-        }
-
-        @Override
         public Blob put(final Path source) throws IOException {
-            return put(Writables.wrap(source), source);
+            return put(Writables.wrap(source));
         }
 
         @Override
@@ -160,15 +161,16 @@ public class LocalBlobStore implements BlobStore {
             return callbacks;
         }
 
-        private Blob put(Writable output, Path path) throws IOException {
+        @Override
+        public Blob put(Writable output) throws IOException {
             state.assertOpen();
             long blobId = db.nextId();
+            Container container = stagingArea.currentContainer();
             long offset = container.put(blobId, output);
             db.insertBlob(blobId, container.id(), offset);
-            if (path != null)
-                symlinker.link(blobId, container, offset, path);
-            else
-                symlinker.link(blobId, container, offset);
+            if (container instanceof DirectoryContainer) {
+                symlinker.link(blobId, (DirectoryContainer) container, offset);
+            }
             addedBlobs.add(blobId);
             return container.get(offset);
         }
