@@ -1,13 +1,17 @@
 package doss.local;
 
+import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 
 import doss.Writable;
 
@@ -61,6 +65,25 @@ class DirectoryContainer implements Container {
     @Override
     public long id() {
         return id;
+    }
+
+    @Override
+    public long size() throws IOException {
+        // TODO optimize
+        SizeCalculator counter = new SizeCalculator();
+        Files.walkFileTree(dir, counter);
+        return counter.size;
+    }
+
+    private static class SizeCalculator extends SimpleFileVisitor<Path> {
+        long size = 0;
+
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                throws IOException {
+            size += Files.size(file);
+            return CONTINUE;
+        }
     }
 
 }

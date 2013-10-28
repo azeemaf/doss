@@ -34,8 +34,8 @@ public class LocalBlobStore implements BlobStore {
         db = Database.open(subdir("db"));
         symlinker = new Symlinker(subdir("blob"));
         List<Filesystem> fslist = new ArrayList<>();
-        fslist.add(new Filesystem("fs.local", subdir("data")));
-        stagingArea = new Area("area.local", fslist, "directory");
+        fslist.add(new Filesystem("fs.staging", subdir("data")));
+        stagingArea = new Area(db, "area.staging", fslist, "directory");
         areas.add(stagingArea);
     }
 

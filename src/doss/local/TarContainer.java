@@ -102,4 +102,9 @@ public class TarContainer implements Container {
         return id;
     }
 
+    @Override
+    public long size() throws IOException {
+        return channel.size();
+    }
+
 }

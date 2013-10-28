@@ -11,21 +11,31 @@ import java.util.logging.Logger;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.sqlobject.Bind;
+import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 import org.skife.jdbi.v2.sqlobject.mixins.GetHandle;
+import org.skife.jdbi.v2.sqlobject.mixins.Transactional;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import com.googlecode.flyway.core.Flyway;
 
-abstract class Database implements Closeable, GetHandle {
+abstract class Database implements Closeable, GetHandle,
+        Transactional<Database> {
+
+    /**
+     * Opens an in-memory database for internal testing.
+     */
+    static Database open() {
+        return open(new DBI("jdbc:h2:mem:testing"));
+    }
+
     /**
      * Opens a DOSS database stored on the local filesystem.
      */
     public static Database open(Path dbPath) {
         return open(new DBI("jdbc:h2:file:" + dbPath + ";AUTO_SERVER=TRUE"));
-
     }
 
     public static Database open(DBI dbi) {
@@ -73,4 +83,11 @@ abstract class Database implements Closeable, GetHandle {
                     r.getLong("offset"));
         }
     }
+
+    @SqlQuery("SElECT container_id FROM containers WHERE sealed = FALSE AND AREA = :area")
+    public abstract Long findAnOpenContainer(@Bind("area") String area);
+
+    @SqlQuery("INSERT INTO containers (area) VALUES (:area)")
+    @GetGeneratedKeys
+    public abstract long createContainer(@Bind("area") String name);
 }

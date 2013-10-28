@@ -31,7 +31,7 @@ public class Config {
 
     private static Area parseArea(Ini ini, String name) throws IOException {
         Section section = ini.get(name);
-        String container = "file";
+        String container = "directory";
         List<Filesystem> filesystems = new ArrayList<Filesystem>();
         for (Entry<String, String> entry : section.entrySet()) {
             if (entry.getKey().equals("fs")) {
@@ -53,7 +53,7 @@ public class Config {
         if (filesystems.isEmpty()) {
             barf(name + " needs at least one fs defined");
         }
-        return new Area(name, filesystems, container);
+        return new Area(Database.open(), name, filesystems, container);
     }
 
     private static Filesystem parseFilesystem(Ini ini, Section section) {
