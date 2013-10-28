@@ -11,8 +11,9 @@ public class Area implements AutoCloseable {
     private final String name;
     private final List<Filesystem> filesystems;
     private final String containerType;
-    private final Container container;
-    private final long maxContainerSize = 10 * 1024 * 1024 * 1024;
+    private final Path root;
+    private long maxContainerSize = 10L * 1024 * 1024 * 1024;
+    private Container container;
 
     public Area(Database db, String name, List<Filesystem> filesystems,
             String containerType) throws IOException {
@@ -30,13 +31,20 @@ public class Area implements AutoCloseable {
                             + ": currently only directory container type is supported, not "
                             + containerType);
         }
-        Path root = filesystems.get(0).path();
+        root = filesystems.get(0).path();
         Long containerId = db.findAnOpenContainer(name);
         if (containerId == null) {
             containerId = db.createContainer(name);
         }
         container = new DirectoryContainer(containerId,
                 root.resolve(containerId.toString()));
+    }
+
+    /**
+     * Sets at which the container will be sealed.
+     */
+    public void setMaxContainerSize(long size) {
+        this.maxContainerSize = size;
     }
 
     @Override
@@ -46,9 +54,17 @@ public class Area implements AutoCloseable {
 
     /**
      * The container new blobs should be packed into.
+     * 
+     * @throws IOException
      */
-    public Container currentContainer() {
+    public synchronized Container currentContainer() throws IOException {
+        if (container.size() > maxContainerSize) {
+            container.close();
+            db.sealContainer(container.id());
+            long containerId = db.createContainer(name);
+            container = new DirectoryContainer(containerId, root.resolve(Long
+                    .toString(containerId)));
+        }
         return container;
     }
-
 }

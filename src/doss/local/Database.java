@@ -84,10 +84,14 @@ abstract class Database implements Closeable, GetHandle,
         }
     }
 
-    @SqlQuery("SElECT container_id FROM containers WHERE sealed = FALSE AND AREA = :area")
+    @SqlQuery("SElECT container_id FROM containers WHERE sealed = 0 AND AREA = :area")
     public abstract Long findAnOpenContainer(@Bind("area") String area);
 
-    @SqlQuery("INSERT INTO containers (area) VALUES (:area)")
+    @SqlUpdate("INSERT INTO containers (area) VALUES (:area)")
     @GetGeneratedKeys
     public abstract long createContainer(@Bind("area") String name);
+
+    @SqlUpdate("UPDATE containers SET sealed = true WHERE container_id = :id")
+    public abstract long sealContainer(@Bind("id") long containerId);
+
 }
