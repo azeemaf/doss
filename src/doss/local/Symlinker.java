@@ -21,6 +21,9 @@ class Symlinker {
         try {
             Files.createSymbolicLink(link, relativeTarget);
         } catch (IOException e) {
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                return; // not supported on Windows
+            }
             throw new RuntimeException(e);
         }
     }
@@ -46,6 +49,9 @@ class Symlinker {
                 Files.delete(link);
             }
         } catch (IOException e) {
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                return; // not supported on Windows
+            }
             throw new RuntimeException(e);
         }
     }
