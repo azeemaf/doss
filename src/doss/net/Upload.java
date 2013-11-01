@@ -14,6 +14,11 @@ import doss.Blob;
 import doss.BlobTx;
 import doss.Writable;
 
+/* XXX This is a hack just to get things working prior to redsign.  The BlobStore 
+ * put interface is overly simplistic and keeps all state on the stack.  That doesn't
+ * work so great with the stateful RPC methods.  For the time being we fork off a thread for
+ * each upload and pass it chunks of data as they come in.
+ */
 public class Upload {
     private final Future<Blob> result;
     private final SynchronousQueue<ByteBuffer> queue = new SynchronousQueue<>();
