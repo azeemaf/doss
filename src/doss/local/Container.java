@@ -1,9 +1,11 @@
-package doss.core;
+package doss.local;
 
 import java.io.IOException;
 
 import doss.Blob;
 import doss.Writable;
+import doss.core.Named;
+import doss.core.Sized;
 
 /**
  * A container (usually a tar file) is a sequence of blobs that have been
@@ -23,7 +25,7 @@ import doss.Writable;
  * verification at a whole container level as most storage hardware is far more
  * efficient at large sequential reads and writes than small random ones.
  */
-public interface Container extends AutoCloseable, Named {
+public interface Container extends AutoCloseable, Named, Sized {
 
     public Blob get(long offset) throws IOException;
 

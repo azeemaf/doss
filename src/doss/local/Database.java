@@ -2,19 +2,38 @@ package doss.local;
 
 import java.io.Closeable;
 import java.nio.file.Path;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.sqlobject.Bind;
+import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import org.skife.jdbi.v2.sqlobject.Transaction;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 import org.skife.jdbi.v2.sqlobject.mixins.GetHandle;
+import org.skife.jdbi.v2.sqlobject.mixins.Transactional;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
-abstract class Database implements Closeable, GetHandle {
+import com.googlecode.flyway.core.Flyway;
+
+abstract class Database implements Closeable, GetHandle,
+        Transactional<Database> {
+
+    /**
+     * Opens an in-memory database for internal testing.
+     */
+    static Database open() {
+        return open(new DBI("jdbc:h2:mem:testing"));
+    }
+
+    @Override
+    public abstract void close();
 
     /**
      * Opens a DOSS database stored on the local filesystem.
@@ -22,7 +41,6 @@ abstract class Database implements Closeable, GetHandle {
     public static Database open(Path dbPath) {
         return open(new DBI("jdbc:h2:file:" + dbPath
                 + ";FILE_LOCK=FS"));
-
     }
 
     public static Database open(DBI dbi) {
@@ -33,20 +51,18 @@ abstract class Database implements Closeable, GetHandle {
      * Runs database migrations to populate or upgrade the schema.
      */
     public Database migrate() {
-        // replace this with Flyway schema migrations (http://flywaydb.org/) as
-        // soon as we need to start altering existing tables
-        Schema schema = getHandle().attach(Schema.class);
-        schema.createBlobsTable();
-        schema.createIdSequence();
+        try {
+            // silence flyway's annoying default logging
+            Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
+            DatabaseMetaData md = getHandle().getConnection().getMetaData();
+            Flyway flyway = new Flyway();
+            flyway.setDataSource(md.getURL(), md.getUserName(), "");
+            flyway.setLocations("doss/migrations");
+            flyway.migrate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         return this;
-    }
-
-    interface Schema {
-        @SqlUpdate("CREATE SEQUENCE IF NOT EXISTS ID_SEQ")
-        void createIdSequence();
-
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS blobs (blob_id BIGINT PRIMARY KEY, container_id BIGINT, offset BIGINT)")
-        void createBlobsTable();
     }
 
     @SqlQuery("SELECT NEXTVAL('ID_SEQ')")
@@ -72,4 +88,35 @@ abstract class Database implements Closeable, GetHandle {
                     r.getLong("offset"));
         }
     }
+
+    @SqlQuery("SElECT container_id FROM containers WHERE sealed = 0 AND AREA = :area")
+    public abstract Long findAnOpenContainer(@Bind("area") String area);
+
+    @SqlUpdate("INSERT INTO containers (area) VALUES (:area)")
+    @GetGeneratedKeys
+    public abstract long createContainer(@Bind("area") String name);
+
+    @SqlUpdate("UPDATE containers SET sealed = true WHERE container_id = :id")
+    public abstract long sealContainer(@Bind("id") long containerId);
+
+    @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
+    public abstract Long findBlobIdForLegacyPathAndLock(
+            @Bind("legacy_path") String legacyPath);
+
+    @SqlUpdate("INSERT INTO legacy_paths (blob_id, legacy_path) VALUES (:blob_id, :legacy_path)")
+    public abstract long insertLegacy(@Bind("blob_id") long blobId,
+            @Bind("legacy_path") String legacyPath);
+
+    @Transaction
+    public Long findOrInsertBlobIdByLegacyPath(String legacyPath) {
+        Long blobId = findBlobIdForLegacyPathAndLock(legacyPath);
+        if (blobId == null) {
+            blobId = nextId();
+            insertLegacy(blobId, legacyPath);
+        }
+        return blobId;
+    }
+
+    @SqlQuery("SELECT legacy_path FROM legacy_paths WHERE blob_id = :blob_id")
+    public abstract String locateLegacy(@Bind("blob_id") long blobId);
 }

@@ -1,6 +1,7 @@
 package doss.core;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 import doss.Blob;
 import doss.BlobStore;
@@ -33,5 +34,11 @@ public abstract class WrappedBlobStore implements BlobStore {
     @Override
     public void close() {
         wrapped.close();
+    }
+
+    @Override
+    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
+            IOException {
+        return wrapped.getLegacy(legacyPath);
     }
 }

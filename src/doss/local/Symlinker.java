@@ -8,23 +8,18 @@ import java.nio.file.Path;
 import doss.NoSuchBlobException;
 
 class Symlinker {
-    enum FileExtension {
-        JP2, XML, JPG, TIF
-    }
-
     final private Path linkRoot;
+    final private boolean enabled;
 
     Symlinker(final Path indexStorage) {
         this.linkRoot = indexStorage;
+        enabled = !System.getProperty("os.name").startsWith("Windows");
     }
 
     public void link(long blobId, DirectoryContainer container, long offset) {
-        link(blobId, container, offset, null);
-    }
-
-    public void link(long blobId, DirectoryContainer container, long offset,
-            Path path) {
-        Path link = resolveLinkPath(blobId, path);
+        if (!enabled)
+            return;
+        Path link = resolveLinkPath(blobId);
         Path target = container.dataPathFor(offset);
         Path relativeTarget = link.getParent().relativize(target);
         try {
@@ -35,7 +30,9 @@ class Symlinker {
     }
 
     public void unlink(long blobId) throws NoSuchBlobException {
-        Path link = resolveLinkPath(blobId, null);
+        if (!enabled)
+            return;
+        Path link = resolveLinkPath(blobId);
 
         // 8/8/13: check for any sym link created as blobId and/or
         // blobId with an file extension
@@ -59,23 +56,11 @@ class Symlinker {
         }
     }
 
-    private Path resolveLinkPath(long blobId, Path path) {
-        if (path == null)
-            return linkRoot.resolve(Long.toString(blobId));
-
+    private Path resolveLinkPath(long blobId) {
         // 8/8/13: a hack to enable iip srv to read jp2 image from Doss
         // which require a file extension to be added to the sym link
         // this will need be refactored later for the permernent solution
         // for serving files to 3rd party apps from Doss
-        String ext = "";
-        String fileName = path.toFile().getName();
-        for (FileExtension type : FileExtension.values()) {
-            String chkExt = "." + type.name().toLowerCase();
-            if (fileName.endsWith(chkExt)) {
-                ext = chkExt;
-                break;
-            }
-        }
-        return linkRoot.resolve(Long.toString(blobId) + ext);
+        return linkRoot.resolve(Long.toString(blobId) + ".jp2");
     }
 }

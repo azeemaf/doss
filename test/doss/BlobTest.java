@@ -3,6 +3,7 @@ package doss;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import org.junit.Test;
@@ -47,5 +48,21 @@ public class BlobTest extends DOSSTest {
 
         blobStore = LocalBlobStore.open(path);
         assertEquals(TEST_STRING, slurp(blobStore.get(blob.id())));
+    }
+
+    @Test
+    public void legacyBlobsKeepTheirId() throws Exception {
+        Path path1 = folder.newFile().toPath();
+        Path path2 = folder.newFile().toPath();
+        Blob b = blobStore.getLegacy(path1);
+        Blob b2 = blobStore.getLegacy(path1);
+        assertEquals(b.id(), b2.id());
+        Blob b3 = blobStore.getLegacy(path2);
+        assertNotEquals(b.id(), b3.id());
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void legacyPathsMustExist() throws Exception {
+        blobStore.getLegacy(folder.getRoot().toPath().resolve("doesnotexist"));
     }
 }

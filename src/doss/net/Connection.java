@@ -3,6 +3,7 @@ package doss.net;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,15 +32,31 @@ class Connection implements DossService.Iface, ServerContext {
     @Override
     public StatResponse stat(long blobId) throws TException {
         try {
-            Blob blob = blobStore.get(blobId);
-            return new StatResponse()
-                    .setBlobId(blobId)
-                    .setCreatedMillis(blob.created().toMillis())
-                    .setSize(blob.size());
+            return statResponse(blobStore.get(blobId));
         } catch (NoSuchBlobException e) {
             throw new RemoteNoSuchBlobException().setBlobId(blobId);
         } catch (IOException e) {
             throw buildIOException(blobId, e);
+        }
+    }
+
+    private StatResponse statResponse(Blob blob)
+            throws IOException {
+        return new StatResponse()
+                .setBlobId(blob.id())
+                .setCreatedMillis(blob.created().toMillis())
+                .setSize(blob.size());
+    }
+
+    @Override
+    public StatResponse statLegacy(String legacyPath)
+            throws RemoteNoSuchBlobException, RemoteIOException, TException {
+        try {
+            return statResponse(blobStore.getLegacy(Paths.get(legacyPath)));
+        } catch (NoSuchBlobException e) {
+            throw new RemoteNoSuchBlobException();
+        } catch (IOException e) {
+            throw buildIOException(-1, e);
         }
     }
 

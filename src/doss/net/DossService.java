@@ -38,6 +38,8 @@ public class DossService {
 
     public StatResponse stat(long blobId) throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException;
 
+    public StatResponse statLegacy(String legacyPath) throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException;
+
     public ByteBuffer read(long blobId, long offset, int length) throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException;
 
     public long beginTx() throws org.apache.thrift.TException;
@@ -59,6 +61,8 @@ public class DossService {
   public interface AsyncIface {
 
     public void stat(long blobId, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+
+    public void statLegacy(String legacyPath, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void read(long blobId, long offset, int length, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -125,6 +129,35 @@ public class DossService {
         throw result.ioException;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "stat failed: unknown result");
+    }
+
+    public StatResponse statLegacy(String legacyPath) throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException
+    {
+      send_statLegacy(legacyPath);
+      return recv_statLegacy();
+    }
+
+    public void send_statLegacy(String legacyPath) throws org.apache.thrift.TException
+    {
+      statLegacy_args args = new statLegacy_args();
+      args.setLegacyPath(legacyPath);
+      sendBase("statLegacy", args);
+    }
+
+    public StatResponse recv_statLegacy() throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException
+    {
+      statLegacy_result result = new statLegacy_result();
+      receiveBase(result, "statLegacy");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.noSuchBlobException != null) {
+        throw result.noSuchBlobException;
+      }
+      if (result.ioException != null) {
+        throw result.ioException;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "statLegacy failed: unknown result");
     }
 
     public ByteBuffer read(long blobId, long offset, int length) throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException
@@ -354,6 +387,38 @@ public class DossService {
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         return (new Client(prot)).recv_stat();
+      }
+    }
+
+    public void statLegacy(String legacyPath, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      statLegacy_call method_call = new statLegacy_call(legacyPath, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class statLegacy_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String legacyPath;
+      public statLegacy_call(String legacyPath, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.legacyPath = legacyPath;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("statLegacy", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        statLegacy_args args = new statLegacy_args();
+        args.setLegacyPath(legacyPath);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public StatResponse getResult() throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_statLegacy();
       }
     }
 
@@ -633,6 +698,7 @@ public class DossService {
 
     private static <I extends Iface> Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> getProcessMap(Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> processMap) {
       processMap.put("stat", new stat());
+      processMap.put("statLegacy", new statLegacy());
       processMap.put("read", new read());
       processMap.put("beginTx", new beginTx());
       processMap.put("commitTx", new commitTx());
@@ -661,6 +727,32 @@ public class DossService {
         stat_result result = new stat_result();
         try {
           result.success = iface.stat(args.blobId);
+        } catch (RemoteNoSuchBlobException noSuchBlobException) {
+          result.noSuchBlobException = noSuchBlobException;
+        } catch (RemoteIOException ioException) {
+          result.ioException = ioException;
+        }
+        return result;
+      }
+    }
+
+    public static class statLegacy<I extends Iface> extends org.apache.thrift.ProcessFunction<I, statLegacy_args> {
+      public statLegacy() {
+        super("statLegacy");
+      }
+
+      public statLegacy_args getEmptyArgsInstance() {
+        return new statLegacy_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public statLegacy_result getResult(I iface, statLegacy_args args) throws org.apache.thrift.TException {
+        statLegacy_result result = new statLegacy_result();
+        try {
+          result.success = iface.statLegacy(args.legacyPath);
         } catch (RemoteNoSuchBlobException noSuchBlobException) {
           result.noSuchBlobException = noSuchBlobException;
         } catch (RemoteIOException ioException) {
@@ -853,6 +945,7 @@ public class DossService {
 
     private static <I extends AsyncIface> Map<String,  org.apache.thrift.AsyncProcessFunction<I, ? extends  org.apache.thrift.TBase,?>> getProcessMap(Map<String,  org.apache.thrift.AsyncProcessFunction<I, ? extends  org.apache.thrift.TBase, ?>> processMap) {
       processMap.put("stat", new stat());
+      processMap.put("statLegacy", new statLegacy());
       processMap.put("read", new read());
       processMap.put("beginTx", new beginTx());
       processMap.put("commitTx", new commitTx());
@@ -923,6 +1016,68 @@ public class DossService {
 
       public void start(I iface, stat_args args, org.apache.thrift.async.AsyncMethodCallback<StatResponse> resultHandler) throws TException {
         iface.stat(args.blobId,resultHandler);
+      }
+    }
+
+    public static class statLegacy<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, statLegacy_args, StatResponse> {
+      public statLegacy() {
+        super("statLegacy");
+      }
+
+      public statLegacy_args getEmptyArgsInstance() {
+        return new statLegacy_args();
+      }
+
+      public AsyncMethodCallback<StatResponse> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new AsyncMethodCallback<StatResponse>() { 
+          public void onComplete(StatResponse o) {
+            statLegacy_result result = new statLegacy_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb,result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+              return;
+            } catch (Exception e) {
+              LOGGER.error("Exception writing to internal frame buffer", e);
+            }
+            fb.close();
+          }
+          public void onError(Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TBase msg;
+            statLegacy_result result = new statLegacy_result();
+            if (e instanceof RemoteNoSuchBlobException) {
+                        result.noSuchBlobException = (RemoteNoSuchBlobException) e;
+                        result.setNoSuchBlobExceptionIsSet(true);
+                        msg = result;
+            }
+            else             if (e instanceof RemoteIOException) {
+                        result.ioException = (RemoteIOException) e;
+                        result.setIoExceptionIsSet(true);
+                        msg = result;
+            }
+             else 
+            {
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TBase)new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+              return;
+            } catch (Exception ex) {
+              LOGGER.error("Exception writing to internal frame buffer", ex);
+            }
+            fb.close();
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, statLegacy_args args, org.apache.thrift.async.AsyncMethodCallback<StatResponse> resultHandler) throws TException {
+        iface.statLegacy(args.legacyPath,resultHandler);
       }
     }
 
@@ -2239,6 +2394,923 @@ public class DossService {
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, stat_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          struct.success = new StatResponse();
+          struct.success.read(iprot);
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.noSuchBlobException = new RemoteNoSuchBlobException();
+          struct.noSuchBlobException.read(iprot);
+          struct.setNoSuchBlobExceptionIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.ioException = new RemoteIOException();
+          struct.ioException.read(iprot);
+          struct.setIoExceptionIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class statLegacy_args implements org.apache.thrift.TBase<statLegacy_args, statLegacy_args._Fields>, java.io.Serializable, Cloneable, Comparable<statLegacy_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("statLegacy_args");
+
+    private static final org.apache.thrift.protocol.TField LEGACY_PATH_FIELD_DESC = new org.apache.thrift.protocol.TField("legacyPath", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new statLegacy_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new statLegacy_argsTupleSchemeFactory());
+    }
+
+    public String legacyPath; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      LEGACY_PATH((short)1, "legacyPath");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // LEGACY_PATH
+            return LEGACY_PATH;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.LEGACY_PATH, new org.apache.thrift.meta_data.FieldMetaData("legacyPath", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(statLegacy_args.class, metaDataMap);
+    }
+
+    public statLegacy_args() {
+    }
+
+    public statLegacy_args(
+      String legacyPath)
+    {
+      this();
+      this.legacyPath = legacyPath;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public statLegacy_args(statLegacy_args other) {
+      if (other.isSetLegacyPath()) {
+        this.legacyPath = other.legacyPath;
+      }
+    }
+
+    public statLegacy_args deepCopy() {
+      return new statLegacy_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.legacyPath = null;
+    }
+
+    public String getLegacyPath() {
+      return this.legacyPath;
+    }
+
+    public statLegacy_args setLegacyPath(String legacyPath) {
+      this.legacyPath = legacyPath;
+      return this;
+    }
+
+    public void unsetLegacyPath() {
+      this.legacyPath = null;
+    }
+
+    /** Returns true if field legacyPath is set (has been assigned a value) and false otherwise */
+    public boolean isSetLegacyPath() {
+      return this.legacyPath != null;
+    }
+
+    public void setLegacyPathIsSet(boolean value) {
+      if (!value) {
+        this.legacyPath = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case LEGACY_PATH:
+        if (value == null) {
+          unsetLegacyPath();
+        } else {
+          setLegacyPath((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case LEGACY_PATH:
+        return getLegacyPath();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case LEGACY_PATH:
+        return isSetLegacyPath();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof statLegacy_args)
+        return this.equals((statLegacy_args)that);
+      return false;
+    }
+
+    public boolean equals(statLegacy_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_legacyPath = true && this.isSetLegacyPath();
+      boolean that_present_legacyPath = true && that.isSetLegacyPath();
+      if (this_present_legacyPath || that_present_legacyPath) {
+        if (!(this_present_legacyPath && that_present_legacyPath))
+          return false;
+        if (!this.legacyPath.equals(that.legacyPath))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    @Override
+    public int compareTo(statLegacy_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(isSetLegacyPath()).compareTo(other.isSetLegacyPath());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetLegacyPath()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.legacyPath, other.legacyPath);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("statLegacy_args(");
+      boolean first = true;
+
+      sb.append("legacyPath:");
+      if (this.legacyPath == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.legacyPath);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class statLegacy_argsStandardSchemeFactory implements SchemeFactory {
+      public statLegacy_argsStandardScheme getScheme() {
+        return new statLegacy_argsStandardScheme();
+      }
+    }
+
+    private static class statLegacy_argsStandardScheme extends StandardScheme<statLegacy_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, statLegacy_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // LEGACY_PATH
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.legacyPath = iprot.readString();
+                struct.setLegacyPathIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, statLegacy_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.legacyPath != null) {
+          oprot.writeFieldBegin(LEGACY_PATH_FIELD_DESC);
+          oprot.writeString(struct.legacyPath);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class statLegacy_argsTupleSchemeFactory implements SchemeFactory {
+      public statLegacy_argsTupleScheme getScheme() {
+        return new statLegacy_argsTupleScheme();
+      }
+    }
+
+    private static class statLegacy_argsTupleScheme extends TupleScheme<statLegacy_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, statLegacy_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetLegacyPath()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetLegacyPath()) {
+          oprot.writeString(struct.legacyPath);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, statLegacy_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.legacyPath = iprot.readString();
+          struct.setLegacyPathIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class statLegacy_result implements org.apache.thrift.TBase<statLegacy_result, statLegacy_result._Fields>, java.io.Serializable, Cloneable, Comparable<statLegacy_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("statLegacy_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField NO_SUCH_BLOB_EXCEPTION_FIELD_DESC = new org.apache.thrift.protocol.TField("noSuchBlobException", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField IO_EXCEPTION_FIELD_DESC = new org.apache.thrift.protocol.TField("ioException", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new statLegacy_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new statLegacy_resultTupleSchemeFactory());
+    }
+
+    public StatResponse success; // required
+    public RemoteNoSuchBlobException noSuchBlobException; // required
+    public RemoteIOException ioException; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      NO_SUCH_BLOB_EXCEPTION((short)1, "noSuchBlobException"),
+      IO_EXCEPTION((short)2, "ioException");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // NO_SUCH_BLOB_EXCEPTION
+            return NO_SUCH_BLOB_EXCEPTION;
+          case 2: // IO_EXCEPTION
+            return IO_EXCEPTION;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, StatResponse.class)));
+      tmpMap.put(_Fields.NO_SUCH_BLOB_EXCEPTION, new org.apache.thrift.meta_data.FieldMetaData("noSuchBlobException", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.IO_EXCEPTION, new org.apache.thrift.meta_data.FieldMetaData("ioException", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(statLegacy_result.class, metaDataMap);
+    }
+
+    public statLegacy_result() {
+    }
+
+    public statLegacy_result(
+      StatResponse success,
+      RemoteNoSuchBlobException noSuchBlobException,
+      RemoteIOException ioException)
+    {
+      this();
+      this.success = success;
+      this.noSuchBlobException = noSuchBlobException;
+      this.ioException = ioException;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public statLegacy_result(statLegacy_result other) {
+      if (other.isSetSuccess()) {
+        this.success = new StatResponse(other.success);
+      }
+      if (other.isSetNoSuchBlobException()) {
+        this.noSuchBlobException = new RemoteNoSuchBlobException(other.noSuchBlobException);
+      }
+      if (other.isSetIoException()) {
+        this.ioException = new RemoteIOException(other.ioException);
+      }
+    }
+
+    public statLegacy_result deepCopy() {
+      return new statLegacy_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.noSuchBlobException = null;
+      this.ioException = null;
+    }
+
+    public StatResponse getSuccess() {
+      return this.success;
+    }
+
+    public statLegacy_result setSuccess(StatResponse success) {
+      this.success = success;
+      return this;
+    }
+
+    public void unsetSuccess() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return this.success != null;
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public RemoteNoSuchBlobException getNoSuchBlobException() {
+      return this.noSuchBlobException;
+    }
+
+    public statLegacy_result setNoSuchBlobException(RemoteNoSuchBlobException noSuchBlobException) {
+      this.noSuchBlobException = noSuchBlobException;
+      return this;
+    }
+
+    public void unsetNoSuchBlobException() {
+      this.noSuchBlobException = null;
+    }
+
+    /** Returns true if field noSuchBlobException is set (has been assigned a value) and false otherwise */
+    public boolean isSetNoSuchBlobException() {
+      return this.noSuchBlobException != null;
+    }
+
+    public void setNoSuchBlobExceptionIsSet(boolean value) {
+      if (!value) {
+        this.noSuchBlobException = null;
+      }
+    }
+
+    public RemoteIOException getIoException() {
+      return this.ioException;
+    }
+
+    public statLegacy_result setIoException(RemoteIOException ioException) {
+      this.ioException = ioException;
+      return this;
+    }
+
+    public void unsetIoException() {
+      this.ioException = null;
+    }
+
+    /** Returns true if field ioException is set (has been assigned a value) and false otherwise */
+    public boolean isSetIoException() {
+      return this.ioException != null;
+    }
+
+    public void setIoExceptionIsSet(boolean value) {
+      if (!value) {
+        this.ioException = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((StatResponse)value);
+        }
+        break;
+
+      case NO_SUCH_BLOB_EXCEPTION:
+        if (value == null) {
+          unsetNoSuchBlobException();
+        } else {
+          setNoSuchBlobException((RemoteNoSuchBlobException)value);
+        }
+        break;
+
+      case IO_EXCEPTION:
+        if (value == null) {
+          unsetIoException();
+        } else {
+          setIoException((RemoteIOException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return getSuccess();
+
+      case NO_SUCH_BLOB_EXCEPTION:
+        return getNoSuchBlobException();
+
+      case IO_EXCEPTION:
+        return getIoException();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case NO_SUCH_BLOB_EXCEPTION:
+        return isSetNoSuchBlobException();
+      case IO_EXCEPTION:
+        return isSetIoException();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof statLegacy_result)
+        return this.equals((statLegacy_result)that);
+      return false;
+    }
+
+    public boolean equals(statLegacy_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_noSuchBlobException = true && this.isSetNoSuchBlobException();
+      boolean that_present_noSuchBlobException = true && that.isSetNoSuchBlobException();
+      if (this_present_noSuchBlobException || that_present_noSuchBlobException) {
+        if (!(this_present_noSuchBlobException && that_present_noSuchBlobException))
+          return false;
+        if (!this.noSuchBlobException.equals(that.noSuchBlobException))
+          return false;
+      }
+
+      boolean this_present_ioException = true && this.isSetIoException();
+      boolean that_present_ioException = true && that.isSetIoException();
+      if (this_present_ioException || that_present_ioException) {
+        if (!(this_present_ioException && that_present_ioException))
+          return false;
+        if (!this.ioException.equals(that.ioException))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    @Override
+    public int compareTo(statLegacy_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(other.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetNoSuchBlobException()).compareTo(other.isSetNoSuchBlobException());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetNoSuchBlobException()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.noSuchBlobException, other.noSuchBlobException);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetIoException()).compareTo(other.isSetIoException());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetIoException()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ioException, other.ioException);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("statLegacy_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("noSuchBlobException:");
+      if (this.noSuchBlobException == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.noSuchBlobException);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("ioException:");
+      if (this.ioException == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.ioException);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class statLegacy_resultStandardSchemeFactory implements SchemeFactory {
+      public statLegacy_resultStandardScheme getScheme() {
+        return new statLegacy_resultStandardScheme();
+      }
+    }
+
+    private static class statLegacy_resultStandardScheme extends StandardScheme<statLegacy_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, statLegacy_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new StatResponse();
+                struct.success.read(iprot);
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // NO_SUCH_BLOB_EXCEPTION
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.noSuchBlobException = new RemoteNoSuchBlobException();
+                struct.noSuchBlobException.read(iprot);
+                struct.setNoSuchBlobExceptionIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // IO_EXCEPTION
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.ioException = new RemoteIOException();
+                struct.ioException.read(iprot);
+                struct.setIoExceptionIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, statLegacy_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.noSuchBlobException != null) {
+          oprot.writeFieldBegin(NO_SUCH_BLOB_EXCEPTION_FIELD_DESC);
+          struct.noSuchBlobException.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.ioException != null) {
+          oprot.writeFieldBegin(IO_EXCEPTION_FIELD_DESC);
+          struct.ioException.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class statLegacy_resultTupleSchemeFactory implements SchemeFactory {
+      public statLegacy_resultTupleScheme getScheme() {
+        return new statLegacy_resultTupleScheme();
+      }
+    }
+
+    private static class statLegacy_resultTupleScheme extends TupleScheme<statLegacy_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, statLegacy_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetNoSuchBlobException()) {
+          optionals.set(1);
+        }
+        if (struct.isSetIoException()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetSuccess()) {
+          struct.success.write(oprot);
+        }
+        if (struct.isSetNoSuchBlobException()) {
+          struct.noSuchBlobException.write(oprot);
+        }
+        if (struct.isSetIoException()) {
+          struct.ioException.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, statLegacy_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
