@@ -14,6 +14,7 @@ import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import org.skife.jdbi.v2.sqlobject.Transaction;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 import org.skife.jdbi.v2.sqlobject.mixins.GetHandle;
 import org.skife.jdbi.v2.sqlobject.mixins.Transactional;
@@ -94,4 +95,24 @@ abstract class Database implements Closeable, GetHandle,
     @SqlUpdate("UPDATE containers SET sealed = true WHERE container_id = :id")
     public abstract long sealContainer(@Bind("id") long containerId);
 
+    @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
+    public abstract Long findBlobIdForLegacyPathAndLock(
+            @Bind("legacy_path") String legacyPath);
+
+    @SqlUpdate("INSERT INTO legacy_paths (blob_id, legacy_path) VALUES (:blob_id, :legacy_path)")
+    public abstract long insertLegacy(@Bind("blob_id") long blobId,
+            @Bind("legacy_path") String legacyPath);
+
+    @Transaction
+    public Long findOrInsertBlobIdByLegacyPath(String legacyPath) {
+        Long blobId = findBlobIdForLegacyPathAndLock(legacyPath);
+        if (blobId == null) {
+            blobId = nextId();
+            insertLegacy(blobId, legacyPath);
+        }
+        return blobId;
+    }
+
+    @SqlQuery("SELECT legacy_path FROM legacy_paths WHERE blob_id = :blob_id")
+    public abstract String locateLegacy(@Bind("blob_id") long blobId);
 }

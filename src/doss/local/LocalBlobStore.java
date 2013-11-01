@@ -2,8 +2,10 @@ package doss.local;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -83,12 +85,26 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public Blob get(long blobId) throws IOException, NoSuchBlobException {
+        String legacyPath = db.locateLegacy(blobId);
+        if (legacyPath != null) {
+            return new FileBlob(blobId, Paths.get(legacyPath));
+        }
         BlobLocation location = db.locateBlob(blobId);
         if (location == null) {
             throw new NoSuchBlobException(blobId);
         }
         // TODO: support multiple containers
         return stagingArea.currentContainer().get(location.offset());
+    }
+
+    @Override
+    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
+            IOException {
+        String path = legacyPath.toAbsolutePath().toString();
+        if (!Files.exists(legacyPath)) {
+            throw new NoSuchFileException(path);
+        }
+        return get(db.findOrInsertBlobIdByLegacyPath(path));
     }
 
     @Override

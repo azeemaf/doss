@@ -3,6 +3,7 @@ package doss.local;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,6 +29,8 @@ public class SymlinkerTest {
 
     @Before
     public void setup() throws IOException {
+        assumeTrue("symlinker not supported on windows",
+                !System.getProperty("os.name").startsWith("Windows"));
         root = folder.newFolder().toPath();
         symlinkerPath = root;
         container = new DirectoryContainer(0, folder.newFolder().toPath());
