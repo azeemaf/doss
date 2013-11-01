@@ -157,11 +157,6 @@ class Connection implements DossService.Iface, ServerContext {
 
     @Override
     public long finishPut(long handle) throws TException {
-        System.out.println(" finishing " + handle);
-        try {
-            return uploads.remove(handle).finish();
-        } finally {
-            System.out.println(" finished " + handle);
-        }
+        return uploads.remove(handle).finish();
     }
 }
