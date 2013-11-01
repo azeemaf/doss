@@ -35,7 +35,8 @@ public class Upload {
                                 if (b == SENTINAL)
                                     break;
                                 while (b.remaining() > 0) {
-                                    bytesWritten += channel.write(b);
+                                    int written = channel.write(b);
+                                    bytesWritten += written;
                                 }
                             }
                         } catch (InterruptedException e) {
@@ -49,12 +50,20 @@ public class Upload {
     }
 
     public void write(ByteBuffer data) {
-        queue.offer(data);
+        try {
+            queue.put(data);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public long finish() {
         try {
-            queue.offer(SENTINAL);
+            try {
+                queue.put(SENTINAL);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             return result.get().id();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);

@@ -65,4 +65,8 @@ public class TempBlobStore extends WrappedBlobStore {
             throw new RuntimeException(e);
         }
     }
+
+    public Path root() {
+        return root;
+    }
 }

@@ -21,7 +21,7 @@ import doss.Writable;
 import doss.local.TempBlobStore;
 
 public class RemoteBlobStoreTest {
-    BlobStore localStore;
+    TempBlobStore localStore;
     BlobStore remoteStore;
     private static final Charset UTF8 = Charset.forName("UTF-8");
     private static final String s = "hello world";
@@ -82,14 +82,15 @@ public class RemoteBlobStoreTest {
     @Test(timeout = 5000)
     public void stressWriteAndRead() throws Exception {
         long id;
+        final byte[] bytes = s.getBytes();
         try (BlobTx tx = remoteStore.begin()) {
             assertNotNull(tx);
             Blob b = tx.put(new Writable() {
                 @Override
                 public void writeTo(WritableByteChannel channel)
                         throws IOException {
-                    channel.write(ByteBuffer.wrap(s.getBytes(UTF8)));
-                    channel.write(ByteBuffer.wrap(s.getBytes(UTF8)));
+                    channel.write(ByteBuffer.wrap(bytes));
+                    channel.write(ByteBuffer.wrap(bytes));
                 }
             });
             assertNotNull(b);
@@ -98,10 +99,10 @@ public class RemoteBlobStoreTest {
         }
         Blob blob = remoteStore.get(id);
         assertNotNull(blob);
-        ByteBuffer b = ByteBuffer.allocate(s.getBytes(UTF8).length);
+        ByteBuffer b = ByteBuffer.allocate(bytes.length * 2);
         try (SeekableByteChannel channel = blob.openChannel()) {
-            channel.read(b);
+            assertEquals(bytes.length * 2, channel.read(b));
         }
-        assertEquals(s, new String(b.array(), UTF8));
+        assertEquals(s + s, new String(b.array(), UTF8));
     }
 }
