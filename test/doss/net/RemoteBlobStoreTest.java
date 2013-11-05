@@ -8,6 +8,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.junit.After;
 import org.junit.Before;
@@ -46,6 +48,27 @@ public class RemoteBlobStoreTest {
         assertEquals(id, blob.id());
         assertEquals(s.getBytes(UTF8).length, blob.size());
         assertNotNull(blob.created());
+    }
+
+    @Test(timeout = 1000)
+    public void testStatLegacy() throws Exception {
+        Path tmp = Files.createTempFile("doss-test", ".tmp");
+        try {
+            Files.write(tmp, s.getBytes(UTF8));
+            Blob blob = remoteStore.getLegacy(tmp);
+            assertNotNull(blob);
+            assertEquals(s.getBytes(UTF8).length, blob.size());
+            assertNotNull(blob.created());
+            Blob blob2 = remoteStore.getLegacy(tmp);
+            assertEquals(blob.id(), blob2.id());
+            ByteBuffer b = ByteBuffer.allocate(s.getBytes(UTF8).length);
+            try (SeekableByteChannel channel = blob.openChannel()) {
+                channel.read(b);
+            }
+            assertEquals(s, new String(b.array(), UTF8));
+        } finally {
+            Files.delete(tmp);
+        }
     }
 
     @Test(timeout = 1000)

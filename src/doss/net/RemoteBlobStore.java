@@ -49,8 +49,14 @@ public class RemoteBlobStore implements BlobStore {
     @Override
     public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
             IOException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            return new RemoteBlob(client, client.statLegacy(legacyPath
+                    .toString()));
+        } catch (RemoteNoSuchBlobException e) {
+            throw new NoSuchBlobException(e.getBlobId());
+        } catch (TException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
