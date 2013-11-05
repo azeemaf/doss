@@ -4,6 +4,7 @@ import static java.lang.System.err;
 import static java.lang.System.out;
 
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
@@ -20,7 +21,13 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+
+import org.apache.thrift.transport.TTransportException;
+
 import doss.local.LocalBlobStore;
+import doss.net.BlobStoreServer;
 
 /**
  * DOSS command-line interface
@@ -225,7 +232,35 @@ public class Main {
                     out.println("Created " + args.list.size() + " blobs.");
                 }
             }
-        };
+        },
+        server("[-b bindaddr] [-p port]",
+                "Run a DOSS server on the given part") {
+            final OptionParser OPTION_PARSER = new OptionParser("c:");
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                String bindaddr = "127.0.0.1";
+                int port = 7272;
+                OptionSet options = args.parse("b:p:");
+                if (options.has("b")) {
+                    bindaddr = (String) options.valueOf("b");
+                }
+                if (options.has("p")) {
+                    port = Integer.parseInt((String) options.valueOf("p"));
+                }
+                System.out.println("Opening DOSS server on " + bindaddr + ":"
+                        + port);
+                try (BlobStore blobStore = openBlobStore();
+                        ServerSocket socket = new ServerSocket(port);
+                        BlobStoreServer server = new BlobStoreServer(blobStore,
+                                socket)) {
+                    server.run();
+                } catch (TTransportException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        },
+        ;
 
         final String descrption, parameters;
 
@@ -346,6 +381,11 @@ public class Main {
 
         Arguments rest() {
             return new Arguments(list.subList(1, list.size()));
+        }
+
+        OptionSet parse(String optionSpecification) {
+            return new OptionParser(optionSpecification).parse(list
+                    .toArray(new String[list.size()]));
         }
     }
 
