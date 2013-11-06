@@ -36,13 +36,13 @@ public class LocalBlobStore implements BlobStore {
         db = Database.open(subdir("db"));
         symlinker = new Symlinker(subdir("blob"));
         List<Filesystem> fslist = new ArrayList<>();
-        fslist.add(new Filesystem("fs.staging", subdir("data")));
+        fslist.add(new Filesystem("fs.staging", subdir("staging")));
         stagingArea = new Area(db, "area.staging", fslist, "directory");
         areas.add(stagingArea);
     }
 
     public static void init(Path root) throws IOException {
-        Files.createDirectories(root.resolve("data"));
+        Files.createDirectories(root.resolve("staging"));
         Files.createDirectories(root.resolve("db"));
         Files.createDirectories(root.resolve("blob"));
         try (Database db = Database.open(root.resolve("db"))) {
