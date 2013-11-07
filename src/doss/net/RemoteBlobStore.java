@@ -27,11 +27,19 @@ public class RemoteBlobStore implements BlobStore {
     private final DossService.Client client;
     private final TTransport transport;
 
-    public RemoteBlobStore(Socket socket) throws IOException,
+    RemoteBlobStore(Socket socket) throws IOException,
             TTransportException {
         transport = new TSocket(socket);
         TProtocol protocol = new TBinaryProtocol(transport);
         client = new DossService.Client(protocol);
+    }
+
+    public static RemoteBlobStore open(Socket socket) throws IOException {
+        try {
+            return new RemoteBlobStore(socket);
+        } catch (TTransportException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override
