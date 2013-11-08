@@ -11,9 +11,10 @@ import doss.net.RemoteBlobStore;
 public class DOSS {
     public static BlobStore open(String url) throws IOException {
         URI uri = URI.create(url);
-        if (uri.getAuthority().equals("file")) {
+        String scheme = uri.getScheme();
+        if (scheme.equals("file")) {
             return LocalBlobStore.open(Paths.get(uri));
-        } else if (uri.getAuthority().equals("doss")) {
+        } else if (scheme.equals("doss")) {
             Socket socket = new Socket(uri.getHost(), uri.getPort());
             return RemoteBlobStore.open(socket);
         }
