@@ -59,7 +59,7 @@ class Symlinker {
     private Path resolveLinkPath(long blobId) {
         // 8/8/13: a hack to enable iip srv to read jp2 image from Doss
         // which require a file extension to be added to the sym link
-        // this will need be refactored later for the permernent solution
+        // this will need be refactored later for the permanent solution
         // for serving files to 3rd party apps from Doss
         return linkRoot.resolve(Long.toString(blobId) + ".jp2");
     }
