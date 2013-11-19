@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 
 import org.bouncycastle.util.Arrays;
@@ -21,9 +20,6 @@ import doss.local.LocalBlobStore;
 
 public class LegacyFileTest {
 
-    public static final String TEST_STRING = "test string";
-    public static final byte[] TEST_BYTES =
-            TEST_STRING.getBytes(Charset.forName("UTF-8"));
     public static String legacyPath;
 
     @Rule
