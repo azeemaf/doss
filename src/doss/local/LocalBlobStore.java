@@ -124,7 +124,7 @@ public class LocalBlobStore implements BlobStore {
         return tx;
     }
 
-    protected class Tx extends ManagedTransaction implements BlobTx {
+    public class Tx extends ManagedTransaction implements BlobTx {
 
         final long id = db.nextId();
         final List<Long> addedBlobs = new ArrayList<Long>();
@@ -190,6 +190,28 @@ public class LocalBlobStore implements BlobStore {
             }
             addedBlobs.add(blobId);
             return container.get(offset);
+        }
+
+        /**
+         * Slightly dodgey addition to LocalBlobStore Tx, for importing legacy
+         * files into a local DOSS. Files do not get a symlink as there are no
+         * legacy jp2s.
+         * 
+         * @param legacyPath
+         *            The full path to the legacy DOSS storage system.
+         * 
+         * @return The Blob id for the legacy file. File can now be retrieved
+         *         just like any other DOSS stored file
+         * 
+         * @throws IOException
+         *             when it's unhappy
+         */
+        public Long putLegacy(Path legacyPath) throws IOException {
+            state.assertOpen();
+            Long blobId = db.findOrInsertBlobIdByLegacyPath(legacyPath
+                    .toString());
+            addedBlobs.add(blobId);
+            return blobId;
         }
     }
 }
