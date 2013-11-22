@@ -40,7 +40,7 @@ abstract class Database implements Closeable, GetHandle,
      */
     public static Database open(Path dbPath) {
         return open(new DBI("jdbc:h2:file:" + dbPath
-                + "/doss;FILE_LOCK=FS"));
+                + "/doss;FILE_LOCK=FS;MVCC=true"));
     }
 
     public static Database open(DBI dbi) {
