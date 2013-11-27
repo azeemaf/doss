@@ -43,11 +43,9 @@ class DirectoryContainer implements Container {
     public long put(long id, Writable output) throws IOException {
         Long offset = 0L;
         while (true) {
-            try (WritableByteChannel channel = Files.newByteChannel(
-                    dataPathFor(offset), CREATE_NEW, WRITE)) {
+            try (WritableByteChannel channel = Files.newByteChannel(dataPathFor(offset), CREATE_NEW, WRITE)) {
                 output.writeTo(channel);
-                Files.write(idPathFor(offset),
-                        Long.toString(id).getBytes("UTF-8"), CREATE_NEW, WRITE);
+                Files.write(idPathFor(offset), Long.toString(id).getBytes("UTF-8"), CREATE_NEW, WRITE);
                 return offset;
             } catch (FileAlreadyExistsException e) {
                 offset++;
@@ -84,8 +82,7 @@ class DirectoryContainer implements Container {
         long size = 0;
 
         @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-                throws IOException {
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
             size += Files.size(file);
             return CONTINUE;
         }

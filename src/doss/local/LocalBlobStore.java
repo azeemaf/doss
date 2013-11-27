@@ -94,13 +94,14 @@ public class LocalBlobStore implements BlobStore {
         if (location == null) {
             throw new NoSuchBlobException(blobId);
         }
+
         // TODO: support multiple containers
-        return stagingArea.currentContainer().get(location.offset());
+        // This following call allow access to multiple containers
+        return stagingArea.container(location.containerId()).get(location.offset());
     }
 
     @Override
-    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
-            IOException {
+    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException, IOException {
         String path = legacyPath.toAbsolutePath().toString();
         if (!Files.exists(legacyPath)) {
             throw new NoSuchFileException(path);
@@ -126,7 +127,7 @@ public class LocalBlobStore implements BlobStore {
 
     public class Tx extends ManagedTransaction implements BlobTx {
 
-        final long id = db.nextId();
+        final long       id         = db.nextId();
         final List<Long> addedBlobs = new ArrayList<Long>();
 
         // ManagedTransaction will call back into this private Transaction when
@@ -134,6 +135,7 @@ public class LocalBlobStore implements BlobStore {
         // This allows us to have transaction state transition logic controlled
         // separately to the central data management concerns of this class.
         Transaction callbacks = new Transaction() {
+                        
             @Override
             public void commit() throws IOException {
                 txs.remove(id);
@@ -144,15 +146,15 @@ public class LocalBlobStore implements BlobStore {
                 for (Long blobId : addedBlobs) {
                     db.deleteBlob(blobId);
                     symlinker.unlink(blobId);
-                }
+                }                    
                 txs.remove(id);
             }
-
+                        
             @Override
             public void prepare() {
                 // TODO Auto-generated method stub
             }
-
+                        
             @Override
             public void close() throws IllegalStateException {
             }
@@ -208,8 +210,7 @@ public class LocalBlobStore implements BlobStore {
          */
         public Long putLegacy(Path legacyPath) throws IOException {
             state.assertOpen();
-            Long blobId = db.findOrInsertBlobIdByLegacyPath(legacyPath
-                    .toString());
+            Long blobId = db.findOrInsertBlobIdByLegacyPath(legacyPath.toString());
             addedBlobs.add(blobId);
             return blobId;
         }
