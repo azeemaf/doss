@@ -24,7 +24,7 @@ import com.googlecode.flyway.core.Flyway;
 
 abstract class Database implements Closeable, GetHandle, Transactional<Database> {
 
-    /**
+    /*
      * Connection meta data URL doesn't include H2 switches. We have to manually
      * include them for flyway migrations
      */

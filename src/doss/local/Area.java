@@ -7,13 +7,13 @@ import java.util.Objects;
 
 public class Area implements AutoCloseable {
 
-    private final Database         db;
-    private final String           name;
+    private final Database db;
+    private final String name;
     private final List<Filesystem> filesystems;
-    private final String           containerType;
-    private final Path             root;
-    private long                   maxContainerSize = 10L * 1024 * 1024 * 1024;
-    private Container              container;
+    private final String containerType;
+    private final Path root;
+    private long maxContainerSize = 10L * 1024 * 1024 * 1024;
+    private Container container;
 
     public Area(Database db, String name, List<Filesystem> filesystems, String containerType) throws IOException {
         this.db = db;
