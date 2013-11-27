@@ -34,7 +34,7 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
      * Opens an in-memory database for internal testing.
      */
     static Database open() {
-        return open(new DBI("jdbc:h2:mem:testing"));
+        return open(new DBI("jdbc:h2:mem:testing;MVCC=true"));
     }
 
     @Override
