@@ -97,11 +97,13 @@ public class LocalBlobStore implements BlobStore {
 
         // TODO: support multiple containers
         // This following call allow access to multiple containers
-        return stagingArea.container(location.containerId()).get(location.offset());
+        return stagingArea.container(location.containerId()).get(
+                location.offset());
     }
 
     @Override
-    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException, IOException {
+    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
+            IOException {
         String path = legacyPath.toAbsolutePath().toString();
         if (!Files.exists(legacyPath)) {
             throw new NoSuchFileException(path);
@@ -135,7 +137,7 @@ public class LocalBlobStore implements BlobStore {
         // This allows us to have transaction state transition logic controlled
         // separately to the central data management concerns of this class.
         Transaction callbacks = new Transaction() {
-                        
+
             @Override
             public void commit() throws IOException {
                 txs.remove(id);
@@ -149,7 +151,7 @@ public class LocalBlobStore implements BlobStore {
                 }
                 txs.remove(id);
             }
-    
+
             @Override
             public void prepare() {
                 // TODO Auto-generated method stub
@@ -183,6 +185,7 @@ public class LocalBlobStore implements BlobStore {
         @Override
         public Blob put(Writable output) throws IOException {
             state.assertOpen();
+            db.begin();
             long blobId = db.nextId();
             Container container = stagingArea.currentContainer();
             long offset = container.put(blobId, output);
@@ -191,6 +194,7 @@ public class LocalBlobStore implements BlobStore {
                 symlinker.link(blobId, (DirectoryContainer) container, offset);
             }
             addedBlobs.add(blobId);
+            db.commit();
             return container.get(offset);
         }
 
@@ -210,7 +214,8 @@ public class LocalBlobStore implements BlobStore {
          */
         public Long putLegacy(Path legacyPath) throws IOException {
             state.assertOpen();
-            Long blobId = db.findOrInsertBlobIdByLegacyPath(legacyPath.toString());
+            Long blobId = db.findOrInsertBlobIdByLegacyPath(legacyPath
+                    .toString());
             addedBlobs.add(blobId);
             return blobId;
         }
