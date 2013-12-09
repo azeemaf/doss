@@ -56,6 +56,12 @@ class Symlinker {
         }
     }
 
+    public void updateLinkPath(long blobId, String mimeExt) {
+        Path fromLinkPath = linkRoot.resolve(Long.toString(blobId) + ".jp2");
+        Path toLinkPath = linkRoot.resolve(Long.toString(blobId) + mimeExt);
+        fromLinkPath.toFile().renameTo(toLinkPath.toFile());
+    }
+
     private Path resolveLinkPath(long blobId) {
         // 8/8/13: a hack to enable iip srv to read jp2 image from Doss
         // which require a file extension to be added to the sym link
