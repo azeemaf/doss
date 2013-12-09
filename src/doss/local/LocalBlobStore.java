@@ -162,7 +162,7 @@ public class LocalBlobStore implements BlobStore {
             }
         };
 
-        public void mime(final long blobId, final String ext)
+        public void setExtension(final long blobId, final String ext)
                 throws NoSuchBlobException, IOException {
             Blob blob = get(blobId);
             symlinker.updateLinkPath(blobId, ext);
