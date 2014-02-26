@@ -75,4 +75,13 @@ public class DatabaseTest {
         assertNull(db.locateBlob(1));
     }
 
+    @Test
+    public void testMultipleOpenContainers() {
+        String area = "unit-test";
+        Long firstId = db.createContainer(area);
+        assertEquals(firstId, db.findAnOpenContainer(area));
+        db.createContainer(area);
+        db.createContainer(area);
+        assertEquals(firstId, db.findAnOpenContainer(area));
+    }
 }
