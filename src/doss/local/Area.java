@@ -13,7 +13,7 @@ public class Area implements AutoCloseable {
     private final String containerType;
     private final Path root;
     private long maxContainerSize = 10L * 1024 * 1024 * 1024;
-    private Container container;
+    private Container currentContainer;
 
     public Area(Database db, String name, List<Filesystem> filesystems, String containerType) throws IOException {
         this.db = db;
@@ -31,7 +31,7 @@ public class Area implements AutoCloseable {
         if (containerId == null) {
             containerId = db.createContainer(name);
         }
-        container = new DirectoryContainer(containerId, root.resolve(containerId.toString()));
+        currentContainer = new DirectoryContainer(containerId, root.resolve(containerId.toString()));
     }
 
     /**
@@ -43,7 +43,7 @@ public class Area implements AutoCloseable {
 
     @Override
     public void close() {
-        container.close();
+        currentContainer.close();
     }
 
     /**
@@ -52,13 +52,13 @@ public class Area implements AutoCloseable {
      * @throws IOException
      */
     public synchronized Container currentContainer() throws IOException {
-        if (container.size() > maxContainerSize) {
-            container.close();
-            db.sealContainer(container.id());
+        if (currentContainer.size() > maxContainerSize) {
+            currentContainer.close();
+            db.sealContainer(currentContainer.id());
             long containerId = db.createContainer(name);
-            container = new DirectoryContainer(containerId, root.resolve(Long.toString(containerId)));
+            currentContainer = new DirectoryContainer(containerId, root.resolve(Long.toString(containerId)));
         }
-        return container;
+        return currentContainer;
     }
 
     /**
@@ -67,7 +67,6 @@ public class Area implements AutoCloseable {
      * @throws IOException
      */
     public synchronized Container container(Long containerId) throws IOException {
-        container = new DirectoryContainer(containerId, root.resolve(Long.toString(containerId)));
-        return container;
+        return new DirectoryContainer(containerId, root.resolve(Long.toString(containerId)));
     }
 }

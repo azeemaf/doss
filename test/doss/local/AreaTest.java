@@ -59,4 +59,17 @@ public class AreaTest {
         openArea();
         assertEquals(container2.id(), area.currentContainer().id());
     }
+
+    @Test
+    public void testReadingAnOldContainerDoesntSwitchCurrentContainer()
+            throws Exception {
+        Container container1 = area.currentContainer();
+        container1.put(1, Writables.wrap("hello this is a long string"));
+        area.setMaxContainerSize(10);
+
+        Container container2 = area.currentContainer();
+        assertEquals(container2.id(), area.currentContainer().id());
+        area.container(container1.id());
+        assertEquals(container2.id(), area.currentContainer().id());
+    }
 }
