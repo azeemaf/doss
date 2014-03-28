@@ -32,12 +32,12 @@ database.  Once finished however RemoteBlobStore will take its place.
 Server
 ------
 
-A DOSS BlobStore consists of multiple storage areas (typically staging and preservation) which may in turn be backed
-by multiple filesystems.  Objects are initially written to the staging area.  Once a sufficient number of objects
+A DOSS BlobStore consists of multiple storage areas.  In production we expect to use two: "staging" and "preservation".  Areas area in turn backed by one or more filesystems which each hold a complete identical
+copy of the area's objects.  Objects are initially written to the staging area, a regular disk filesystem.  Once a sufficient number of objects
 are written they are packed together into a container (currently tar files) and moved to the preservation area
 for writing to archival tape and mass delivery storage.
 
-In addition to packing the staging area gives us a time window where objects can be removed (failed transactions, 
+In addition to managing packing the staging area gives us a time window where objects can be removed (failed transactions, 
 mistakes) before they're permanently archived.  It also means we can put the preservation area into a read-only 
 mode during hardware maintenance without impacting applications at all.
 
