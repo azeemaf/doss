@@ -1,0 +1,106 @@
+Services
+	Doss Abstraction Layer (DAL)
+		Receive and pack, or store and pack later?
+		Components: 
+			Containers
+				Objects	
+			Worker threads? Ingest, delivery, housekeeping?
+			or maybe ingest and delivery seperate services
+			and housekeepers seperate tools? so many choices
+	DAL Database (DALDb)
+		Tables:
+			current_container: containerid
+			objects: oid,containerid,offset,checksum
+			object_audit: audit_id,oid,checksumresult,timestamp,who
+			containers: id,location,checksum
+			container_audit: audit_id,container_id,checksumresult,timestamp,who
+	Jelly Digital Object Manager (Jelly)
+	
+
+
+DAL Startup
+
+	get current container from DALdb
+	else
+		Prepare new container and update DALdb
+
+
+
+Jelly PUT object to DAL
+
+	DAL take object, return ID to Jelly
+	DAL generate checksum and update DALdb
+	continue if receive and pack, otherwise write object out to file
+	lock current container
+	DAL store object in current container
+	DAL update DALdb with object:container:offset
+	unlock current container
+	spawn ingest housekeeper
+	DAL Idle
+	
+Jelly CHECKSUM object
+	get object
+	compare checksum
+	update object_audit table, who=api
+
+Jelly COMMIT object
+	DAL say woohoo
+
+Jelly ROLLBCK object
+	DAL remove object from container
+	DAL remove DALdb entries for object 
+
+Jelly GET object
+	DAL lookup DALdb for object,container,offset,location
+	if no location, get(object,offset,container)
+	else
+		get(object,offset,container,location)
+		
+
+6pm weekday, spawn ingest housekeeper
+
+ingest housekeeper
+	if container >= x size || end of day commit?
+		lock current container
+		DAL close container
+		DAL create new container and set current in DALdb - race condition with ingest, maybe need lock/wait
+		preserve(container)
+		unlock container
+
+Container Housekeeper - Every x interval,
+	use DALdb to generate a small worklist based on age of last check
+	foreach container
+		stage preservation container online
+		foreach preservation,display containers
+			get containers and compare checksums
+			insert result into container_audit, who=housekeeper
+			spawn Object housekeeper while container 'online'
+
+
+Object Housekeeper - only spawned by Container Housekeeper or command line tool
+	foreach object in container
+		compare checksums
+		insert result into object_audit, who=housekeeper
+	
+
+get(object,offset,container)
+	open(active_container)
+	seek(offset)
+	read to next header
+	compare checksum?
+	return data
+
+get(object,offset,container,location)
+	open(location/container)
+	seek(offset)
+	read to next header
+	compare checksum?
+	return data
+
+
+preserve(container)
+	DAL generate container checksum insert into NLAdb
+	DAL copy container to preservation
+	DAL copy container to display
+	DAL update DALdb with object:container:offset:location
+	DAL delete container in staging
