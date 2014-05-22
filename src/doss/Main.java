@@ -4,7 +4,11 @@ import static java.lang.System.err;
 import static java.lang.System.out;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
@@ -28,6 +32,7 @@ import org.apache.thrift.transport.TTransportException;
 
 import doss.local.LocalBlobStore;
 import doss.net.BlobStoreServer;
+import doss.net.RemoteBlobStore;
 
 /**
  * DOSS command-line interface
@@ -235,13 +240,11 @@ public class Main {
         },
         server("[-b bindaddr] [-p port]",
                 "Run a DOSS server on the given part") {
-            final OptionParser OPTION_PARSER = new OptionParser("c:");
-
             @Override
             void execute(Arguments args) throws IOException {
                 String bindaddr = "127.0.0.1";
                 int port = 7272;
-                OptionSet options = args.parse("b:p:");
+                OptionSet options = args.parse("b:p:s");
                 if (options.has("b")) {
                     bindaddr = (String) options.valueOf("b");
                 }
@@ -251,16 +254,40 @@ public class Main {
                 System.out.println("Opening DOSS server on " + bindaddr + ":"
                         + port);
                 try (BlobStore blobStore = openBlobStore();
-                        ServerSocket socket = new ServerSocket(port);
-                        BlobStoreServer server = new BlobStoreServer(blobStore,
-                                socket)) {
+                        BlobStoreServer server = options.has("s") ?
+                                new BlobStoreServer(blobStore, port, 1,
+                                        InetAddress.getByName(bindaddr)) :
+                                new BlobStoreServer(blobStore,
+                                        new ServerSocket(port))) {
                     server.run();
                 } catch (TTransportException e) {
                     throw new RuntimeException(e);
                 }
             }
         },
-        ;
+        access("[+-read,write,stage client@host]",
+                "Display and configure access to the server") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    listAccess();
+                }
+            }
+
+            private void listAccess() throws IOException {
+                try (BlobStore blobStore = openBlobStore()) {
+                    out.println(String.format("%-2s %-8s %-20s %-20s %-40s",
+                            "#", "ACCESS", "CLIENT", "HOST", "KEY"));
+                    for (Client client : blobStore.clients()) {
+                        out.println(String.format("%2d %-8s %-20s %-20s %-40s",
+                                client.id(), client.access(), client.name(),
+                                client.host(), client.publicKey()));
+                    }
+                }
+            }
+
+        };
 
         final String descrption, parameters;
 
@@ -282,7 +309,24 @@ public class Main {
         }
 
         BlobStore openBlobStore() throws CommandLineException, IOException {
-            return LocalBlobStore.open(getDossHome());
+            String url = System.getenv("DOSS_URL");
+            if (url != null) {
+                URI uri;
+                try {
+                    uri = new URI(url);
+                } catch (URISyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+                if (uri.getScheme().equals("dosss")) {
+                    return RemoteBlobStore.openSecure(uri.getHost(),
+                            uri.getPort());
+                } else {
+                    Socket socket = new Socket(uri.getHost(), uri.getPort());
+                    return RemoteBlobStore.open(socket);
+                }
+            } else {
+                return LocalBlobStore.open(getDossHome());
+            }
         }
 
         String description() {

@@ -31,7 +31,7 @@ public class RemoteBlobStoreTest {
     @Before
     public void setup() throws Exception {
         localStore = TempBlobStore.open();
-        remoteStore = LoopbackBlobStore.open(localStore);
+        remoteStore = SecureLoopbackBlobStore.open(localStore);
     }
 
     @After

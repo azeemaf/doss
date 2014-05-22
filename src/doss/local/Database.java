@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,7 +23,10 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import com.googlecode.flyway.core.Flyway;
 
-abstract class Database implements Closeable, GetHandle, Transactional<Database> {
+import doss.Client;
+
+abstract class Database implements Closeable, GetHandle,
+        Transactional<Database> {
 
     /*
      * Connection meta data URL doesn't include H2 switches. We have to manually
@@ -60,7 +64,8 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
             Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
             DatabaseMetaData md = getHandle().getConnection().getMetaData();
             Flyway flyway = new Flyway();
-            flyway.setDataSource(md.getURL() + H2_SWITCHES, md.getUserName(), "");
+            flyway.setDataSource(md.getURL() + H2_SWITCHES, md.getUserName(),
+                    "");
             flyway.setLocations("doss/migrations");
             flyway.setInitOnMigrate(true);
             flyway.migrate();
@@ -74,7 +79,8 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
     public abstract long nextId();
 
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
-    public abstract void insertBlob(@Bind("blobId") long blobId, @Bind("containerId") long containerId, @Bind("offset") long offset);
+    public abstract void insertBlob(@Bind("blobId") long blobId,
+            @Bind("containerId") long containerId, @Bind("offset") long offset);
 
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract void deleteBlob(@Bind("blobId") long blobId);
@@ -83,10 +89,13 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
-    public static class BlobLocationMapper implements ResultSetMapper<BlobLocation> {
+    public static class BlobLocationMapper implements
+            ResultSetMapper<BlobLocation> {
         @Override
-        public BlobLocation map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-            return new BlobLocation(r.getLong("container_id"), r.getLong("offset"));
+        public BlobLocation map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new BlobLocation(r.getLong("container_id"),
+                    r.getLong("offset"));
         }
     }
 
@@ -101,10 +110,12 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
     public abstract long sealContainer(@Bind("id") long containerId);
 
     @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
-    public abstract Long findBlobIdForLegacyPathAndLock(@Bind("legacy_path") String legacyPath);
+    public abstract Long findBlobIdForLegacyPathAndLock(
+            @Bind("legacy_path") String legacyPath);
 
     @SqlUpdate("INSERT INTO legacy_paths (blob_id, legacy_path) VALUES (:blob_id, :legacy_path)")
-    public abstract long insertLegacy(@Bind("blob_id") long blobId, @Bind("legacy_path") String legacyPath);
+    public abstract long insertLegacy(@Bind("blob_id") long blobId,
+            @Bind("legacy_path") String legacyPath);
 
     @Transaction
     public Long findOrInsertBlobIdByLegacyPath(String legacyPath) {
@@ -118,4 +129,19 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
 
     @SqlQuery("SELECT legacy_path FROM legacy_paths WHERE blob_id = :blob_id")
     public abstract String locateLegacy(@Bind("blob_id") long blobId);
+
+    @SqlQuery("SELECT * FROM clients")
+    public abstract List<Client> listClients();
+
+    public static class ClientMapper implements ResultSetMapper<Client> {
+
+        @Override
+        public Client map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new Client(r.getLong("client_id"), r.getString("name"),
+                    r.getString("host"), r.getString("access"),
+                    r.getString("public_key"));
+        }
+
+    }
 }

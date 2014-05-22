@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
+import doss.Client;
 import doss.CorruptBlobStoreException;
 import doss.NoSuchBlobException;
 import doss.NoSuchBlobTxException;
@@ -225,5 +226,10 @@ public class LocalBlobStore implements BlobStore {
             addedBlobs.add(blobId);
             return blobId;
         }
+    }
+
+    @Override
+    public Iterable<Client> clients() {
+        return db.listClients();
     }
 }

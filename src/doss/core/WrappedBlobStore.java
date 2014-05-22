@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
+import doss.Client;
 import doss.NoSuchBlobException;
 import doss.NoSuchBlobTxException;
 
@@ -40,5 +41,10 @@ public abstract class WrappedBlobStore implements BlobStore {
     public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
             IOException {
         return wrapped.getLegacy(legacyPath);
+    }
+
+    @Override
+    public Iterable<Client> clients() {
+        return wrapped.clients();
     }
 }
