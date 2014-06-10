@@ -37,6 +37,10 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
         return open(new DBI("jdbc:h2:mem:testing;MVCC=true"));
     }
 
+    public static Database open(String jdbcUrl) {
+        return open(new DBI(jdbcUrl));
+    }
+
     @Override
     public abstract void close();
 

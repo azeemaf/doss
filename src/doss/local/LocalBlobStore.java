@@ -31,9 +31,13 @@ public class LocalBlobStore implements BlobStore {
     final List<Area> areas = new ArrayList<>();
     final Area stagingArea;
 
-    private LocalBlobStore(Path rootDir) throws IOException {
+    private LocalBlobStore(Path rootDir, String jdbcUrl) throws IOException {
         this.rootDir = rootDir;
-        db = Database.open(subdir("db"));
+        if (jdbcUrl == null) {
+            db = Database.open(subdir("db"));
+        } else {
+            db = Database.open(jdbcUrl);
+        }
         symlinker = new Symlinker(subdir("blob"));
         List<Filesystem> fslist = new ArrayList<>();
         fslist.add(new Filesystem("fs.staging", subdir("staging")));
@@ -62,7 +66,27 @@ public class LocalBlobStore implements BlobStore {
      */
     public static BlobStore open(Path root) throws CorruptBlobStoreException {
         try {
-            return new LocalBlobStore(root);
+            return new LocalBlobStore(root, null);
+        } catch (IOException e) {
+            throw new CorruptBlobStoreException(root, e);
+        }
+    }
+
+    /**
+     * Opens a BlobStore that stores all its data and indexes on the local file
+     * system.
+     * 
+     * @param root
+     *            directory to store data in
+     * @param jdbcUrl
+     *            jdbcUrl for the DOSS SQL database
+     * @return a new BlobStore
+     * @throws CorruptBlobStoreException
+     *             if the blob store is missing or corrupt
+     */
+    public static BlobStore open(Path root, String jdbcUrl) throws CorruptBlobStoreException {
+        try {
+            return new LocalBlobStore(root, jdbcUrl);
         } catch (IOException e) {
             throw new CorruptBlobStoreException(root, e);
         }
