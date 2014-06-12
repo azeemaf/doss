@@ -1,6 +1,8 @@
 /target
 /.classpath
 /.project
+/release.properties
+/pom.xml.releaseBackup
 .javaclasspath
 *.class
 *.jar

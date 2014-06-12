@@ -12,6 +12,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException;
 
 public class DatabaseTest {
     static Database db;
@@ -83,5 +84,21 @@ public class DatabaseTest {
         db.createContainer(area);
         db.createContainer(area);
         assertEquals(firstId, db.findAnOpenContainer(area));
+    }
+
+    @Test
+    public void testDigests() {
+        db.insertDigest(1, "sha1", "test");
+        db.insertDigest(1, "md5", "test2");
+        db.insertDigest(2, "sha1", "test3");
+        assertEquals("test", db.getDigest(1, "sha1"));
+        assertEquals("test2", db.getDigest(1, "md5"));
+        assertEquals("test3", db.getDigest(2, "sha1"));
+    }
+
+    @Test(expected = UnableToExecuteStatementException.class)
+    public void testDuplicateDigests() {
+        db.insertDigest(1, "sha1", "test");
+        db.insertDigest(1, "sha1", "test");
     }
 }

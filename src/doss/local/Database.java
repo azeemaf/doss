@@ -60,12 +60,7 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
      */
     public Database migrate() {
         try {
-            // silence flyway's annoying default logging
-            Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
-            DatabaseMetaData md = getHandle().getConnection().getMetaData();
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(md.getURL() + H2_SWITCHES, md.getUserName(), "");
-            flyway.setLocations("doss/migrations");
+            Flyway flyway = openFlyway();
             flyway.setInitOnMigrate(true);
             flyway.migrate();
         } catch (SQLException e) {
@@ -74,11 +69,31 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
         return this;
     }
 
+    private Flyway openFlyway() throws SQLException {
+        // silence flyway's annoying default logging
+        Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
+        DatabaseMetaData md = getHandle().getConnection().getMetaData();
+        Flyway flyway = new Flyway();
+        flyway.setDataSource(md.getURL() + H2_SWITCHES, md.getUserName(), "");
+        flyway.setLocations("doss/migrations");
+        return flyway;
+    }
+
+    public String version() {
+        try {
+            Flyway flyway = openFlyway();
+            return flyway.info().current().getVersion().toString();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @SqlQuery("SELECT NEXTVAL('ID_SEQ')")
     public abstract long nextId();
 
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
-    public abstract void insertBlob(@Bind("blobId") long blobId, @Bind("containerId") long containerId, @Bind("offset") long offset);
+    public abstract void insertBlob(@Bind("blobId") long blobId, @Bind("containerId") long containerId,
+            @Bind("offset") long offset);
 
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract void deleteBlob(@Bind("blobId") long blobId);
@@ -122,4 +137,11 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
 
     @SqlQuery("SELECT legacy_path FROM legacy_paths WHERE blob_id = :blob_id")
     public abstract String locateLegacy(@Bind("blob_id") long blobId);
+
+    @SqlQuery("SELECT digest FROM digests WHERE blob_id = :blob_id AND algorithm = :algorithm")
+    public abstract String getDigest(@Bind("blob_id") long blobId, @Bind("algorithm") String algorithm);
+
+    @SqlUpdate("INSERT INTO digests (blob_id, algorithm, digest) VALUES(:blob_id, :algorithm, :digest)")
+    public abstract void insertDigest(@Bind("blob_id") long blobId, @Bind("algorithm") String algorithm,
+            @Bind("digest") String digest);
 }

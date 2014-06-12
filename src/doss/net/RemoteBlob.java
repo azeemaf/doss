@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
 
 import doss.Blob;
 
@@ -44,5 +45,10 @@ class RemoteBlob implements Blob {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public String digest(String algorithm) throws NoSuchAlgorithmException, IOException {
+        return null;
     }
 }

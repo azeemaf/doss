@@ -32,6 +32,14 @@ public class BlobTest extends DOSSTest {
     }
 
     @Test
+    public void blobsHaveADigest() throws Exception {
+        try (BlobTx tx = blobStore.begin()) {
+            assertEquals("91613d0dc2a18f748962a86024ac620a0cc10919", tx.put(TEST_BYTES).digest("SHA1"));
+            tx.rollback();
+        }
+    }
+
+    @Test
     public void blobStoresReopenable() throws Exception {
         Path path = folder.newFolder().toPath();
         LocalBlobStore.init(path);

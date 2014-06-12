@@ -118,11 +118,9 @@ public class LocalBlobStore implements BlobStore {
         if (location == null) {
             throw new NoSuchBlobException(blobId);
         }
-
-        // TODO: support multiple containers
-        // This following call allow access to multiple containers
-        return stagingArea.container(location.containerId()).get(
-                location.offset());
+        Container container = stagingArea.container(location.containerId());
+        Blob blob = container.get(location.offset());
+        return new CachedMetadataBlob(db, blob);
     }
 
     @Override
@@ -225,7 +223,7 @@ public class LocalBlobStore implements BlobStore {
             }
             addedBlobs.add(blobId);
             db.commit();
-            return container.get(offset);
+            return new CachedMetadataBlob(db, container.get(offset));
         }
 
         /**
@@ -249,5 +247,9 @@ public class LocalBlobStore implements BlobStore {
             addedBlobs.add(blobId);
             return blobId;
         }
+    }
+
+    public String version() {
+        return db.version();
     }
 }

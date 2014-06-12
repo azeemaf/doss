@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -74,12 +75,15 @@ public class Main {
                                         .getImplementationVersion());
                     }
 
+                    try (BlobStore blobStore = openBlobStore()) {
+                        if (blobStore instanceof LocalBlobStore) {
+                            out.println("LocalBlobStore version: " + ((LocalBlobStore) blobStore).version());
+                        }
+                    }
                     out.println("Java version: "
                             + System.getProperty("java.version") + ", vendor: "
                             + System.getProperty("java.vendor"));
                     out.println("Java home: " + System.getProperty("java.home"));
-                    out.println("");
-                    out.println("For more usage: help <command>");
                 }
             }
         },
@@ -117,6 +121,24 @@ public class Main {
                         outputBlob(arg);
                     }
                 }
+            }
+        },
+        digest("<algorithm> <blobId>", "Prints a digest (sha1, md5, etc) of a blob") {
+
+            void digestBlob(String algorithm, String blobId) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Blob blob = bs.get(Long.parseLong(blobId));
+                    try {
+                        out.println(blob.digest(algorithm));
+                    } catch (NoSuchAlgorithmException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                digestBlob(args.first(), args.rest().first());
             }
         },
         get("<blobId ...>", "Copy blobs to the current working directory.") {

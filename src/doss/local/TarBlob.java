@@ -7,6 +7,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -49,5 +50,12 @@ public class TarBlob implements Blob {
         return FileTime.from(tarEntry.getModTime().getTime(),
                 TimeUnit.MILLISECONDS);
 
+    }
+
+    @Override
+    public String digest(String algorithm) throws NoSuchAlgorithmException, IOException {
+        try (SeekableByteChannel channel = openChannel()) {
+            return Digests.calculate(algorithm, channel);
+        }
     }
 }

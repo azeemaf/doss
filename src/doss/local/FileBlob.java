@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
 
 import doss.Blob;
 
@@ -50,4 +51,10 @@ class FileBlob implements Blob {
                 .creationTime();
     }
 
+    @Override
+    public String digest(String algorithm) throws NoSuchAlgorithmException, IOException {
+        try (SeekableByteChannel channel = openChannel()) {
+            return Digests.calculate(algorithm, channel);
+        }
+    }
 }
