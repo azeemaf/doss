@@ -282,6 +282,28 @@ public class Main {
                 }
             }
         },
+        verify("<blobId ...>", "Checks the integrity of the given blobs") {
+
+            void verifyBlob(String blobId) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Blob blob = bs.get(Long.parseLong(blobId));
+                    for (String error : blob.verify()) {
+                        out.println("blob " + blobId + ": " + error);
+                    }
+                }
+            }
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    for (String arg : args) {
+                        verifyBlob(arg);
+                    }
+                }
+            }
+        },
         ;
 
         final String descrption, parameters;

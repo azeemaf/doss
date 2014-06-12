@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -144,4 +146,16 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
     @SqlUpdate("INSERT INTO digests (blob_id, algorithm, digest) VALUES(:blob_id, :algorithm, :digest)")
     public abstract void insertDigest(@Bind("blob_id") long blobId, @Bind("algorithm") String algorithm,
             @Bind("digest") String digest);
+
+    @SqlQuery("SELECT algorithm, digest FROM digests WHERE blob_id = :blob_id")
+    public abstract ResultSet getDigestsIterable(@Bind("blob_id") long blobId);
+
+    public Map<String, String> getDigests(long blobId) {
+        HashMap<String, String> out = new HashMap<String, String>();
+        for (Map<String, Object> row : getHandle().select("SELECT algorithm, digest FROM digests WHERE blob_id = ?",
+                blobId)) {
+            out.put((String) row.get("algorithm"), (String) row.get("digest"));
+        }
+        return out;
+    }
 }

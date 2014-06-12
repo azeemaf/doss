@@ -5,12 +5,20 @@ import java.io.InputStream;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.attribute.FileTime;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException;
 
 import doss.Blob;
 
-public class CachedMetadataBlob implements Blob {
+/**
+ * Wrapper around a Blob which caches metadata like digests in the SQL database.
+ */
+class CachedMetadataBlob implements Blob {
     final Database db;
     final Blob blob;
 
@@ -59,5 +67,26 @@ public class CachedMetadataBlob implements Blob {
             }
         }
         return digest;
+    }
+
+    @Override
+    public List<String> verify() throws IOException {
+        List<String> errors = new ArrayList<>();
+        errors.addAll(blob.verify());
+        Map<String, String> digests = db.getDigests(id());
+        for (Entry<String, String> entry : digests.entrySet()) {
+            String algorithm = entry.getKey();
+            String expected = entry.getValue();
+            try {
+                String actual = blob.digest(algorithm);
+                if (!Objects.equals(expected, actual)) {
+                    errors.add(algorithm + " digest mismatch: " + expected
+                            + " cached in database " + actual + " on disk");
+                }
+            } catch (NoSuchAlgorithmException e) {
+                errors.add("digest " + algorithm + ": " + e.getMessage());
+            }
+        }
+        return errors;
     }
 }

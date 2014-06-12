@@ -44,6 +44,8 @@ public class DossService {
 
     public ByteBuffer read(long blobId, long offset, int length) throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException;
 
+    public List<String> verify(long blobId) throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException;
+
     public long beginTx() throws org.apache.thrift.TException;
 
     public void commitTx(long txId) throws org.apache.thrift.TException;
@@ -69,6 +71,8 @@ public class DossService {
     public void digest(long blobId, String algorithm, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void read(long blobId, long offset, int length, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+
+    public void verify(long blobId, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void beginTx(org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -223,6 +227,35 @@ public class DossService {
         throw result.ioException;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "read failed: unknown result");
+    }
+
+    public List<String> verify(long blobId) throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException
+    {
+      send_verify(blobId);
+      return recv_verify();
+    }
+
+    public void send_verify(long blobId) throws org.apache.thrift.TException
+    {
+      verify_args args = new verify_args();
+      args.setBlobId(blobId);
+      sendBase("verify", args);
+    }
+
+    public List<String> recv_verify() throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException
+    {
+      verify_result result = new verify_result();
+      receiveBase(result, "verify");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.noSuchBlobException != null) {
+        throw result.noSuchBlobException;
+      }
+      if (result.ioException != null) {
+        throw result.ioException;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "verify failed: unknown result");
     }
 
     public long beginTx() throws org.apache.thrift.TException
@@ -529,6 +562,38 @@ public class DossService {
       }
     }
 
+    public void verify(long blobId, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      verify_call method_call = new verify_call(blobId, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class verify_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private long blobId;
+      public verify_call(long blobId, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.blobId = blobId;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("verify", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        verify_args args = new verify_args();
+        args.setBlobId(blobId);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public List<String> getResult() throws RemoteNoSuchBlobException, RemoteIOException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_verify();
+      }
+    }
+
     public void beginTx(org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       beginTx_call method_call = new beginTx_call(resultHandler, this, ___protocolFactory, ___transport);
@@ -770,6 +835,7 @@ public class DossService {
       processMap.put("statLegacy", new statLegacy());
       processMap.put("digest", new digest());
       processMap.put("read", new read());
+      processMap.put("verify", new verify());
       processMap.put("beginTx", new beginTx());
       processMap.put("commitTx", new commitTx());
       processMap.put("rollbackTx", new rollbackTx());
@@ -875,6 +941,32 @@ public class DossService {
         read_result result = new read_result();
         try {
           result.success = iface.read(args.blobId, args.offset, args.length);
+        } catch (RemoteNoSuchBlobException noSuchBlobException) {
+          result.noSuchBlobException = noSuchBlobException;
+        } catch (RemoteIOException ioException) {
+          result.ioException = ioException;
+        }
+        return result;
+      }
+    }
+
+    public static class verify<I extends Iface> extends org.apache.thrift.ProcessFunction<I, verify_args> {
+      public verify() {
+        super("verify");
+      }
+
+      public verify_args getEmptyArgsInstance() {
+        return new verify_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public verify_result getResult(I iface, verify_args args) throws org.apache.thrift.TException {
+        verify_result result = new verify_result();
+        try {
+          result.success = iface.verify(args.blobId);
         } catch (RemoteNoSuchBlobException noSuchBlobException) {
           result.noSuchBlobException = noSuchBlobException;
         } catch (RemoteIOException ioException) {
@@ -1044,6 +1136,7 @@ public class DossService {
       processMap.put("statLegacy", new statLegacy());
       processMap.put("digest", new digest());
       processMap.put("read", new read());
+      processMap.put("verify", new verify());
       processMap.put("beginTx", new beginTx());
       processMap.put("commitTx", new commitTx());
       processMap.put("rollbackTx", new rollbackTx());
@@ -1299,6 +1392,68 @@ public class DossService {
 
       public void start(I iface, read_args args, org.apache.thrift.async.AsyncMethodCallback<ByteBuffer> resultHandler) throws TException {
         iface.read(args.blobId, args.offset, args.length,resultHandler);
+      }
+    }
+
+    public static class verify<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, verify_args, List<String>> {
+      public verify() {
+        super("verify");
+      }
+
+      public verify_args getEmptyArgsInstance() {
+        return new verify_args();
+      }
+
+      public AsyncMethodCallback<List<String>> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new AsyncMethodCallback<List<String>>() { 
+          public void onComplete(List<String> o) {
+            verify_result result = new verify_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb,result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+              return;
+            } catch (Exception e) {
+              LOGGER.error("Exception writing to internal frame buffer", e);
+            }
+            fb.close();
+          }
+          public void onError(Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TBase msg;
+            verify_result result = new verify_result();
+            if (e instanceof RemoteNoSuchBlobException) {
+                        result.noSuchBlobException = (RemoteNoSuchBlobException) e;
+                        result.setNoSuchBlobExceptionIsSet(true);
+                        msg = result;
+            }
+            else             if (e instanceof RemoteIOException) {
+                        result.ioException = (RemoteIOException) e;
+                        result.setIoExceptionIsSet(true);
+                        msg = result;
+            }
+             else 
+            {
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TBase)new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+              return;
+            } catch (Exception ex) {
+              LOGGER.error("Exception writing to internal frame buffer", ex);
+            }
+            fb.close();
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, verify_args args, org.apache.thrift.async.AsyncMethodCallback<List<String>> resultHandler) throws TException {
+        iface.verify(args.blobId,resultHandler);
       }
     }
 
@@ -5594,6 +5749,965 @@ public class DossService {
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.success = iprot.readBinary();
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.noSuchBlobException = new RemoteNoSuchBlobException();
+          struct.noSuchBlobException.read(iprot);
+          struct.setNoSuchBlobExceptionIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.ioException = new RemoteIOException();
+          struct.ioException.read(iprot);
+          struct.setIoExceptionIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class verify_args implements org.apache.thrift.TBase<verify_args, verify_args._Fields>, java.io.Serializable, Cloneable, Comparable<verify_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("verify_args");
+
+    private static final org.apache.thrift.protocol.TField BLOB_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("blobId", org.apache.thrift.protocol.TType.I64, (short)1);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new verify_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new verify_argsTupleSchemeFactory());
+    }
+
+    public long blobId; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      BLOB_ID((short)1, "blobId");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // BLOB_ID
+            return BLOB_ID;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __BLOBID_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.BLOB_ID, new org.apache.thrift.meta_data.FieldMetaData("blobId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64          , "BlobId")));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(verify_args.class, metaDataMap);
+    }
+
+    public verify_args() {
+    }
+
+    public verify_args(
+      long blobId)
+    {
+      this();
+      this.blobId = blobId;
+      setBlobIdIsSet(true);
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public verify_args(verify_args other) {
+      __isset_bitfield = other.__isset_bitfield;
+      this.blobId = other.blobId;
+    }
+
+    public verify_args deepCopy() {
+      return new verify_args(this);
+    }
+
+    @Override
+    public void clear() {
+      setBlobIdIsSet(false);
+      this.blobId = 0;
+    }
+
+    public long getBlobId() {
+      return this.blobId;
+    }
+
+    public verify_args setBlobId(long blobId) {
+      this.blobId = blobId;
+      setBlobIdIsSet(true);
+      return this;
+    }
+
+    public void unsetBlobId() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __BLOBID_ISSET_ID);
+    }
+
+    /** Returns true if field blobId is set (has been assigned a value) and false otherwise */
+    public boolean isSetBlobId() {
+      return EncodingUtils.testBit(__isset_bitfield, __BLOBID_ISSET_ID);
+    }
+
+    public void setBlobIdIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __BLOBID_ISSET_ID, value);
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case BLOB_ID:
+        if (value == null) {
+          unsetBlobId();
+        } else {
+          setBlobId((Long)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case BLOB_ID:
+        return Long.valueOf(getBlobId());
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case BLOB_ID:
+        return isSetBlobId();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof verify_args)
+        return this.equals((verify_args)that);
+      return false;
+    }
+
+    public boolean equals(verify_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_blobId = true;
+      boolean that_present_blobId = true;
+      if (this_present_blobId || that_present_blobId) {
+        if (!(this_present_blobId && that_present_blobId))
+          return false;
+        if (this.blobId != that.blobId)
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    @Override
+    public int compareTo(verify_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(isSetBlobId()).compareTo(other.isSetBlobId());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetBlobId()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.blobId, other.blobId);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("verify_args(");
+      boolean first = true;
+
+      sb.append("blobId:");
+      sb.append(this.blobId);
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class verify_argsStandardSchemeFactory implements SchemeFactory {
+      public verify_argsStandardScheme getScheme() {
+        return new verify_argsStandardScheme();
+      }
+    }
+
+    private static class verify_argsStandardScheme extends StandardScheme<verify_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, verify_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // BLOB_ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.blobId = iprot.readI64();
+                struct.setBlobIdIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, verify_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        oprot.writeFieldBegin(BLOB_ID_FIELD_DESC);
+        oprot.writeI64(struct.blobId);
+        oprot.writeFieldEnd();
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class verify_argsTupleSchemeFactory implements SchemeFactory {
+      public verify_argsTupleScheme getScheme() {
+        return new verify_argsTupleScheme();
+      }
+    }
+
+    private static class verify_argsTupleScheme extends TupleScheme<verify_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, verify_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetBlobId()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetBlobId()) {
+          oprot.writeI64(struct.blobId);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, verify_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.blobId = iprot.readI64();
+          struct.setBlobIdIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class verify_result implements org.apache.thrift.TBase<verify_result, verify_result._Fields>, java.io.Serializable, Cloneable, Comparable<verify_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("verify_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.LIST, (short)0);
+    private static final org.apache.thrift.protocol.TField NO_SUCH_BLOB_EXCEPTION_FIELD_DESC = new org.apache.thrift.protocol.TField("noSuchBlobException", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField IO_EXCEPTION_FIELD_DESC = new org.apache.thrift.protocol.TField("ioException", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new verify_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new verify_resultTupleSchemeFactory());
+    }
+
+    public List<String> success; // required
+    public RemoteNoSuchBlobException noSuchBlobException; // required
+    public RemoteIOException ioException; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      NO_SUCH_BLOB_EXCEPTION((short)1, "noSuchBlobException"),
+      IO_EXCEPTION((short)2, "ioException");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // NO_SUCH_BLOB_EXCEPTION
+            return NO_SUCH_BLOB_EXCEPTION;
+          case 2: // IO_EXCEPTION
+            return IO_EXCEPTION;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.NO_SUCH_BLOB_EXCEPTION, new org.apache.thrift.meta_data.FieldMetaData("noSuchBlobException", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.IO_EXCEPTION, new org.apache.thrift.meta_data.FieldMetaData("ioException", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(verify_result.class, metaDataMap);
+    }
+
+    public verify_result() {
+    }
+
+    public verify_result(
+      List<String> success,
+      RemoteNoSuchBlobException noSuchBlobException,
+      RemoteIOException ioException)
+    {
+      this();
+      this.success = success;
+      this.noSuchBlobException = noSuchBlobException;
+      this.ioException = ioException;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public verify_result(verify_result other) {
+      if (other.isSetSuccess()) {
+        List<String> __this__success = new ArrayList<String>(other.success);
+        this.success = __this__success;
+      }
+      if (other.isSetNoSuchBlobException()) {
+        this.noSuchBlobException = new RemoteNoSuchBlobException(other.noSuchBlobException);
+      }
+      if (other.isSetIoException()) {
+        this.ioException = new RemoteIOException(other.ioException);
+      }
+    }
+
+    public verify_result deepCopy() {
+      return new verify_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.noSuchBlobException = null;
+      this.ioException = null;
+    }
+
+    public int getSuccessSize() {
+      return (this.success == null) ? 0 : this.success.size();
+    }
+
+    public java.util.Iterator<String> getSuccessIterator() {
+      return (this.success == null) ? null : this.success.iterator();
+    }
+
+    public void addToSuccess(String elem) {
+      if (this.success == null) {
+        this.success = new ArrayList<String>();
+      }
+      this.success.add(elem);
+    }
+
+    public List<String> getSuccess() {
+      return this.success;
+    }
+
+    public verify_result setSuccess(List<String> success) {
+      this.success = success;
+      return this;
+    }
+
+    public void unsetSuccess() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return this.success != null;
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public RemoteNoSuchBlobException getNoSuchBlobException() {
+      return this.noSuchBlobException;
+    }
+
+    public verify_result setNoSuchBlobException(RemoteNoSuchBlobException noSuchBlobException) {
+      this.noSuchBlobException = noSuchBlobException;
+      return this;
+    }
+
+    public void unsetNoSuchBlobException() {
+      this.noSuchBlobException = null;
+    }
+
+    /** Returns true if field noSuchBlobException is set (has been assigned a value) and false otherwise */
+    public boolean isSetNoSuchBlobException() {
+      return this.noSuchBlobException != null;
+    }
+
+    public void setNoSuchBlobExceptionIsSet(boolean value) {
+      if (!value) {
+        this.noSuchBlobException = null;
+      }
+    }
+
+    public RemoteIOException getIoException() {
+      return this.ioException;
+    }
+
+    public verify_result setIoException(RemoteIOException ioException) {
+      this.ioException = ioException;
+      return this;
+    }
+
+    public void unsetIoException() {
+      this.ioException = null;
+    }
+
+    /** Returns true if field ioException is set (has been assigned a value) and false otherwise */
+    public boolean isSetIoException() {
+      return this.ioException != null;
+    }
+
+    public void setIoExceptionIsSet(boolean value) {
+      if (!value) {
+        this.ioException = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((List<String>)value);
+        }
+        break;
+
+      case NO_SUCH_BLOB_EXCEPTION:
+        if (value == null) {
+          unsetNoSuchBlobException();
+        } else {
+          setNoSuchBlobException((RemoteNoSuchBlobException)value);
+        }
+        break;
+
+      case IO_EXCEPTION:
+        if (value == null) {
+          unsetIoException();
+        } else {
+          setIoException((RemoteIOException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return getSuccess();
+
+      case NO_SUCH_BLOB_EXCEPTION:
+        return getNoSuchBlobException();
+
+      case IO_EXCEPTION:
+        return getIoException();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case NO_SUCH_BLOB_EXCEPTION:
+        return isSetNoSuchBlobException();
+      case IO_EXCEPTION:
+        return isSetIoException();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof verify_result)
+        return this.equals((verify_result)that);
+      return false;
+    }
+
+    public boolean equals(verify_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_noSuchBlobException = true && this.isSetNoSuchBlobException();
+      boolean that_present_noSuchBlobException = true && that.isSetNoSuchBlobException();
+      if (this_present_noSuchBlobException || that_present_noSuchBlobException) {
+        if (!(this_present_noSuchBlobException && that_present_noSuchBlobException))
+          return false;
+        if (!this.noSuchBlobException.equals(that.noSuchBlobException))
+          return false;
+      }
+
+      boolean this_present_ioException = true && this.isSetIoException();
+      boolean that_present_ioException = true && that.isSetIoException();
+      if (this_present_ioException || that_present_ioException) {
+        if (!(this_present_ioException && that_present_ioException))
+          return false;
+        if (!this.ioException.equals(that.ioException))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    @Override
+    public int compareTo(verify_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(other.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetNoSuchBlobException()).compareTo(other.isSetNoSuchBlobException());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetNoSuchBlobException()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.noSuchBlobException, other.noSuchBlobException);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetIoException()).compareTo(other.isSetIoException());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetIoException()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ioException, other.ioException);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("verify_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("noSuchBlobException:");
+      if (this.noSuchBlobException == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.noSuchBlobException);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("ioException:");
+      if (this.ioException == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.ioException);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class verify_resultStandardSchemeFactory implements SchemeFactory {
+      public verify_resultStandardScheme getScheme() {
+        return new verify_resultStandardScheme();
+      }
+    }
+
+    private static class verify_resultStandardScheme extends StandardScheme<verify_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, verify_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+                {
+                  org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
+                  struct.success = new ArrayList<String>(_list0.size);
+                  for (int _i1 = 0; _i1 < _list0.size; ++_i1)
+                  {
+                    String _elem2;
+                    _elem2 = iprot.readString();
+                    struct.success.add(_elem2);
+                  }
+                  iprot.readListEnd();
+                }
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // NO_SUCH_BLOB_EXCEPTION
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.noSuchBlobException = new RemoteNoSuchBlobException();
+                struct.noSuchBlobException.read(iprot);
+                struct.setNoSuchBlobExceptionIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // IO_EXCEPTION
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.ioException = new RemoteIOException();
+                struct.ioException.read(iprot);
+                struct.setIoExceptionIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, verify_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          {
+            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
+            for (String _iter3 : struct.success)
+            {
+              oprot.writeString(_iter3);
+            }
+            oprot.writeListEnd();
+          }
+          oprot.writeFieldEnd();
+        }
+        if (struct.noSuchBlobException != null) {
+          oprot.writeFieldBegin(NO_SUCH_BLOB_EXCEPTION_FIELD_DESC);
+          struct.noSuchBlobException.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.ioException != null) {
+          oprot.writeFieldBegin(IO_EXCEPTION_FIELD_DESC);
+          struct.ioException.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class verify_resultTupleSchemeFactory implements SchemeFactory {
+      public verify_resultTupleScheme getScheme() {
+        return new verify_resultTupleScheme();
+      }
+    }
+
+    private static class verify_resultTupleScheme extends TupleScheme<verify_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, verify_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetNoSuchBlobException()) {
+          optionals.set(1);
+        }
+        if (struct.isSetIoException()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetSuccess()) {
+          {
+            oprot.writeI32(struct.success.size());
+            for (String _iter4 : struct.success)
+            {
+              oprot.writeString(_iter4);
+            }
+          }
+        }
+        if (struct.isSetNoSuchBlobException()) {
+          struct.noSuchBlobException.write(oprot);
+        }
+        if (struct.isSetIoException()) {
+          struct.ioException.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, verify_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          {
+            org.apache.thrift.protocol.TList _list5 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new ArrayList<String>(_list5.size);
+            for (int _i6 = 0; _i6 < _list5.size; ++_i6)
+            {
+              String _elem7;
+              _elem7 = iprot.readString();
+              struct.success.add(_elem7);
+            }
+          }
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {

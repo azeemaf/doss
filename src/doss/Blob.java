@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.attribute.FileTime;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 
 import doss.core.Named;
 import doss.core.Sized;
@@ -52,4 +53,15 @@ public interface Blob extends Named, Sized {
      *             if an I/O error occurs
      */
     public String digest(String algorithm) throws NoSuchAlgorithmException, IOException;
+
+    /**
+     * Performs an integrity check of this blob. Compares the various (database,
+     * filesystem, caches etc.) copies of information about this Blob with each
+     * other.
+     * 
+     * @return a human readable list of integrity errors
+     * @throws IOException
+     *             if an I/O error occurs
+     */
+    public List<String> verify() throws IOException;
 }

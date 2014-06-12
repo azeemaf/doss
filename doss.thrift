@@ -37,6 +37,10 @@ service DossService {
         throws (1:RemoteNoSuchBlobException noSuchBlobException,
                 2:RemoteIOException ioException),
 
+    list<string> verify(1:BlobId blobId)
+        throws (1:RemoteNoSuchBlobException noSuchBlobException,
+                2:RemoteIOException ioException),
+
     BlobTxId beginTx(),
     void commitTx(1:BlobTxId txId),
     void rollbackTx(1:BlobTxId txId),

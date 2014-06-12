@@ -6,6 +6,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.thrift.TException;
@@ -168,6 +169,17 @@ class Connection implements DossService.Iface, ServerContext {
         } catch (NoSuchBlobException e) {
             throw new RemoteNoSuchBlobException().setBlobId(blobId);
         } catch (IOException | NoSuchAlgorithmException e) {
+            throw buildIOException(blobId, e);
+        }
+    }
+
+    @Override
+    public List<String> verify(long blobId) throws RemoteNoSuchBlobException, RemoteIOException, TException {
+        try {
+            return blobStore.get(blobId).verify();
+        } catch (NoSuchBlobException e) {
+            throw new RemoteNoSuchBlobException().setBlobId(blobId);
+        } catch (IOException e) {
             throw buildIOException(blobId, e);
         }
     }
