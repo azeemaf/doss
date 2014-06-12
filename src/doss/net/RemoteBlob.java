@@ -7,6 +7,8 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.attribute.FileTime;
 import java.security.NoSuchAlgorithmException;
 
+import org.apache.thrift.TException;
+
 import doss.Blob;
 
 class RemoteBlob implements Blob {
@@ -49,6 +51,10 @@ class RemoteBlob implements Blob {
 
     @Override
     public String digest(String algorithm) throws NoSuchAlgorithmException, IOException {
-        return null;
+        try {
+            return client.digest(id(), algorithm);
+        } catch (TException e) {
+            throw new IOException(e);
+        }
     }
 }
