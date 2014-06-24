@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>LoopbackBlobStore.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.net</a> &gt; <span class="el_source">LoopbackBlobStore.java</span></div><h1>LoopbackBlobStore.java</h1><pre class="source lang-java linenums">package doss.net;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+import org.apache.thrift.transport.TTransportException;
+
+import doss.BlobStore;
+import doss.core.WrappedBlobStore;
+import doss.local.TempBlobStore;
+
+public class LoopbackBlobStore extends WrappedBlobStore {
+
+    private final BlobStoreServer server;
+
+    private LoopbackBlobStore(BlobStoreServer server, RemoteBlobStore client) {
+<span class="fc" id="L18">        super(client);</span>
+<span class="fc" id="L19">        this.server = server;</span>
+<span class="fc" id="L20">    }</span>
+
+    @Override
+    public void close() {
+        try {
+<span class="fc" id="L25">            super.close();</span>
+        } finally {
+<span class="pc" id="L27">            server.close();</span>
+<span class="fc" id="L28">        }</span>
+<span class="fc" id="L29">    }</span>
+
+    /**
+     * Creates a LoopbackBlobStore wrapping a TempBlobStore. For testing only.
+     */
+    public static BlobStore open() throws IOException, TTransportException {
+<span class="nc" id="L35">        return open(TempBlobStore.open());</span>
+    }
+
+    public static BlobStore open(BlobStore wrapped) throws IOException,
+            TTransportException {
+<span class="fc" id="L40">        ServerSocket serverSocket = new ServerSocket(0);</span>
+<span class="fc" id="L41">        BlobStoreServer server = new BlobStoreServer(wrapped, serverSocket);</span>
+<span class="fc" id="L42">        Thread serverThread = new Thread(server);</span>
+<span class="fc" id="L43">        serverThread.start();</span>
+<span class="fc" id="L44">        Socket clientSocket = new Socket(&quot;127.0.0.1&quot;,</span>
+                serverSocket.getLocalPort());
+<span class="fc" id="L46">        RemoteBlobStore client = new RemoteBlobStore(clientSocket);</span>
+<span class="fc" id="L47">        return new LoopbackBlobStore(server, client);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

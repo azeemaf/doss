@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>RemoteChannel.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.net</a> &gt; <span class="el_source">RemoteChannel.java</span></div><h1>RemoteChannel.java</h1><pre class="source lang-java linenums">package doss.net;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.NonWritableChannelException;
+import java.nio.channels.SeekableByteChannel;
+
+import org.apache.thrift.TException;
+
+import doss.net.DossService.Client;
+
+class RemoteChannel implements SeekableByteChannel {
+    private Client client;
+    private StatResponse stat;
+<span class="fc" id="L15">    private long position = 0;</span>
+
+<span class="fc" id="L17">    public RemoteChannel(Client client, StatResponse stat) {</span>
+<span class="fc" id="L18">        this.client = client;</span>
+<span class="fc" id="L19">        this.stat = stat;</span>
+<span class="fc" id="L20">    }</span>
+
+    @Override
+    public boolean isOpen() {
+<span class="nc" id="L24">        return true;</span>
+    }
+
+    @Override
+    public void close() throws IOException {
+<span class="fc" id="L29">    }</span>
+
+    @Override
+    public int write(ByteBuffer src) throws IOException {
+<span class="nc" id="L33">        throw new NonWritableChannelException();</span>
+    }
+
+    @Override
+    public SeekableByteChannel truncate(long size)
+            throws IOException {
+<span class="nc" id="L39">        throw new NonWritableChannelException();</span>
+    }
+
+    @Override
+    public long size() throws IOException {
+<span class="fc" id="L44">        return stat.getSize();</span>
+    }
+
+    @Override
+    public int read(ByteBuffer dst) throws IOException {
+        ByteBuffer bytes;
+        try {
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">            if (remaining() == 0) {</span>
+<span class="nc" id="L52">                return -1;</span>
+            }
+<span class="fc" id="L54">            System.out.println(position);</span>
+<span class="fc" id="L55">            int len = (int) Math.min(remaining(), dst.remaining());</span>
+<span class="fc" id="L56">            bytes = client.read(stat.getBlobId(), position, len</span>
+                    );
+<span class="nc" id="L58">        } catch (TException e) {</span>
+<span class="nc" id="L59">            throw new RuntimeException(e);</span>
+<span class="fc" id="L60">        }</span>
+<span class="fc" id="L61">        dst.put(bytes);</span>
+<span class="fc" id="L62">        position += bytes.position();</span>
+<span class="fc" id="L63">        return bytes.position();</span>
+    }
+
+    @Override
+    public SeekableByteChannel position(long newPosition)
+            throws IOException {
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (newPosition &lt; 0)</span>
+<span class="nc" id="L70">            throw new IllegalArgumentException();</span>
+<span class="nc" id="L71">        position = newPosition;</span>
+<span class="nc" id="L72">        return this;</span>
+    }
+
+    @Override
+    public long position() throws IOException {
+<span class="fc" id="L77">        return position;</span>
+    }
+
+    private long remaining() throws IOException {
+<span class="fc" id="L81">        return size() - position();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

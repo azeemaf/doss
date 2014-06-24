@@ -1,70 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>DirectoryContainer.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.local</a> &gt; <span class="el_source">DirectoryContainer.java</span></div><h1>DirectoryContainer.java</h1><pre class="source lang-java linenums">package doss.local;
 
+import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 
 import doss.Writable;
-import doss.core.Container;
-import static java.nio.file.StandardOpenOption.*;
 
 /**
  * A very simple container that just stores blobs as files in a directory.
  */
 class DirectoryContainer implements Container {
-    
+
     final long id;
     final Path dir;
 
-<span class="fc" id="L21">    public DirectoryContainer(long id, Path dir) throws IOException {</span>
-<span class="fc" id="L22">        this.id = id;</span>
-<span class="fc" id="L23">        this.dir = dir;</span>
+<span class="fc" id="L26">    public DirectoryContainer(long id, Path dir) throws IOException {</span>
+<span class="fc" id="L27">        this.id = id;</span>
+<span class="fc" id="L28">        this.dir = dir;</span>
         try {
-<span class="nc" id="L25">            Files.createDirectory(dir);</span>
-<span class="fc" id="L26">        } catch (FileAlreadyExistsException e) {</span>
-            // cool
-<span class="nc" id="L28">        }</span>
-<span class="fc" id="L29">    }</span>
+<span class="fc" id="L30">            Files.createDirectory(dir);</span>
+<span class="fc" id="L31">        } catch (FileAlreadyExistsException e) {</span>
+            // okay
+<span class="fc" id="L33">        }</span>
+<span class="fc" id="L34">    }</span>
 
     @Override
     public FileBlob get(long offset) throws IOException {
-<span class="fc" id="L33">        String id = new String(Files.readAllBytes(idPathFor(offset)), &quot;UTF-8&quot;);</span>
-<span class="fc" id="L34">        return new FileBlob(Long.parseLong(id), dataPathFor(offset));</span>
+<span class="fc" id="L38">        String id = new String(Files.readAllBytes(idPathFor(offset)), &quot;UTF-8&quot;);</span>
+<span class="fc" id="L39">        return new FileBlob(Long.parseLong(id), dataPathFor(offset));</span>
     }
 
     @Override
     public long put(long id, Writable output) throws IOException {
-<span class="fc" id="L39">        Long offset = 0L;</span>
+<span class="fc" id="L44">        Long offset = 0L;</span>
         while (true) {
-<span class="pc" id="L41">            try (WritableByteChannel channel = Files.newByteChannel(</span>
-                    dataPathFor(offset), CREATE_NEW, WRITE)) {
-<span class="fc" id="L43">                output.writeTo(channel);</span>
-<span class="fc" id="L44">                Files.write(idPathFor(offset), Long.toString(id).getBytes(&quot;UTF-8&quot;),</span>
-                        CREATE_NEW, WRITE);
-<span class="fc" id="L46">                return offset;</span>
-<span class="pc bpc" id="L47" title="6 of 8 branches missed.">            } catch (FileAlreadyExistsException e) {</span>
-<span class="fc" id="L48">                offset++;</span>
-<span class="fc" id="L49">            }</span>
+<span class="pc" id="L46">            try (WritableByteChannel channel = Files.newByteChannel(dataPathFor(offset), CREATE_NEW, WRITE)) {</span>
+<span class="fc" id="L47">                output.writeTo(channel);</span>
+<span class="fc" id="L48">                Files.write(idPathFor(offset), Long.toString(id).getBytes(&quot;UTF-8&quot;), CREATE_NEW, WRITE);</span>
+<span class="fc" id="L49">                return offset;</span>
+<span class="pc bpc" id="L50" title="6 of 8 branches missed.">            } catch (FileAlreadyExistsException e) {</span>
+<span class="fc" id="L51">                offset++;</span>
+<span class="fc" id="L52">            }</span>
         }
     }
 
     Path dataPathFor(long offset) {
-<span class="fc" id="L54">        return dir.resolve(Long.toString(offset));</span>
+<span class="fc" id="L57">        return dir.resolve(Long.toString(offset));</span>
     }
 
     protected Path idPathFor(long offset) {
-<span class="fc" id="L58">        return dir.resolve(Long.toString(offset) + &quot;.id&quot;);</span>
+<span class="fc" id="L61">        return dir.resolve(Long.toString(offset) + &quot;.id&quot;);</span>
     }
 
     @Override
     public void close() {
-<span class="fc" id="L63">    }</span>
+<span class="fc" id="L66">    }</span>
 
     @Override
     public long id() {
-<span class="fc" id="L67">        return id;</span>
+<span class="fc" id="L70">        return id;</span>
+    }
+
+    @Override
+    public long size() throws IOException {
+        // TODO optimize
+<span class="fc" id="L76">        SizeCalculator counter = new SizeCalculator();</span>
+<span class="fc" id="L77">        Files.walkFileTree(dir, counter);</span>
+<span class="fc" id="L78">        return counter.size;</span>
+    }
+
+<span class="fc" id="L81">    private static class SizeCalculator extends SimpleFileVisitor&lt;Path&gt; {</span>
+<span class="fc" id="L82">        long size = 0;</span>
+
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+<span class="fc" id="L86">            size += Files.size(file);</span>
+<span class="fc" id="L87">            return CONTINUE;</span>
+        }
     }
 
 }

@@ -2,65 +2,100 @@
 
 import java.io.Closeable;
 import java.nio.file.Path;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.skife.jdbi.v2.DBI;
-import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.sqlobject.Bind;
+import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import org.skife.jdbi.v2.sqlobject.Transaction;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 import org.skife.jdbi.v2.sqlobject.mixins.GetHandle;
+import org.skife.jdbi.v2.sqlobject.mixins.Transactional;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
-<span class="fc" id="L18">abstract class Database implements Closeable, GetHandle {</span>
+import com.googlecode.flyway.core.Flyway;
+
+<span class="fc" id="L27">abstract class Database implements Closeable, GetHandle, Transactional&lt;Database&gt; {</span>
+
+    /*
+     * Connection meta data URL doesn't include H2 switches. We have to manually
+     * include them for flyway migrations
+     */
+    static final String H2_SWITCHES = &quot;;AUTO_SERVER=true;MVCC=true&quot;;
+
+    /**
+     * Opens an in-memory database for internal testing.
+     */
+    static Database open() {
+<span class="fc" id="L39">        return open(new DBI(&quot;jdbc:h2:mem:testing;MVCC=true&quot;));</span>
+    }
+
+    public static Database open(String jdbcUrl) {
+<span class="nc" id="L43">        return open(new DBI(jdbcUrl));</span>
+    }
+
+    @Override
+    public abstract void close();
 
     /**
      * Opens a DOSS database stored on the local filesystem.
      */
     public static Database open(Path dbPath) {
-<span class="fc" id="L24">        return open(new DBI(&quot;jdbc:h2:file:&quot; + dbPath + &quot;;AUTO_SERVER=TRUE&quot;));</span>
-
+<span class="fc" id="L53">        return open(new DBI(&quot;jdbc:h2:file:&quot; + dbPath + &quot;/doss&quot; + H2_SWITCHES));</span>
     }
 
     public static Database open(DBI dbi) {
-<span class="fc" id="L29">        return dbi.open(Database.class);</span>
+<span class="fc" id="L57">        return dbi.open(Database.class);</span>
     }
 
     /**
      * Runs database migrations to populate or upgrade the schema.
      */
     public Database migrate() {
-        // replace this with Flyway schema migrations (http://flywaydb.org/) as
-        // soon as we need to start altering existing tables
-<span class="fc" id="L38">        Schema schema = getHandle().attach(Schema.class);</span>
-<span class="fc" id="L39">        schema.createBlobsTable();</span>
-<span class="fc" id="L40">        schema.createBlobIdSequence();</span>
-<span class="fc" id="L41">        schema.createBlobTxIdSequence();</span>
-<span class="fc" id="L42">        return this;</span>
+        try {
+<span class="fc" id="L65">            Flyway flyway = openFlyway();</span>
+<span class="fc" id="L66">            flyway.setInitOnMigrate(true);</span>
+<span class="fc" id="L67">            flyway.migrate();</span>
+<span class="nc" id="L68">        } catch (SQLException e) {</span>
+<span class="nc" id="L69">            throw new RuntimeException(e);</span>
+<span class="fc" id="L70">        }</span>
+<span class="fc" id="L71">        return this;</span>
     }
 
-    interface Schema {
-        @SqlUpdate(&quot;CREATE SEQUENCE IF NOT EXISTS blob_id_seq&quot;)
-        void createBlobIdSequence();
-
-        @SqlUpdate(&quot;CREATE SEQUENCE IF NOT EXISTS blob_tx_id_seq&quot;)
-        void createBlobTxIdSequence();
-
-        @SqlUpdate(&quot;CREATE TABLE IF NOT EXISTS blobs (blob_id BIGINT PRIMARY KEY, container_id BIGINT, offset BIGINT)&quot;)
-        void createBlobsTable();
+    private Flyway openFlyway() throws SQLException {
+        // silence flyway's annoying default logging
+<span class="fc" id="L76">        Logger.getLogger(&quot;com.googlecode.flyway&quot;).setLevel(Level.SEVERE);</span>
+<span class="fc" id="L77">        DatabaseMetaData md = getHandle().getConnection().getMetaData();</span>
+<span class="fc" id="L78">        Flyway flyway = new Flyway();</span>
+<span class="fc" id="L79">        flyway.setDataSource(md.getURL() + H2_SWITCHES, md.getUserName(), &quot;&quot;);</span>
+<span class="fc" id="L80">        flyway.setLocations(&quot;doss/migrations&quot;);</span>
+<span class="fc" id="L81">        return flyway;</span>
     }
 
-    @SqlQuery(&quot;SELECT NEXTVAL('blob_id_seq')&quot;)
-    public abstract long nextBlobId();
+    public String version() {
+        try {
+<span class="fc" id="L86">            Flyway flyway = openFlyway();</span>
+<span class="fc" id="L87">            return flyway.info().current().getVersion().toString();</span>
+<span class="nc" id="L88">        } catch (SQLException e) {</span>
+<span class="nc" id="L89">            throw new RuntimeException(e);</span>
+        }
+    }
 
-    @SqlQuery(&quot;SELECT NEXTVAL('blob_tx_id_seq')&quot;)
-    public abstract long nextBlobTxId();
+    @SqlQuery(&quot;SELECT NEXTVAL('ID_SEQ')&quot;)
+    public abstract long nextId();
 
     @SqlUpdate(&quot;INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)&quot;)
-    public abstract void insertBlob(@Bind(&quot;blobId&quot;) long blobId, @Bind(&quot;containerId&quot;) long containerId, @Bind(&quot;offset&quot;) long offset);
+    public abstract void insertBlob(@Bind(&quot;blobId&quot;) long blobId, @Bind(&quot;containerId&quot;) long containerId,
+            @Bind(&quot;offset&quot;) long offset);
 
     @SqlUpdate(&quot;DELETE FROM blobs WHERE blob_id = :blobId&quot;)
     public abstract void deleteBlob(@Bind(&quot;blobId&quot;) long blobId);
@@ -69,10 +104,59 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind(&quot;blobId&quot;) long blobId);
 
-<span class="fc" id="L72">    public static class BlobLocationMapper implements ResultSetMapper&lt;BlobLocation&gt; {</span>
+<span class="fc" id="L107">    public static class BlobLocationMapper implements ResultSetMapper&lt;BlobLocation&gt; {</span>
+        @Override
         public BlobLocation map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-<span class="fc" id="L74">            return new BlobLocation(r.getLong(&quot;container_id&quot;), r.getLong(&quot;offset&quot;));</span>
+<span class="fc" id="L110">            return new BlobLocation(r.getLong(&quot;container_id&quot;), r.getLong(&quot;offset&quot;));</span>
         }
+    }
+
+    @SqlQuery(&quot;SELECT container_id FROM containers WHERE sealed = 0 AND AREA = :area&quot;)
+    public abstract Long findAnOpenContainer(@Bind(&quot;area&quot;) String area);
+
+    @SqlUpdate(&quot;INSERT INTO containers (area) VALUES (:area)&quot;)
+    @GetGeneratedKeys
+    public abstract long createContainer(@Bind(&quot;area&quot;) String name);
+
+    @SqlUpdate(&quot;UPDATE containers SET sealed = true WHERE container_id = :id&quot;)
+    public abstract long sealContainer(@Bind(&quot;id&quot;) long containerId);
+
+    @SqlQuery(&quot;SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE&quot;)
+    public abstract Long findBlobIdForLegacyPathAndLock(@Bind(&quot;legacy_path&quot;) String legacyPath);
+
+    @SqlUpdate(&quot;INSERT INTO legacy_paths (blob_id, legacy_path) VALUES (:blob_id, :legacy_path)&quot;)
+    public abstract long insertLegacy(@Bind(&quot;blob_id&quot;) long blobId, @Bind(&quot;legacy_path&quot;) String legacyPath);
+
+    @Transaction
+    public Long findOrInsertBlobIdByLegacyPath(String legacyPath) {
+<span class="fc" id="L132">        Long blobId = findBlobIdForLegacyPathAndLock(legacyPath);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (blobId == null) {</span>
+<span class="fc" id="L134">            blobId = nextId();</span>
+<span class="fc" id="L135">            insertLegacy(blobId, legacyPath);</span>
+        }
+<span class="fc" id="L137">        return blobId;</span>
+    }
+
+    @SqlQuery(&quot;SELECT legacy_path FROM legacy_paths WHERE blob_id = :blob_id&quot;)
+    public abstract String locateLegacy(@Bind(&quot;blob_id&quot;) long blobId);
+
+    @SqlQuery(&quot;SELECT digest FROM digests WHERE blob_id = :blob_id AND algorithm = :algorithm&quot;)
+    public abstract String getDigest(@Bind(&quot;blob_id&quot;) long blobId, @Bind(&quot;algorithm&quot;) String algorithm);
+
+    @SqlUpdate(&quot;INSERT INTO digests (blob_id, algorithm, digest) VALUES(:blob_id, :algorithm, :digest)&quot;)
+    public abstract void insertDigest(@Bind(&quot;blob_id&quot;) long blobId, @Bind(&quot;algorithm&quot;) String algorithm,
+            @Bind(&quot;digest&quot;) String digest);
+
+    @SqlQuery(&quot;SELECT algorithm, digest FROM digests WHERE blob_id = :blob_id&quot;)
+    public abstract ResultSet getDigestsIterable(@Bind(&quot;blob_id&quot;) long blobId);
+
+    public Map&lt;String, String&gt; getDigests(long blobId) {
+<span class="nc" id="L154">        HashMap&lt;String, String&gt; out = new HashMap&lt;String, String&gt;();</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        for (Map&lt;String, Object&gt; row : getHandle().select(&quot;SELECT algorithm, digest FROM digests WHERE blob_id = ?&quot;,</span>
+                blobId)) {
+<span class="nc" id="L157">            out.put((String) row.get(&quot;algorithm&quot;), (String) row.get(&quot;digest&quot;));</span>
+<span class="nc" id="L158">        }</span>
+<span class="nc" id="L159">        return out;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

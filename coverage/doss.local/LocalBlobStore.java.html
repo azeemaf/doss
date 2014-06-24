@@ -2,42 +2,58 @@
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import doss.*;
+import doss.Blob;
+import doss.BlobStore;
+import doss.BlobTx;
+import doss.CorruptBlobStoreException;
+import doss.NoSuchBlobException;
+import doss.NoSuchBlobTxException;
+import doss.Writable;
 import doss.core.ManagedTransaction;
 import doss.core.Transaction;
 import doss.core.Writables;
 
 public class LocalBlobStore implements BlobStore {
 
-    final DirectoryContainer container;
     final Symlinker symlinker;
     final Database db;
-<span class="fc" id="L22">    final Map&lt;Long, BlobTx&gt; txs = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L29">    final Map&lt;Long, BlobTx&gt; txs = new ConcurrentHashMap&lt;&gt;();</span>
     final Path rootDir;
+<span class="fc" id="L31">    final List&lt;Area&gt; areas = new ArrayList&lt;&gt;();</span>
+    final Area stagingArea;
 
-<span class="fc" id="L25">    private LocalBlobStore(Path rootDir) throws IOException {</span>
-<span class="fc" id="L26">        this.rootDir = rootDir;</span>
-<span class="fc" id="L27">        container = new DirectoryContainer(0, subdir(&quot;data&quot;));</span>
-<span class="fc" id="L28">        db = Database.open(subdir(&quot;db&quot;));</span>
-<span class="fc" id="L29">        symlinker = new Symlinker(subdir(&quot;blob&quot;));</span>
-<span class="fc" id="L30">    }</span>
+<span class="fc" id="L34">    private LocalBlobStore(Path rootDir, String jdbcUrl) throws IOException {</span>
+<span class="fc" id="L35">        this.rootDir = rootDir;</span>
+<span class="pc bpc" id="L36" title="1 of 2 branches missed.">        if (jdbcUrl == null) {</span>
+<span class="fc" id="L37">            db = Database.open(subdir(&quot;db&quot;));</span>
+        } else {
+<span class="nc" id="L39">            db = Database.open(jdbcUrl);</span>
+        }
+<span class="fc" id="L41">        symlinker = new Symlinker(subdir(&quot;blob&quot;));</span>
+<span class="fc" id="L42">        List&lt;Filesystem&gt; fslist = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L43">        fslist.add(new Filesystem(&quot;fs.staging&quot;, subdir(&quot;staging&quot;)));</span>
+<span class="fc" id="L44">        stagingArea = new Area(db, &quot;area.staging&quot;, fslist, &quot;directory&quot;);</span>
+<span class="fc" id="L45">        areas.add(stagingArea);</span>
+<span class="fc" id="L46">    }</span>
 
     public static void init(Path root) throws IOException {
-<span class="fc" id="L33">        Files.createDirectories(root.resolve(&quot;data&quot;));</span>
-<span class="fc" id="L34">        Files.createDirectories(root.resolve(&quot;db&quot;));</span>
-<span class="fc" id="L35">        Files.createDirectories(root.resolve(&quot;blob&quot;));</span>
-<span class="pc" id="L36">        try (Database db = Database.open(root.resolve(&quot;db&quot;))) {</span>
-<span class="fc" id="L37">            db.migrate();</span>
-<span class="pc bpc" id="L38" title="6 of 8 branches missed.">        }</span>
-<span class="fc" id="L39">    }</span>
-    
+<span class="fc" id="L49">        Files.createDirectories(root.resolve(&quot;staging&quot;));</span>
+<span class="fc" id="L50">        Files.createDirectories(root.resolve(&quot;db&quot;));</span>
+<span class="fc" id="L51">        Files.createDirectories(root.resolve(&quot;blob&quot;));</span>
+<span class="pc" id="L52">        try (Database db = Database.open(root.resolve(&quot;db&quot;))) {</span>
+<span class="fc" id="L53">            db.migrate();</span>
+<span class="pc bpc" id="L54" title="6 of 8 branches missed.">        }</span>
+<span class="fc" id="L55">    }</span>
+
     /**
      * Opens a BlobStore that stores all its data and indexes on the local file
      * system.
@@ -50,115 +66,191 @@ public class LocalBlobStore implements BlobStore {
      */
     public static BlobStore open(Path root) throws CorruptBlobStoreException {
         try {
-<span class="fc" id="L53">            return new LocalBlobStore(root);</span>
-<span class="nc" id="L54">        } catch (IOException e) {</span>
-<span class="nc" id="L55">            throw new CorruptBlobStoreException(root, e);</span>
+<span class="fc" id="L69">            return new LocalBlobStore(root, null);</span>
+<span class="nc" id="L70">        } catch (IOException e) {</span>
+<span class="nc" id="L71">            throw new CorruptBlobStoreException(root, e);</span>
+        }
+    }
+
+    /**
+     * Opens a BlobStore that stores all its data and indexes on the local file
+     * system.
+     * 
+     * @param root
+     *            directory to store data in
+     * @param jdbcUrl
+     *            jdbcUrl for the DOSS SQL database
+     * @return a new BlobStore
+     * @throws CorruptBlobStoreException
+     *             if the blob store is missing or corrupt
+     */
+    public static BlobStore open(Path root, String jdbcUrl) throws CorruptBlobStoreException {
+        try {
+<span class="nc" id="L89">            return new LocalBlobStore(root, jdbcUrl);</span>
+<span class="nc" id="L90">        } catch (IOException e) {</span>
+<span class="nc" id="L91">            throw new CorruptBlobStoreException(root, e);</span>
         }
     }
 
     private Path subdir(String name) throws NotDirectoryException {
-<span class="fc" id="L60">        Path path = rootDir.resolve(name);</span>
-<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        if (!Files.isDirectory(path)) {</span>
-<span class="nc" id="L62">            throw new NotDirectoryException(path.toString());</span>
+<span class="fc" id="L96">        Path path = rootDir.resolve(name);</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        if (!Files.isDirectory(path)) {</span>
+<span class="nc" id="L98">            throw new NotDirectoryException(path.toString());</span>
         }
-<span class="fc" id="L64">        return path;</span>
+<span class="fc" id="L100">        return path;</span>
     }
 
     @Override
     public void close() {
-<span class="fc" id="L69">        container.close();</span>
-<span class="fc" id="L70">    }</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        for (Area area : areas) {</span>
+<span class="fc" id="L106">            area.close();</span>
+<span class="fc" id="L107">        }</span>
+<span class="fc" id="L108">        db.close();</span>
+<span class="fc" id="L109">    }</span>
 
     @Override
     public Blob get(long blobId) throws IOException, NoSuchBlobException {
-<span class="fc" id="L74">        BlobLocation location = db.locateBlob(blobId);</span>
-<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (location == null) {</span>
-<span class="fc" id="L76">            throw new NoSuchBlobException(blobId);</span>
+<span class="fc" id="L113">        String legacyPath = db.locateLegacy(blobId);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        if (legacyPath != null) {</span>
+<span class="fc" id="L115">            return new FileBlob(blobId, Paths.get(legacyPath));</span>
         }
-        // TODO: support multiple containers
-<span class="fc" id="L79">        return container.get(location.offset());</span>
+<span class="fc" id="L117">        BlobLocation location = db.locateBlob(blobId);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (location == null) {</span>
+<span class="fc" id="L119">            throw new NoSuchBlobException(blobId);</span>
+        }
+<span class="fc" id="L121">        Container container = stagingArea.container(location.containerId());</span>
+<span class="fc" id="L122">        Blob blob = container.get(location.offset());</span>
+<span class="fc" id="L123">        return new CachedMetadataBlob(db, blob);</span>
+    }
+
+    @Override
+    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
+            IOException {
+<span class="fc" id="L129">        String path = legacyPath.toAbsolutePath().toString();</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (!Files.exists(legacyPath)) {</span>
+<span class="fc" id="L131">            throw new NoSuchFileException(path);</span>
+        }
+<span class="fc" id="L133">        return get(db.findOrInsertBlobIdByLegacyPath(path));</span>
     }
 
     @Override
     public BlobTx begin() {
-<span class="fc" id="L84">        BlobTx tx = new Tx();</span>
-<span class="fc" id="L85">        txs.put(tx.id(), tx);</span>
-<span class="fc" id="L86">        return tx;</span>
+<span class="fc" id="L138">        BlobTx tx = new Tx();</span>
+<span class="fc" id="L139">        txs.put(tx.id(), tx);</span>
+<span class="fc" id="L140">        return tx;</span>
     }
 
     @Override
     public BlobTx resume(long txId) throws NoSuchBlobTxException {
-<span class="fc" id="L91">        BlobTx tx = txs.get(txId);</span>
-<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (tx == null) {</span>
-<span class="fc" id="L93">            throw new NoSuchBlobTxException(txId);</span>
+<span class="fc" id="L145">        BlobTx tx = txs.get(txId);</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        if (tx == null) {</span>
+<span class="fc" id="L147">            throw new NoSuchBlobTxException(txId);</span>
         }
-<span class="fc" id="L95">        return tx;</span>
+<span class="fc" id="L149">        return tx;</span>
     }
 
-    protected long parseId(String blobId) {
-        try {
-<span class="nc" id="L100">            return Long.parseLong(blobId);</span>
-<span class="nc" id="L101">        } catch (NumberFormatException e) {</span>
-<span class="nc" id="L102">            throw new IllegalArgumentException(&quot;invalid blob id: &quot;</span>
-                    + blobId, e);
-        }
-    }
-    
-<span class="fc" id="L107">    protected class Tx extends ManagedTransaction implements BlobTx {</span>
-        
-<span class="fc" id="L109">        final long id = db.nextBlobTxId();</span>
-<span class="fc" id="L110">        final List&lt;Long&gt; addedBlobs = new ArrayList&lt;Long&gt;();</span>
+<span class="fc" id="L152">    public class Tx extends ManagedTransaction implements BlobTx {</span>
+
+<span class="fc" id="L154">        final long id = db.nextId();</span>
+<span class="fc" id="L155">        final List&lt;Long&gt; addedBlobs = new ArrayList&lt;Long&gt;();</span>
 
         // ManagedTransaction will call back into this private Transaction when
         // the transaction changes state.
         // This allows us to have transaction state transition logic controlled
         // separately to the central data management concerns of this class.
-<span class="fc" id="L116">        Transaction callbacks = new Transaction() {</span>
+<span class="fc" id="L161">        Transaction callbacks = new Transaction() {</span>
+
+            @Override
             public void commit() throws IOException {
-<span class="fc" id="L118">                txs.remove(id);</span>
-<span class="fc" id="L119">            }</span>
+<span class="fc" id="L165">                txs.remove(id);</span>
+<span class="fc" id="L166">            }</span>
 
+            @Override
             public void rollback() throws IOException {
-<span class="fc bfc" id="L122" title="All 2 branches covered.">                for (Long blobId : addedBlobs) {</span>
-<span class="fc" id="L123">                    db.deleteBlob(blobId);</span>
-<span class="fc" id="L124">                    symlinker.unlink(blobId);</span>
-<span class="fc" id="L125">                }</span>
-<span class="fc" id="L126">                txs.remove(id);</span>
-<span class="fc" id="L127">            }</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">                for (Long blobId : addedBlobs) {</span>
+<span class="fc" id="L171">                    db.deleteBlob(blobId);</span>
+<span class="fc" id="L172">                    symlinker.unlink(blobId);</span>
+<span class="fc" id="L173">                }</span>
+<span class="fc" id="L174">                txs.remove(id);</span>
+<span class="fc" id="L175">            }</span>
 
+            @Override
             public void prepare() {
                 // TODO Auto-generated method stub
-<span class="fc" id="L131">            }</span>
+<span class="fc" id="L180">            }</span>
 
+            @Override
             public void close() throws IllegalStateException {
-<span class="fc" id="L134">            }</span>
+<span class="fc" id="L184">            }</span>
         };
 
-        public synchronized Blob put(Writable output) throws IOException {
-<span class="fc" id="L138">            state.assertOpen();</span>
-<span class="fc" id="L139">            long blobId = db.nextBlobId();</span>
-<span class="fc" id="L140">            long offset = container.put(blobId, output);</span>
-<span class="fc" id="L141">            db.insertBlob(blobId, container.id(), offset);</span>
-<span class="fc" id="L142">            symlinker.link(blobId, container, offset);</span>
-<span class="fc" id="L143">            addedBlobs.add(blobId);</span>
-<span class="fc" id="L144">            return container.get(offset);</span>
-        }
+        public void setExtension(final long blobId, final String ext)
+                throws NoSuchBlobException, IOException {
+<span class="nc" id="L189">            Blob blob = get(blobId);</span>
+<span class="nc" id="L190">            symlinker.updateLinkPath(blobId, ext);</span>
+<span class="nc" id="L191">        }</span>
 
+        @Override
         public Blob put(final Path source) throws IOException {
-<span class="fc" id="L148">            return put(Writables.wrap(source));</span>
+<span class="fc" id="L195">            return put(Writables.wrap(source));</span>
         }
 
+        @Override
         public Blob put(final byte[] bytes) throws IOException {
-<span class="fc" id="L152">            return put(Writables.wrap(bytes));</span>
+<span class="fc" id="L200">            return put(Writables.wrap(bytes));</span>
         }
 
+        @Override
         public long id() {
-<span class="fc" id="L156">            return id;</span>
+<span class="fc" id="L205">            return id;</span>
         }
 
+        @Override
         protected Transaction getCallbacks() {
-<span class="fc" id="L160">            return callbacks;</span>
+<span class="fc" id="L210">            return callbacks;</span>
         }
+
+        @Override
+        public Blob put(Writable output) throws IOException {
+<span class="fc" id="L215">            state.assertOpen();</span>
+<span class="fc" id="L216">            db.begin();</span>
+<span class="fc" id="L217">            long blobId = db.nextId();</span>
+<span class="fc" id="L218">            Container container = stagingArea.currentContainer();</span>
+<span class="fc" id="L219">            long offset = container.put(blobId, output);</span>
+<span class="fc" id="L220">            db.insertBlob(blobId, container.id(), offset);</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">            if (container instanceof DirectoryContainer) {</span>
+<span class="fc" id="L222">                symlinker.link(blobId, (DirectoryContainer) container, offset);</span>
+            }
+<span class="fc" id="L224">            addedBlobs.add(blobId);</span>
+<span class="fc" id="L225">            db.commit();</span>
+<span class="fc" id="L226">            return new CachedMetadataBlob(db, container.get(offset));</span>
+        }
+
+        /**
+         * Slightly dodgey addition to LocalBlobStore Tx, for importing legacy
+         * files into a local DOSS. Files do not get a symlink as there are no
+         * legacy jp2s.
+         * 
+         * @param legacyPath
+         *            The full path to the legacy DOSS storage system.
+         * 
+         * @return The Blob id for the legacy file. File can now be retrieved
+         *         just like any other DOSS stored file
+         * 
+         * @throws IOException
+         *             when it's unhappy
+         */
+        public Long putLegacy(Path legacyPath) throws IOException {
+<span class="fc" id="L244">            state.assertOpen();</span>
+<span class="fc" id="L245">            Long blobId = db.findOrInsertBlobIdByLegacyPath(legacyPath</span>
+                    .toString());
+<span class="fc" id="L247">            addedBlobs.add(blobId);</span>
+<span class="fc" id="L248">            return blobId;</span>
+        }
+    }
+
+    public String version() {
+<span class="fc" id="L253">        return db.version();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Area.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.local</a> &gt; <span class="el_source">Area.java</span></div><h1>Area.java</h1><pre class="source lang-java linenums">package doss.local;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Objects;
+
+public class Area implements AutoCloseable {
+
+    private final Database db;
+    private final String name;
+    private final List&lt;Filesystem&gt; filesystems;
+    private final String containerType;
+    private final Path root;
+<span class="fc" id="L15">    private long maxContainerSize = 10L * 1024 * 1024 * 1024;</span>
+    private Container currentContainer;
+
+<span class="fc" id="L18">    public Area(Database db, String name, List&lt;Filesystem&gt; filesystems, String containerType) throws IOException {</span>
+<span class="fc" id="L19">        this.db = db;</span>
+<span class="fc" id="L20">        this.name = name;</span>
+<span class="fc" id="L21">        this.filesystems = filesystems;</span>
+<span class="fc" id="L22">        this.containerType = containerType;</span>
+<span class="pc bpc" id="L23" title="1 of 2 branches missed.">        if (filesystems.size() != 1) {</span>
+<span class="nc" id="L24">            throw new IllegalArgumentException(name + &quot;: currently only a single fs per area is implemented&quot;);</span>
+        }
+<span class="pc bpc" id="L26" title="1 of 2 branches missed.">        if (!Objects.equals(containerType, &quot;directory&quot;)) {</span>
+<span class="nc" id="L27">            throw new IllegalArgumentException(name + &quot;: currently only directory container type is supported, not &quot; + containerType);</span>
+        }
+<span class="fc" id="L29">        root = filesystems.get(0).path();</span>
+<span class="fc" id="L30">        Long containerId = db.findAnOpenContainer(name);</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        if (containerId == null) {</span>
+<span class="fc" id="L32">            containerId = db.createContainer(name);</span>
+        }
+<span class="fc" id="L34">        currentContainer = new DirectoryContainer(containerId, root.resolve(containerId.toString()));</span>
+<span class="fc" id="L35">    }</span>
+
+    /**
+     * Sets at which the container will be sealed.
+     */
+    public void setMaxContainerSize(long size) {
+<span class="fc" id="L41">        this.maxContainerSize = size;</span>
+<span class="fc" id="L42">    }</span>
+
+    @Override
+    public void close() {
+<span class="fc" id="L46">        currentContainer.close();</span>
+<span class="fc" id="L47">    }</span>
+
+    /**
+     * The container new blobs should be packed into.
+     * 
+     * @throws IOException
+     */
+    public synchronized Container currentContainer() throws IOException {
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (currentContainer.size() &gt; maxContainerSize) {</span>
+<span class="fc" id="L56">            currentContainer.close();</span>
+<span class="fc" id="L57">            db.sealContainer(currentContainer.id());</span>
+<span class="fc" id="L58">            long containerId = db.createContainer(name);</span>
+<span class="fc" id="L59">            currentContainer = new DirectoryContainer(containerId, root.resolve(Long.toString(containerId)));</span>
+        }
+<span class="fc" id="L61">        return currentContainer;</span>
+    }
+
+    /**
+     * The container with the specified container id.
+     * 
+     * @throws IOException
+     */
+    public synchronized Container container(Long containerId) throws IOException {
+<span class="fc" id="L70">        return new DirectoryContainer(containerId, root.resolve(Long.toString(containerId)));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

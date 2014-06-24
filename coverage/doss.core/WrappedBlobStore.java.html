@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>WrappedBlobStore.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.core</a> &gt; <span class="el_source">WrappedBlobStore.java</span></div><h1>WrappedBlobStore.java</h1><pre class="source lang-java linenums">package doss.core;
+
+import java.io.IOException;
+import java.nio.file.Path;
+
+import doss.Blob;
+import doss.BlobStore;
+import doss.BlobTx;
+import doss.NoSuchBlobException;
+import doss.NoSuchBlobTxException;
+
+public abstract class WrappedBlobStore implements BlobStore {
+    private final BlobStore wrapped;
+
+<span class="fc" id="L15">    public WrappedBlobStore(BlobStore wrapped) {</span>
+<span class="fc" id="L16">        this.wrapped = wrapped;</span>
+<span class="fc" id="L17">    }</span>
+
+    @Override
+    public Blob get(long blobId) throws NoSuchBlobException, IOException {
+<span class="fc" id="L21">        return wrapped.get(blobId);</span>
+    }
+
+    @Override
+    public BlobTx begin() {
+<span class="fc" id="L26">        return wrapped.begin();</span>
+    }
+
+    @Override
+    public BlobTx resume(long txId) throws NoSuchBlobTxException {
+<span class="fc" id="L31">        return wrapped.resume(txId);</span>
+    }
+
+    @Override
+    public void close() {
+<span class="fc" id="L36">        wrapped.close();</span>
+<span class="fc" id="L37">    }</span>
+
+    @Override
+    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
+            IOException {
+<span class="fc" id="L42">        return wrapped.getLegacy(legacyPath);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

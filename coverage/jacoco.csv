@@ -1,34 +1,287 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-doss,doss,Main.Command,38,125,1,1,8,17,4,7,3,7
-doss,doss,CorruptBlobStoreException,12,0,0,0,2,0,1,0,1,0
-doss,doss,Main.Command.new Main.Command() {...},33,69,7,7,1,17,5,5,0,3
-doss,doss,Main.Command.new Main.Command() {...},33,92,7,5,1,14,5,4,0,3
-doss,doss,Main.Command.new Main.Command() {...},17,89,3,5,3,15,3,4,0,3
-doss,doss,Main.Command.new Main.Command() {...},30,154,7,13,3,23,7,5,0,2
-doss,doss,Main.Command.new Main.Command() {...},53,8,4,0,10,1,4,1,2,1
-doss,doss,Main.Command.new Main.Command() {...},16,54,2,2,2,9,2,2,0,2
-doss,doss,Main.NoSuchCommandException,11,0,0,0,2,0,1,0,1,0
-doss,doss,Main.Command.new Main.Command() {...},4,8,0,0,2,1,1,1,1,1
-doss,doss,BlobException,19,4,0,0,8,2,4,1,4,1
-doss,doss,Main.Arguments,0,31,0,0,0,7,0,5,0,5
+doss,doss.net,StatResponse,461,205,82,0,134,44,62,17,18,17
+doss,doss.net,DossService.Processor.beginTx,0,23,0,0,0,8,0,4,0,4
+doss,doss.net,DossService.digest_result._Fields,44,80,6,2,10,14,9,5,5,4
+doss,doss.net,DossService.verify_args.verify_argsStandardSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.read_result.read_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.statLegacy_args.statLegacy_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.beginPut_args.beginPut_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.read_result.read_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.Processor.rollbackTx,16,4,0,0,5,2,3,1,3,1
+doss,doss.net,DossService.beginTx_result.beginTx_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.commitTx_args.commitTx_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.AsyncClient.stat_call,62,0,2,0,14,0,4,0,3,0
+doss,doss.net,DossService.beginPut_result.beginPut_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.verify_result._Fields,124,0,8,0,24,0,14,0,9,0
+doss,doss.net,DossService.Processor.write,0,22,0,0,0,7,0,4,0,4
+doss,doss.net,RemoteIOException._Fields,124,0,8,0,24,0,14,0,9,0
+doss,doss.net,DossService.stat_result.stat_resultTupleScheme,110,0,18,0,32,0,12,0,3,0
+doss,doss.net,DossService.beginPut_args,250,101,34,0,75,23,35,7,18,7
+doss,doss.net,DossService.prepareTx_args.prepareTx_argsStandardScheme,9,55,2,4,3,21,2,4,0,3
+doss,doss.net,DossService.rollbackTx_args._Fields,96,0,6,0,20,0,12,0,9,0
+doss,doss.net,DossService.AsyncProcessor.statLegacy.new AsyncMethodCallback() {...},102,0,4,0,27,0,5,0,3,0
+doss,doss.net,DossService.beginPut_args.beginPut_argsTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,RemoteIOException,677,0,102,0,178,0,88,0,34,0
+doss,doss.net,DossService.Processor.verify,28,4,0,0,10,2,3,1,3,1
+doss,doss.net,DossService.statLegacy_result.statLegacy_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.digest_result.digest_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,RemoteIOException.RemoteIOExceptionStandardSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.finishPut_args.finishPut_argsTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.finishPut_result.finishPut_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.beginTx_args,130,61,10,0,40,15,19,5,14,5
+doss,doss.net,DossService.AsyncProcessor.digest,28,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.beginTx_args.beginTx_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.AsyncProcessor.stat,26,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.verify_args.verify_argsTupleSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.digest_args.digest_argsTupleScheme,71,0,12,0,22,0,9,0,3,0
+doss,doss.net,DossService.stat_args.stat_argsStandardScheme,9,55,2,4,3,21,2,4,0,3
+doss,doss.net,DossService.beginTx_result.beginTx_resultStandardScheme,9,58,3,5,3,22,3,4,0,3
+doss,doss.net,BlobStoreServer.Processor,5,9,0,0,3,3,0,2,0,2
+doss,doss.net,DossService.write_result,130,61,10,0,40,15,19,5,14,5
+doss,doss.net,DossService.AsyncClient.prepareTx_call,62,0,2,0,15,0,4,0,3,0
+doss,doss.net,DossService.commitTx_result.commitTx_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,RemoteIOException.RemoteIOExceptionTupleSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.finishPut_args.finishPut_argsStandardScheme,9,55,2,4,3,21,2,4,0,3
+doss,doss.net,DossService.digest_args,371,129,64,1,110,29,55,9,21,9
+doss,doss.net,Connection,181,181,10,6,36,38,11,14,3,14
+doss,doss.net,DossService.beginPut_args.beginPut_argsStandardScheme,9,55,2,4,3,21,2,4,0,3
+doss,doss.net,RemoteBlob,24,41,1,1,7,10,3,6,2,6
+doss,doss.net,DossService.AsyncProcessor.prepareTx.new AsyncMethodCallback() {...},73,0,0,0,18,0,3,0,3,0
+doss,doss.net,DossService.Processor.commitTx,0,20,0,0,0,7,0,4,0,4
+doss,doss.net,DossService.finishPut_args._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,DossService.stat_args.stat_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.AsyncProcessor.read.new AsyncMethodCallback() {...},102,0,4,0,27,0,5,0,3,0
+doss,doss.net,DossService.stat_result._Fields,44,80,6,2,10,14,9,5,5,4
+doss,doss.net,DossService.finishPut_args.finishPut_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,RemoteNoSuchBlobException.new Object() {...},12,0,0,0,1,0,1,0,1,0
+doss,doss.net,DossService.prepareTx_args.prepareTx_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.beginTx_result.beginTx_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.AsyncProcessor.finishPut,26,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.AsyncProcessor.stat.new AsyncMethodCallback() {...},102,0,4,0,27,0,5,0,3,0
+doss,doss.net,DossService.AsyncClient,261,0,0,0,62,0,13,0,13,0
+doss,doss.net,DossService.verify_result.verify_resultStandardSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.verify_args._Fields,96,0,6,0,20,0,12,0,9,0
+doss,doss.net,DossService.rollbackTx_args.rollbackTx_argsStandardSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.write_result.write_resultStandardScheme,10,28,1,1,3,13,1,3,0,3
+doss,doss.net,DossService.Processor.stat,9,23,0,0,4,8,0,4,0,4
+doss,doss.net,DossService.beginPut_args._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,DossService.statLegacy_result,513,137,103,3,154,26,84,7,28,7
+doss,doss.net,DossService.verify_args.verify_argsStandardScheme,64,0,6,0,24,0,6,0,3,0
+doss,doss.net,DossService.AsyncProcessor.commitTx.new AsyncMethodCallback() {...},73,0,0,0,18,0,3,0,3,0
+doss,doss.net,DossService.commitTx_result,130,61,10,0,40,15,19,5,14,5
+doss,doss.net,LoopbackBlobStore,9,50,0,0,1,14,1,3,1,3
+doss,doss.net,DossService.Processor.prepareTx,0,20,0,0,0,7,0,4,0,4
+doss,doss.net,DossService.Processor,6,99,0,0,2,16,1,3,1,3
+doss,doss.net,RemoteNoSuchBlobException.RemoteNoSuchBlobExceptionStandardScheme,80,0,8,0,26,0,7,0,3,0
+doss,doss.net,DossService.AsyncProcessor.write,28,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.statLegacy_result.statLegacy_resultStandardScheme,71,69,11,7,21,25,9,4,0,3
+doss,doss.net,DossService.read_result.read_resultTupleScheme,105,0,18,0,31,0,12,0,3,0
+doss,doss.net,DossService.commitTx_result.commitTx_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.statLegacy_args,247,89,41,1,75,21,39,7,18,7
+doss,doss.net,DossService.commitTx_args.commitTx_argsStandardScheme,9,55,2,4,3,21,2,4,0,3
+doss,doss.net,RemoteNoSuchBlobException,351,0,34,0,98,0,42,0,25,0
+doss,doss.net,DossService.finishPut_result.finishPut_resultStandardScheme,9,58,3,5,3,22,3,4,0,3
+doss,doss.net,DossService.write_result.write_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.finishPut_result.finishPut_resultTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.rollbackTx_args.rollbackTx_argsStandardScheme,64,0,6,0,24,0,6,0,3,0
+doss,doss.net,StatResponse.StatResponseTupleScheme,69,0,6,0,21,0,6,0,3,0
+doss,doss.net,DossService.digest_args._Fields,42,68,5,2,9,13,8,5,5,4
+doss,doss.net,DossService.beginTx_result.beginTx_resultTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.write_args.write_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.Processor.finishPut,0,25,0,0,0,8,0,4,0,4
+doss,doss.net,RemoteNoSuchBlobException._Fields,96,0,6,0,20,0,12,0,9,0
+doss,doss.net,DossService.verify_result.verify_resultTupleScheme,147,0,22,0,38,0,14,0,3,0
+doss,doss.net,DossService.Processor.read,9,27,0,0,4,8,0,4,0,4
+doss,doss.net,StatResponse.new Object() {...},26,0,0,0,1,0,1,0,1,0
+doss,doss.net,DossService.AsyncProcessor,105,0,0,0,18,0,4,0,4,0
+doss,doss.net,BlobStoreServer.ProcessorFactory,2,28,0,0,1,7,1,2,1,2
+doss,doss.net,DossService.write_args.write_argsStandardScheme,14,79,4,7,5,28,4,5,0,3
+doss,doss.net,DossService.beginPut_result._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,DossService.AsyncClient.digest_call,70,0,2,0,16,0,4,0,3,0
+doss,doss.net,DossService.digest_result.digest_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,StatResponse.StatResponseStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.read_args.read_argsStandardScheme,19,97,4,8,7,33,4,6,0,3
+doss,doss.net,DossService.Client,174,335,29,7,50,105,25,31,7,31
+doss,doss.net,BlobStoreServer,0,43,0,0,0,10,0,3,0,3
+doss,doss.net,DossService.read_result._Fields,44,80,6,2,10,14,9,5,5,4
+doss,doss.net,DossService.AsyncClient.write_call,70,0,2,0,17,0,4,0,3,0
+doss,doss.net,DossService.write_result._Fields,63,19,3,1,14,4,9,2,7,2
+doss,doss.net,StatResponse.StatResponseTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.stat_result.stat_resultStandardScheme,71,69,11,7,21,25,9,4,0,3
+doss,doss.net,DossService.AsyncClient.verify_call,62,0,2,0,14,0,4,0,3,0
+doss,doss.net,DossService.write_args.write_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.AsyncProcessor.commitTx,26,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.AsyncProcessor.beginTx,24,0,0,0,8,0,5,0,5,0
+doss,doss.net,RemoteChannel,31,69,3,1,10,17,6,6,4,6
+doss,doss.net,DossService.Processor.beginPut,0,25,0,0,0,8,0,4,0,4
+doss,doss.net,DossService.prepareTx_args.prepareTx_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.statLegacy_result.statLegacy_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.AsyncProcessor.rollbackTx.new AsyncMethodCallback() {...},73,0,0,0,18,0,3,0,3,0
+doss,doss.net,DossService,3,0,0,0,2,0,1,0,1,0
+doss,doss.net,DossService.statLegacy_result._Fields,44,80,6,2,10,14,9,5,5,4
+doss,doss.net,DossService.digest_result.digest_resultStandardScheme,71,64,11,7,21,24,9,4,0,3
+doss,doss.net,DossService.beginTx_args.beginTx_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.AsyncProcessor.digest.new AsyncMethodCallback() {...},102,0,4,0,27,0,5,0,3,0
+doss,doss.net,RemoteNoSuchBlobException.RemoteNoSuchBlobExceptionTupleScheme,22,0,0,0,8,0,3,0,3,0
+doss,doss.net,DossService.digest_args.digest_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.rollbackTx_result.rollbackTx_resultTupleScheme,11,0,0,0,5,0,3,0,3,0
+doss,doss.net,RemoteBlobStore,82,54,2,0,21,10,4,5,3,5
+doss,doss.net,DossService.rollbackTx_args,351,0,34,0,98,0,42,0,25,0
+doss,doss.net,DossService.beginTx_args.beginTx_argsStandardScheme,10,28,1,1,3,13,1,3,0,3
+doss,doss.net,Upload,21,43,0,0,7,13,1,4,1,4
+doss,doss.net,DossService.prepareTx_result.prepareTx_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.prepareTx_result,130,61,10,0,40,15,19,5,14,5
+doss,doss.net,DossService.AsyncProcessor.beginPut,26,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.commitTx_args.commitTx_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.rollbackTx_args.rollbackTx_argsTupleSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.AsyncProcessor.write.new AsyncMethodCallback() {...},73,0,0,0,18,0,3,0,3,0
+doss,doss.net,BlobStoreServer.new TServerEventHandler() {...},0,28,0,0,0,8,0,5,0,5
+doss,doss.net,DossService.AsyncClient.Factory,18,0,0,0,5,0,2,0,2,0
+doss,doss.net,DossService.beginTx_args._Fields,63,19,3,1,14,4,9,2,7,2
+doss,doss.net,RemoteIOException.RemoteIOExceptionTupleScheme,95,0,18,0,29,0,12,0,3,0
+doss,doss.net,DossService.finishPut_args,250,101,34,0,75,23,35,7,18,7
+doss,doss.net,DossService.finishPut_result,253,98,34,0,77,21,35,7,18,7
+doss,doss.net,DossService.stat_args.stat_argsTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,Upload.new Callable() {...},0,17,0,0,0,2,0,2,0,2
+doss,doss.net,RemoteNoSuchBlobException.RemoteNoSuchBlobExceptionTupleSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.read_args.read_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.write_result.write_resultTupleScheme,11,0,0,0,5,0,3,0,3,0
+doss,doss.net,DossService.rollbackTx_args.rollbackTx_argsTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.digest_result.digest_resultTupleScheme,105,0,18,0,31,0,12,0,3,0
+doss,doss.net,DossService.beginPut_result.beginPut_resultTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.stat_result.stat_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.rollbackTx_result.rollbackTx_resultStandardScheme,38,0,2,0,16,0,4,0,3,0
+doss,doss.net,DossService.AsyncProcessor.verify.new AsyncMethodCallback() {...},102,0,4,0,27,0,5,0,3,0
+doss,doss.net,DossService.AsyncProcessor.beginTx.new AsyncMethodCallback() {...},80,0,0,0,20,0,3,0,3,0
+doss,doss.net,DossService.digest_result,510,130,102,2,154,24,83,7,28,7
+doss,doss.net,DossService.stat_result,513,137,103,3,154,26,84,7,28,7
+doss,doss.net,DossService.verify_args,351,0,34,0,98,0,42,0,25,0
+doss,doss.net,DossService.Processor.statLegacy,9,23,0,0,4,8,0,4,0,4
+doss,doss.net,DossService.write_args.write_argsTupleScheme,71,0,12,0,22,0,9,0,3,0
+doss,doss.net,StatResponse._Fields,44,80,6,2,10,14,9,5,5,4
+doss,doss.net,DossService.stat_args.stat_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.AsyncProcessor.verify,26,0,0,0,8,0,5,0,5,0
+doss,doss.net,Upload.1.new Writable() {...},8,35,0,4,3,11,0,4,0,2
+doss,doss.net,DossService.write_args._Fields,42,68,5,2,9,13,8,5,5,4
+doss,doss.net,DossService.stat_result.stat_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.statLegacy_args.statLegacy_argsTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.beginTx_result,253,98,34,0,77,21,35,7,18,7
+doss,doss.net,DossService.commitTx_args.commitTx_argsTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.read_result,537,131,106,2,158,24,87,7,30,7
+doss,doss.net,DossService.commitTx_args._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,DossService.beginPut_result,253,98,34,0,77,21,35,7,18,7
+doss,doss.net,DossService.statLegacy_args.statLegacy_argsStandardScheme,9,58,3,5,3,22,3,4,0,3
+doss,doss.net,DossService.verify_result,681,0,110,0,185,0,96,0,38,0
+doss,doss.net,DossService.AsyncClient.finishPut_call,62,0,2,0,14,0,4,0,3,0
+doss,doss.net,DossService.rollbackTx_result.rollbackTx_resultStandardSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,RemoteBlobStore.RemoteBlobTx.new Transaction() {...},28,27,0,0,9,8,1,4,1,4
+doss,doss.net,DossService.finishPut_result._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,RemoteBlobStore.RemoteBlobTx.new WritableByteChannel() {...},9,28,0,0,4,6,2,2,2,2
+doss,doss.net,DossService.write_args,398,130,68,1,114,29,59,9,23,9
+doss,doss.net,DossService.beginTx_result._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,DossService.write_result.write_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.read_args.read_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.beginTx_args.beginTx_argsTupleScheme,11,0,0,0,5,0,3,0,3,0
+doss,doss.net,DossService.rollbackTx_result,191,0,10,0,55,0,24,0,19,0
+doss,doss.net,DossService.stat_args,250,101,34,0,75,23,35,7,18,7
+doss,doss.net,DossService.read_result.read_resultStandardScheme,71,64,11,7,21,24,9,4,0,3
+doss,doss.net,DossService.statLegacy_args.statLegacy_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.digest_args.digest_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,StatResponse.StatResponseStandardScheme,45,106,7,11,9,36,7,6,0,3
+doss,doss.net,DossService.statLegacy_result.statLegacy_resultTupleScheme,110,0,18,0,32,0,12,0,3,0
+doss,doss.net,DossService.read_args.read_argsTupleScheme,95,0,18,0,29,0,12,0,3,0
+doss,doss.net,DossService.beginPut_result.beginPut_resultStandardScheme,9,58,3,5,3,22,3,4,0,3
+doss,doss.net,DossService.AsyncProcessor.prepareTx,26,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.AsyncProcessor.read,30,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.verify_result.verify_resultStandardScheme,181,0,22,0,54,0,15,0,3,0
+doss,doss.net,DossService.read_args,477,173,80,0,141,37,67,11,24,11
+doss,doss.net,DossService.prepareTx_args.prepareTx_argsTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.AsyncClient.beginPut_call,62,0,2,0,14,0,4,0,3,0
+doss,doss.net,DossService.commitTx_result.commitTx_resultTupleScheme,11,0,0,0,5,0,3,0,3,0
+doss,doss.net,DossService.commitTx_result._Fields,63,19,3,1,14,4,9,2,7,2
+doss,doss.net,DossService.AsyncProcessor.beginPut.new AsyncMethodCallback() {...},80,0,0,0,20,0,3,0,3,0
+doss,doss.net,DossService.AsyncProcessor.statLegacy,26,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.prepareTx_args._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,DossService.Processor.digest,9,25,0,0,4,8,0,4,0,4
+doss,doss.net,DossService.AsyncClient.rollbackTx_call,62,0,2,0,15,0,4,0,3,0
+doss,doss.net,RemoteNoSuchBlobException.RemoteNoSuchBlobExceptionStandardSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,RemoteIOException.new Object() {...},26,0,0,0,1,0,1,0,1,0
+doss,doss.net,RemoteIOException.RemoteIOExceptionStandardScheme,131,0,22,0,45,0,15,0,3,0
+doss,doss.net,DossService.Client.Factory,14,0,0,0,3,0,3,0,3,0
+doss,doss.net,DossService.rollbackTx_result._Fields,82,0,4,0,18,0,11,0,9,0
+doss,doss.net,DossService.prepareTx_result._Fields,63,19,3,1,14,4,9,2,7,2
+doss,doss.net,DossService.prepareTx_args,250,101,34,0,75,23,35,7,18,7
+doss,doss.net,DossService.statLegacy_args._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,DossService.AsyncProcessor.rollbackTx,26,0,0,0,8,0,5,0,5,0
+doss,doss.net,DossService.finishPut_result.finishPut_resultStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.beginPut_result.beginPut_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.AsyncClient.statLegacy_call,62,0,2,0,14,0,4,0,3,0
+doss,doss.net,DossService.prepareTx_result.prepareTx_resultStandardScheme,10,28,1,1,3,13,1,3,0,3
+doss,doss.net,DossService.prepareTx_result.prepareTx_resultTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.AsyncClient.beginTx_call,54,0,2,0,12,0,4,0,3,0
+doss,doss.net,DossService.AsyncClient.read_call,78,0,2,0,18,0,4,0,3,0
+doss,doss.net,DossService.commitTx_args,250,101,34,0,75,23,35,7,18,7
+doss,doss.net,DossService.AsyncProcessor.finishPut.new AsyncMethodCallback() {...},80,0,0,0,20,0,3,0,3,0
+doss,doss.net,DossService.read_args._Fields,44,80,6,2,10,14,9,5,5,4
+doss,doss.net,DossService.beginPut_args.beginPut_argsTupleSchemeFactory,5,3,0,0,1,1,1,1,1,1
+doss,doss.net,DossService.AsyncClient.commitTx_call,62,0,2,0,15,0,4,0,3,0
+doss,doss.net,RemoteBlobStore.RemoteBlobTx,14,42,0,0,4,8,2,4,2,4
+doss,doss.net,DossService.commitTx_result.commitTx_resultStandardScheme,10,28,1,1,3,13,1,3,0,3
+doss,doss.net,DossService.prepareTx_result.prepareTx_resultTupleScheme,11,0,0,0,5,0,3,0,3,0
+doss,doss.net,DossService.verify_args.verify_argsTupleScheme,47,0,6,0,15,0,6,0,3,0
+doss,doss.net,DossService.verify_result.verify_resultTupleSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.finishPut_args.finishPut_argsStandardSchemeFactory,0,8,0,0,0,2,0,2,0,2
+doss,doss.net,DossService.stat_args._Fields,40,56,4,2,8,12,7,5,5,4
+doss,doss.net,DossService.new Object() {...},328,0,0,0,24,0,1,0,1,0
+doss,doss.net,DossService.rollbackTx_result.rollbackTx_resultTupleSchemeFactory,8,0,0,0,2,0,2,0,2,0
+doss,doss.net,DossService.digest_args.digest_argsStandardScheme,14,79,4,7,5,28,4,5,0,3
 doss,doss,NoSuchBlobTxException,23,5,0,0,10,2,5,1,5,1
-doss,doss,Main,34,100,4,4,10,16,5,3,1,3
+doss,doss,Main.Command.new Main.Command() {...},95,8,14,0,13,1,9,1,2,1
+doss,doss,Main.NoSuchCommandException,11,0,0,0,2,0,1,0,1,0
 doss,doss,NoSuchBlobException,19,5,0,0,8,2,4,1,4,1
 doss,doss,Main.CommandLineException,0,4,0,0,0,2,0,1,0,1
-doss,doss.local,Symlinker,18,48,1,1,5,15,1,4,0,4
-doss,doss.local,LocalBlobStore.Tx,0,86,0,0,0,15,0,6,0,6
-doss,doss.local,SubChannel,25,121,0,10,5,19,4,10,4,5
-doss,doss.local,Database,0,37,0,0,0,9,0,4,0,4
-doss,doss.local,LocalBlobStore.Tx.new Transaction() {...},0,57,0,2,0,11,0,6,0,5
-doss,doss.local,DirectoryContainer,36,120,6,2,2,19,4,7,0,7
-doss,doss.local,LocalBlobStore,60,145,7,7,6,31,6,10,1,8
-doss,doss.local,BlobLocation,0,15,0,0,0,6,0,3,0,3
+doss,doss,Main.Command,38,161,1,1,8,20,4,7,3,7
+doss,doss,Main,34,100,4,4,11,16,5,3,1,3
+doss,doss,DOSS,47,0,4,0,9,0,4,0,2,0
+doss,doss,Main.Command.new Main.Command() {...},30,154,7,13,3,23,7,5,0,2
+doss,doss,Main.Command.new Main.Command() {...},182,14,28,0,16,2,15,1,1,1
+doss,doss,Main.Command.new Main.Command() {...},33,69,7,7,1,17,5,5,0,3
+doss,doss,Main.Command.new Main.Command() {...},68,8,8,0,10,1,6,1,2,1
+doss,doss,Main.Command.new Main.Command() {...},33,92,7,5,1,14,5,4,0,3
+doss,doss,Main.Command.new Main.Command() {...},17,89,3,5,3,15,3,4,0,3
+doss,doss,Main.Command.new Main.Command() {...},53,8,4,0,10,1,4,1,2,1
+doss,doss,Main.Command.new Main.Command() {...},46,75,9,5,2,11,7,2,0,2
+doss,doss,Main.Command.new Main.Command() {...},4,8,0,0,2,1,1,1,1,1
+doss,doss,CorruptBlobStoreException,12,0,0,0,2,0,1,0,1,0
+doss,doss,BlobException,19,4,0,0,8,2,4,1,4,1
+doss,doss,Main.Arguments,14,31,0,0,1,7,1,5,1,5
+doss,doss.local,Symlinker,91,108,13,9,11,25,11,5,1,4
+doss,doss.local,DirectoryContainer.SizeCalculator,0,15,0,0,0,4,0,2,0,2
 doss,doss.local,Database.BlobLocationMapper,0,13,0,0,0,2,0,2,0,2
-doss,doss.local,FileBlob,0,40,0,0,0,9,0,6,0,6
+doss,doss.local,LocalBlobStore.Tx,12,119,1,1,3,23,2,7,1,7
+doss,doss.local,LocalBlobStore.Tx.new Transaction() {...},0,57,0,2,0,11,0,6,0,5
+doss,doss.local,DirectoryContainer,30,139,6,2,0,24,4,8,0,8
+doss,doss.local,LocalBlobStore,60,244,8,14,7,49,7,15,1,10
+doss,doss.local,Digests,3,31,0,0,1,8,1,2,1,2
+doss,doss.local,Database,56,107,2,2,10,23,3,9,2,8
+doss,doss.local,Filesystem,0,12,0,0,0,5,0,2,0,2
+doss,doss.local,FileBlob,90,57,12,2,8,12,8,7,1,7
+doss,doss.local,TempBlobStore.new SimpleFileVisitor() {...},0,22,0,0,0,5,0,3,0,3
+doss,doss.local,TempBlobStore.new Thread() {...},4,6,0,0,2,1,1,1,1,1
+doss,doss.local,TarBlob,84,36,10,0,9,8,9,4,4,4
+doss,doss.local,BlobLocation,0,15,0,0,0,6,0,3,0,3
+doss,doss.local,TarContainer,13,173,0,2,4,41,2,9,2,8
+doss,doss.local,TempBlobStore,10,56,1,1,4,16,2,4,1,4
+doss,doss.local,CachedMetadataBlob,89,52,5,1,16,15,5,6,2,6
+doss,doss.local,Config,234,0,22,0,37,0,16,0,5,0
+doss,doss.local,SubChannel,18,128,0,10,2,22,2,12,2,7
+doss,doss.local,Area,26,113,2,6,2,25,2,7,0,5
+doss,doss.local,TarContainerException,23,0,0,0,10,0,5,0,5,0
 doss,doss.core,ManagedTransaction,0,38,0,0,0,11,0,5,0,5
-doss,doss.core,Writables.new Writable() {...},34,33,6,2,1,5,5,2,1,2
-doss,doss.core,Writables.new Writable() {...},5,13,0,0,1,3,1,2,1,2
+doss,doss.core,Writables.new SizedWritable() {...},30,37,6,2,0,6,4,3,0,3
+doss,doss.core,Writables.new SizedWritable() {...},0,18,0,0,0,4,0,3,0,3
 doss,doss.core,ManagedTransaction.State.new ManagedTransaction.State() {...},9,22,0,0,3,7,2,5,2,5
 doss,doss.core,ManagedTransaction.State.new ManagedTransaction.State() {...},2,14,0,0,1,5,1,3,1,3
 doss,doss.core,ManagedTransaction.State,18,92,0,0,3,9,5,6,5,6
-doss,doss.core,Writables,3,16,0,0,1,3,1,3,1,3
+doss,doss.core,Writables,16,22,1,1,2,5,2,4,1,4
+doss,doss.core,WrappedBlobStore,0,29,0,0,0,9,0,6,0,6

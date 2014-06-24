@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>TarContainer.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.local</a> &gt; <span class="el_source">TarContainer.java</span></div><h1>TarContainer.java</h1><pre class="source lang-java linenums">package doss.local;
+
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+
+import doss.Blob;
+import doss.SizedWritable;
+import doss.Writable;
+import doss.core.Writables;
+
+public class TarContainer implements Container {
+
+    final private Path path;
+    final private long id;
+    final private SeekableByteChannel channel;
+<span class="fc" id="L26">    final private ByteBuffer headerBuffer = ByteBuffer</span>
+            .allocate(TAR_ENTRY_HEADER_LENGTH);
+    private static final int TAR_ENTRY_HEADER_LENGTH = 512;
+<span class="fc" id="L29">    private static final byte[] FOOTER_BYTES = new byte[2 * TAR_ENTRY_HEADER_LENGTH];</span>
+
+<span class="fc" id="L31">    TarContainer(long id, Path path) throws IOException, ArchiveException {</span>
+<span class="fc" id="L32">        this.path = path;</span>
+<span class="fc" id="L33">        this.id = id;</span>
+<span class="fc" id="L34">        channel = Files.newByteChannel(path, READ, WRITE, CREATE);</span>
+<span class="fc" id="L35">    }</span>
+
+    @Override
+    public synchronized void close() {
+        try {
+<span class="fc" id="L40">            channel.close();</span>
+<span class="nc" id="L41">        } catch (IOException e) {</span>
+<span class="nc" id="L42">            throw new RuntimeException(e);</span>
+<span class="fc" id="L43">        }</span>
+<span class="fc" id="L44">    }</span>
+
+    @Override
+    public synchronized Blob get(long offset) throws IOException {
+<span class="fc" id="L48">        TarBlob tarBlob = null;</span>
+
+<span class="fc" id="L50">        channel.position(offset);</span>
+<span class="fc" id="L51">        headerBuffer.clear();</span>
+<span class="fc" id="L52">        channel.read(headerBuffer);</span>
+<span class="fc" id="L53">        headerBuffer.flip();</span>
+<span class="fc" id="L54">        TarArchiveEntry entry = new TarArchiveEntry(headerBuffer.array());</span>
+<span class="fc" id="L55">        tarBlob = new TarBlob(path, offset + 512, entry);</span>
+
+<span class="fc" id="L57">        return tarBlob;</span>
+    }
+
+    @Override
+    public synchronized long put(long id, Writable data) throws IOException {
+<span class="fc" id="L62">        SizedWritable output = Writables.toSized(data);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (channel.size() &gt; 1024) {</span>
+<span class="fc" id="L64">            channel.position(channel.size() - 1024);</span>
+        }
+
+<span class="fc" id="L67">        long offset = channel.position();</span>
+<span class="fc" id="L68">        writeRecordHeader(id, output);</span>
+<span class="fc" id="L69">        output.writeTo(channel);</span>
+<span class="fc" id="L70">        writeRecordPadding();</span>
+<span class="fc" id="L71">        writeArchiveFooter();</span>
+<span class="fc" id="L72">        return offset;</span>
+
+    }
+
+    private void writeRecordPadding() throws IOException {
+<span class="fc" id="L77">        int padding = (int) (512L - channel.position() % 512L);</span>
+<span class="fc" id="L78">        channel.write(ByteBuffer.allocate(padding));</span>
+<span class="fc" id="L79">    }</span>
+
+    /**
+     * Write the 1024 zero byte end of archive marker.
+     */
+    private void writeArchiveFooter() throws IOException {
+<span class="fc" id="L85">        ByteBuffer endByteByffer = ByteBuffer.wrap(FOOTER_BYTES);</span>
+<span class="fc" id="L86">        endByteByffer.flip();</span>
+<span class="fc" id="L87">        endByteByffer.rewind();</span>
+<span class="fc" id="L88">        channel.write(endByteByffer);</span>
+<span class="fc" id="L89">    }</span>
+
+    private void writeRecordHeader(long id, SizedWritable output)
+            throws IOException {
+<span class="fc" id="L93">        TarArchiveEntry entry = new TarArchiveEntry(String.valueOf(id));</span>
+<span class="fc" id="L94">        entry.setSize(output.size());</span>
+<span class="fc" id="L95">        headerBuffer.clear();</span>
+<span class="fc" id="L96">        entry.writeEntryHeader(headerBuffer.array());</span>
+<span class="fc" id="L97">        channel.write(headerBuffer);</span>
+<span class="fc" id="L98">    }</span>
+
+    @Override
+    public long id() {
+<span class="nc" id="L102">        return id;</span>
+    }
+
+    @Override
+    public long size() throws IOException {
+<span class="nc" id="L107">        return channel.size();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

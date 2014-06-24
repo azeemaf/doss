@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Connection.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.net</a> &gt; <span class="el_source">Connection.java</span></div><h1>Connection.java</h1><pre class="source lang-java linenums">package doss.net;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.thrift.TException;
+import org.apache.thrift.server.ServerContext;
+
+import doss.Blob;
+import doss.BlobStore;
+import doss.BlobTx;
+import doss.NoSuchBlobException;
+import doss.NoSuchBlobTxException;
+
+/**
+ * Server's view of a DOSS connection.
+ */
+class Connection implements DossService.Iface, ServerContext {
+
+    private final BlobStore blobStore;
+<span class="fc" id="L27">    private final Map&lt;Long, Upload&gt; uploads = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L28">    private long nextUploadId = 0;</span>
+
+<span class="fc" id="L30">    Connection(BlobStore blobStore) {</span>
+<span class="fc" id="L31">        this.blobStore = blobStore;</span>
+<span class="fc" id="L32">    }</span>
+
+    @Override
+    public StatResponse stat(long blobId) throws TException {
+        try {
+<span class="fc" id="L37">            return statResponse(blobStore.get(blobId));</span>
+<span class="nc" id="L38">        } catch (NoSuchBlobException e) {</span>
+<span class="nc" id="L39">            throw new RemoteNoSuchBlobException().setBlobId(blobId);</span>
+<span class="nc" id="L40">        } catch (IOException e) {</span>
+<span class="nc" id="L41">            throw buildIOException(blobId, e);</span>
+        }
+    }
+
+    private StatResponse statResponse(Blob blob)
+            throws IOException {
+<span class="fc" id="L47">        return new StatResponse()</span>
+                .setBlobId(blob.id())
+                .setCreatedMillis(blob.created().toMillis())
+                .setSize(blob.size());
+    }
+
+    @Override
+    public StatResponse statLegacy(String legacyPath)
+            throws RemoteNoSuchBlobException, RemoteIOException, TException {
+        try {
+<span class="fc" id="L57">            return statResponse(blobStore.getLegacy(Paths.get(legacyPath)));</span>
+<span class="nc" id="L58">        } catch (NoSuchBlobException e) {</span>
+<span class="nc" id="L59">            throw new RemoteNoSuchBlobException();</span>
+<span class="nc" id="L60">        } catch (IOException e) {</span>
+<span class="nc" id="L61">            throw buildIOException(-1, e);</span>
+        }
+    }
+
+    @Override
+    public ByteBuffer read(long blobId, long offset, int length)
+            throws TException {
+        try {
+<span class="fc" id="L69">            ByteBuffer b = ByteBuffer.allocate(length);</span>
+<span class="fc" id="L70">            Blob blob = blobStore.get(blobId);</span>
+<span class="pc bpc" id="L71" title="2 of 4 branches missed.">            if (offset &gt; blob.size() || offset &lt; 0) {</span>
+<span class="nc" id="L72">                throw new IOException(&quot;out of bounds read &quot; + offset + &quot; &gt; &quot;</span>
+                        + blob.size());
+            }
+<span class="pc" id="L75">            try (SeekableByteChannel channel = blob.openChannel()) {</span>
+<span class="fc" id="L76">                channel.position(offset);</span>
+<span class="fc" id="L77">                channel.read(b);</span>
+<span class="pc bpc" id="L78" title="6 of 8 branches missed.">            }</span>
+<span class="fc" id="L79">            b.flip();</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">            if (b.remaining() &lt; length) {</span>
+<span class="nc" id="L81">                throw new IOException(&quot;read requested &quot; + length</span>
+                        + &quot; bytes but only received &quot; + b.remaining());
+            }
+<span class="fc" id="L84">            return b;</span>
+<span class="nc" id="L85">        } catch (NoSuchBlobException e) {</span>
+<span class="nc" id="L86">            throw new RemoteNoSuchBlobException().setBlobId(blobId);</span>
+<span class="nc" id="L87">        } catch (IOException e) {</span>
+<span class="nc" id="L88">            throw buildIOException(blobId, e);</span>
+        }
+    }
+
+    @Override
+    public long beginTx() throws TException {
+<span class="fc" id="L94">        return blobStore.begin().id();</span>
+    }
+
+    private RemoteIOException buildIOException(long blobId, Exception e) {
+<span class="nc" id="L98">        return new RemoteIOException()</span>
+                .setBlobId(blobId)
+                .setType(e.getClass().getName())
+                .setMesssage(e.getMessage());
+    }
+
+    @Override
+    public void commitTx(long txId) throws TException {
+        try {
+<span class="fc" id="L107">            blobStore.resume(txId).commit();</span>
+<span class="nc" id="L108">        } catch (NoSuchBlobTxException | IOException e) {</span>
+<span class="nc" id="L109">            throw new RuntimeException(e);</span>
+<span class="fc" id="L110">        }</span>
+<span class="fc" id="L111">    }</span>
+
+    @Override
+    public void rollbackTx(long txId) throws TException {
+        try {
+<span class="nc" id="L116">            abortUploads();</span>
+<span class="nc" id="L117">            blobStore.resume(txId).rollback();</span>
+<span class="nc" id="L118">        } catch (NoSuchBlobTxException | IOException e) {</span>
+<span class="nc" id="L119">            throw new RuntimeException(e);</span>
+<span class="nc" id="L120">        }</span>
+<span class="nc" id="L121">    }</span>
+
+    @Override
+    public void prepareTx(long txId) throws TException {
+        try {
+<span class="fc" id="L126">            blobStore.resume(txId).prepare();</span>
+<span class="nc" id="L127">        } catch (NoSuchBlobTxException | IOException e) {</span>
+<span class="nc" id="L128">            throw new RuntimeException(e);</span>
+<span class="fc" id="L129">        }</span>
+<span class="fc" id="L130">    }</span>
+
+    /**
+     * Called when the client disconnects, cleanup any state.
+     */
+    public void disconnect() {
+<span class="fc" id="L136">        System.out.println(&quot;Disconnected &quot; + this);</span>
+<span class="fc" id="L137">        abortUploads();</span>
+<span class="fc" id="L138">    }</span>
+
+    private void abortUploads() {
+        // cleanup any unfinished uploads
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">        for (Upload upload : uploads.values()) {</span>
+<span class="nc" id="L143">            upload.finish();</span>
+<span class="nc" id="L144">        }</span>
+<span class="fc" id="L145">    }</span>
+
+    @Override
+    public long beginPut(long txId) throws TException {
+<span class="fc" id="L149">        BlobTx tx = blobStore.resume(txId);</span>
+<span class="fc" id="L150">        long id = nextUploadId++;</span>
+<span class="fc" id="L151">        uploads.put(id, new Upload(tx));</span>
+<span class="fc" id="L152">        return id;</span>
+    }
+
+    @Override
+    public void write(long handle, ByteBuffer data) throws TException {
+<span class="fc" id="L157">        uploads.get(handle).write(data);</span>
+<span class="fc" id="L158">    }</span>
+
+    @Override
+    public long finishPut(long handle) throws TException {
+<span class="fc" id="L162">        return uploads.remove(handle).finish();</span>
+    }
+
+    @Override
+    public String digest(long blobId, String algorithm) throws RemoteNoSuchBlobException, RemoteIOException, TException {
+        try {
+<span class="fc" id="L168">            return blobStore.get(blobId).digest(algorithm);</span>
+<span class="nc" id="L169">        } catch (NoSuchBlobException e) {</span>
+<span class="nc" id="L170">            throw new RemoteNoSuchBlobException().setBlobId(blobId);</span>
+<span class="nc" id="L171">        } catch (IOException | NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L172">            throw buildIOException(blobId, e);</span>
+        }
+    }
+
+    @Override
+    public List&lt;String&gt; verify(long blobId) throws RemoteNoSuchBlobException, RemoteIOException, TException {
+        try {
+<span class="nc" id="L179">            return blobStore.get(blobId).verify();</span>
+<span class="nc" id="L180">        } catch (NoSuchBlobException e) {</span>
+<span class="nc" id="L181">            throw new RemoteNoSuchBlobException().setBlobId(blobId);</span>
+<span class="nc" id="L182">        } catch (IOException e) {</span>
+<span class="nc" id="L183">            throw buildIOException(blobId, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

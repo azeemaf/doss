@@ -9,44 +9,57 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
+import doss.SizedWritable;
 import doss.Writable;
 
 /**
  * Utility methods for constructing Writables from various objects.
  */
-<span class="nc" id="L17">public class Writables {</span>
-    
+<span class="nc" id="L18">public class Writables {</span>
+
     public static Writable wrap(final Path path) {
-<span class="fc" id="L20">        return new Writable() {</span>
+<span class="fc" id="L21">        return new SizedWritable() {</span>
+            @Override
             public void writeTo(WritableByteChannel targetChannel)
                     throws IOException {
-<span class="pc" id="L23">                try (FileChannel sourceChannel = (FileChannel) Files</span>
+<span class="pc" id="L25">                try (FileChannel sourceChannel = (FileChannel) Files</span>
                         .newByteChannel(path, StandardOpenOption.READ)) {
-<span class="fc" id="L25">                    sourceChannel.transferTo(0, Long.MAX_VALUE, targetChannel);</span>
-<span class="pc bpc" id="L26" title="6 of 8 branches missed.">                }</span>
-<span class="fc" id="L27">            }</span>
+<span class="fc" id="L27">                    sourceChannel.transferTo(0, Long.MAX_VALUE, targetChannel);</span>
+<span class="pc bpc" id="L28" title="6 of 8 branches missed.">                }</span>
+<span class="fc" id="L29">            }</span>
 
+            @Override
             public long size() throws IOException {
-<span class="nc" id="L30">                return Files.size(path);</span>
+<span class="fc" id="L33">                return Files.size(path);</span>
             }
         };
     }
-    
-    public static Writable wrap(final byte[] bytes) {
-<span class="fc" id="L36">        return new Writable() {</span>
-            public void writeTo(WritableByteChannel channel) throws IOException {
-<span class="fc" id="L38">                channel.write(ByteBuffer.wrap(bytes));</span>
-<span class="fc" id="L39">            }</span>
 
+    public static Writable wrap(final byte[] bytes) {
+<span class="fc" id="L39">        return new SizedWritable() {</span>
+            @Override
+            public void writeTo(WritableByteChannel channel) throws IOException {
+<span class="fc" id="L42">                channel.write(ByteBuffer.wrap(bytes));</span>
+<span class="fc" id="L43">            }</span>
+
+            @Override
             public long size() {
-<span class="nc" id="L42">                return bytes.length;</span>
+<span class="fc" id="L47">                return bytes.length;</span>
             }
         };
     }
-    
+
     public static Writable wrap(String string) {
-<span class="fc" id="L48">        return wrap(string.getBytes(Charset.forName(&quot;UTF-8&quot;)));</span>
+<span class="fc" id="L53">        return wrap(string.getBytes(Charset.forName(&quot;UTF-8&quot;)));</span>
     }
-    
+
+    public static SizedWritable toSized(Writable writable) {
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        if (writable instanceof SizedWritable) {</span>
+<span class="fc" id="L58">            return (SizedWritable) writable;</span>
+        }
+<span class="nc" id="L60">        throw new IllegalArgumentException(&quot;toSized not yet impemented for &quot;</span>
+                + writable.getClass());
+    }
+
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

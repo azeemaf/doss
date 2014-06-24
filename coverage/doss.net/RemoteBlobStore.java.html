@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>RemoteBlobStore.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.net</a> &gt; <span class="el_source">RemoteBlobStore.java</span></div><h1>RemoteBlobStore.java</h1><pre class="source lang-java linenums">package doss.net;
+
+import java.io.IOException;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
+import java.nio.file.Path;
+
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
+
+import doss.Blob;
+import doss.BlobStore;
+import doss.BlobTx;
+import doss.NoSuchBlobException;
+import doss.NoSuchBlobTxException;
+import doss.Writable;
+import doss.core.ManagedTransaction;
+import doss.core.Transaction;
+import doss.core.Writables;
+
+public class RemoteBlobStore implements BlobStore {
+    private final DossService.Client client;
+    private final TTransport transport;
+
+    RemoteBlobStore(Socket socket) throws IOException,
+<span class="fc" id="L31">            TTransportException {</span>
+<span class="fc" id="L32">        transport = new TSocket(socket);</span>
+<span class="fc" id="L33">        TProtocol protocol = new TBinaryProtocol(transport);</span>
+<span class="fc" id="L34">        client = new DossService.Client(protocol);</span>
+<span class="fc" id="L35">    }</span>
+
+    public static RemoteBlobStore open(Socket socket) throws IOException {
+        try {
+<span class="nc" id="L39">            return new RemoteBlobStore(socket);</span>
+<span class="nc" id="L40">        } catch (TTransportException e) {</span>
+<span class="nc" id="L41">            throw new IOException(e);</span>
+        }
+    }
+
+    @Override
+    public synchronized Blob get(long blobId) throws NoSuchBlobException,
+            IOException {
+        try {
+<span class="fc" id="L49">            return new RemoteBlob(client, client.stat(blobId));</span>
+<span class="nc" id="L50">        } catch (RemoteNoSuchBlobException e) {</span>
+<span class="nc" id="L51">            throw new NoSuchBlobException(e.getBlobId());</span>
+<span class="nc" id="L52">        } catch (TException e) {</span>
+<span class="nc" id="L53">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    @Override
+    public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
+            IOException {
+        try {
+<span class="fc" id="L61">            return new RemoteBlob(client, client.statLegacy(legacyPath</span>
+                    .toString()));
+<span class="nc" id="L63">        } catch (RemoteNoSuchBlobException e) {</span>
+<span class="nc" id="L64">            throw new NoSuchBlobException(e.getBlobId());</span>
+<span class="nc" id="L65">        } catch (TException e) {</span>
+<span class="nc" id="L66">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    @Override
+    public BlobTx begin() {
+        try {
+<span class="fc" id="L73">            return new RemoteBlobTx(client.beginTx());</span>
+<span class="nc" id="L74">        } catch (TException e) {</span>
+<span class="nc" id="L75">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    @Override
+    public BlobTx resume(long txId) throws NoSuchBlobTxException {
+        // TODO: check if tx exists first?
+<span class="nc" id="L82">        return new RemoteBlobTx(txId);</span>
+    }
+
+    @Override
+    public void close() {
+<span class="fc" id="L87">        transport.close();</span>
+<span class="fc" id="L88">    }</span>
+
+    public static int transfer(ByteBuffer src, ByteBuffer dest) {
+<span class="nc" id="L91">        int n = Math.min(dest.remaining(), src.remaining());</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (n &gt; 0) {</span>
+<span class="nc" id="L93">            ByteBuffer tmp = src.duplicate();</span>
+<span class="nc" id="L94">            tmp.limit(src.position() + n);</span>
+<span class="nc" id="L95">            dest.put(tmp);</span>
+<span class="nc" id="L96">            src.position(src.position() + n);</span>
+        }
+<span class="nc" id="L98">        return n;</span>
+    }
+
+    private class RemoteBlobTx extends ManagedTransaction implements BlobTx {
+        private final long id;
+
+<span class="fc" id="L104">        RemoteBlobTx(long id) {</span>
+<span class="fc" id="L105">            this.id = id;</span>
+<span class="fc" id="L106">        }</span>
+
+        @Override
+        public long id() {
+<span class="nc" id="L110">            return id;</span>
+        }
+
+        @Override
+        public Blob put(Writable output) throws IOException {
+            try {
+<span class="fc" id="L116">                final long putHandle = client.beginPut(id);</span>
+<span class="fc" id="L117">                output.writeTo(new WritableByteChannel() {</span>
+
+                    @Override
+                    public boolean isOpen() {
+<span class="nc" id="L121">                        return true;</span>
+                    }
+
+                    @Override
+                    public void close() throws IOException {
+<span class="nc" id="L126">                    }</span>
+
+                    @Override
+                    public int write(ByteBuffer b) throws IOException {
+<span class="fc" id="L130">                        int nbytes = b.remaining();</span>
+                        try {
+<span class="fc" id="L132">                            client.write(putHandle, b);</span>
+<span class="fc" id="L133">                            b.position(b.limit());</span>
+<span class="nc" id="L134">                        } catch (TException e) {</span>
+<span class="nc" id="L135">                            throw new RuntimeException(e);</span>
+<span class="fc" id="L136">                        }</span>
+<span class="fc" id="L137">                        return nbytes;</span>
+                    }
+                });
+<span class="fc" id="L140">                return get(client.finishPut(putHandle));</span>
+<span class="nc" id="L141">            } catch (TException e) {</span>
+<span class="nc" id="L142">                throw new RuntimeException(e);</span>
+            }
+        }
+
+        @Override
+        public Blob put(Path source) throws IOException {
+<span class="nc" id="L148">            return put(Writables.wrap(source));</span>
+        }
+
+        @Override
+        public Blob put(byte[] bytes) throws IOException {
+<span class="fc" id="L153">            return put(Writables.wrap(bytes));</span>
+        }
+
+        @Override
+        protected Transaction getCallbacks() {
+<span class="fc" id="L158">            return new Transaction() {</span>
+
+                @Override
+                public void rollback() throws IOException {
+                    try {
+<span class="nc" id="L163">                        client.rollbackTx(id);</span>
+<span class="nc" id="L164">                    } catch (TException e) {</span>
+<span class="nc" id="L165">                        throw new RuntimeException(e);</span>
+<span class="nc" id="L166">                    }</span>
+<span class="nc" id="L167">                }</span>
+
+                @Override
+                public void prepare() throws IOException {
+                    try {
+<span class="fc" id="L172">                        client.prepareTx(id);</span>
+<span class="nc" id="L173">                    } catch (TException e) {</span>
+<span class="nc" id="L174">                        throw new RuntimeException(e);</span>
+<span class="fc" id="L175">                    }</span>
+<span class="fc" id="L176">                }</span>
+
+                @Override
+                public void commit() throws IOException {
+                    try {
+<span class="fc" id="L181">                        client.commitTx(id);</span>
+<span class="nc" id="L182">                    } catch (TException e) {</span>
+<span class="nc" id="L183">                        throw new RuntimeException(e);</span>
+<span class="fc" id="L184">                    }</span>
+<span class="fc" id="L185">                }</span>
+
+                @Override
+                public void close() throws IOException {
+<span class="fc" id="L189">                }</span>
+            };
+        }
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

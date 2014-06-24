@@ -8,6 +8,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 import doss.Blob;
 
@@ -18,36 +21,56 @@ class FileBlob implements Blob {
 
     private final Path path;
     private final long id;
-    
-<span class="fc" id="L22">    FileBlob(long id, Path path) {</span>
-<span class="fc" id="L23">        this.id = id;</span>
-<span class="fc" id="L24">        this.path = path;</span>
-<span class="fc" id="L25">    }</span>
+
+<span class="fc" id="L25">    FileBlob(long id, Path path) {</span>
+<span class="fc" id="L26">        this.id = id;</span>
+<span class="fc" id="L27">        this.path = path;</span>
+<span class="fc" id="L28">    }</span>
 
     @Override
     public long id() {
-<span class="fc" id="L29">        return id;</span>
+<span class="fc" id="L32">        return id;</span>
     }
-      
+
     @Override
     public InputStream openStream() throws IOException {
-<span class="fc" id="L34">        return Files.newInputStream(path);</span>
+<span class="fc" id="L37">        return Files.newInputStream(path);</span>
     }
 
     @Override
     public SeekableByteChannel openChannel() throws IOException {
-<span class="fc" id="L39">        return Files.newByteChannel(path, StandardOpenOption.READ);</span>
+<span class="fc" id="L42">        return Files.newByteChannel(path, StandardOpenOption.READ);</span>
     }
 
     @Override
     public long size() throws IOException {
-<span class="fc" id="L44">        return Files.size(path);</span>
+<span class="fc" id="L47">        return Files.size(path);</span>
     }
 
     @Override
     public FileTime created() throws IOException {
-<span class="fc" id="L49">        return Files.readAttributes(path, BasicFileAttributes.class).creationTime();</span>
+<span class="fc" id="L52">        return Files.readAttributes(path, BasicFileAttributes.class)</span>
+                .creationTime();
     }
 
+    @Override
+    public String digest(String algorithm) throws NoSuchAlgorithmException, IOException {
+<span class="pc" id="L58">        try (SeekableByteChannel channel = openChannel()) {</span>
+<span class="fc" id="L59">            return Digests.calculate(algorithm, channel);</span>
+<span class="pc bpc" id="L60" title="6 of 8 branches missed.">        }</span>
+    }
+
+    @Override
+    public List&lt;String&gt; verify() throws IOException {
+<span class="nc" id="L65">        List&lt;String&gt; errors = new ArrayList&lt;String&gt;();</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (!Files.exists(path)) {</span>
+<span class="nc" id="L67">            errors.add(&quot;missing from filesystem: &quot; + path);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        } else if (!Files.isRegularFile(path)) {</span>
+<span class="nc" id="L69">            errors.add(&quot;not a regular file: &quot; + path);</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        } else if (!Files.isReadable(path)) {</span>
+<span class="nc" id="L71">            errors.add(&quot;not readable: &quot; + path);</span>
+        }
+<span class="nc" id="L73">        return errors;</span>
+    }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>Config.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.local</a> &gt; <span class="el_source">Config.java</span></div><h1>Config.java</h1><pre class="source lang-java linenums">package doss.local;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
+
+import org.ini4j.Ini;
+import org.ini4j.Profile.Section;
+
+<span class="nc" id="L14">public class Config {</span>
+    public static void main(String args[]) throws Exception {
+<span class="nc" id="L16">        Ini ini = new Ini();</span>
+<span class="nc" id="L17">        ini.load(new StringReader(</span>
+                &quot;[area.staging]\nfs=staging\n[fs.staging]\npath = /staging&quot;));
+
+<span class="nc" id="L20">        List&lt;Area&gt; areas = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L21" title="All 2 branches missed.">        for (String section : ini.keySet()) {</span>
+<span class="nc bnc" id="L22" title="All 2 branches missed.">            if (section.startsWith(&quot;area.&quot;)) {</span>
+<span class="nc" id="L23">                areas.add(parseArea(ini, section));</span>
+            }
+<span class="nc" id="L25">        }</span>
+
+<span class="nc bnc" id="L27" title="All 2 branches missed.">        if (areas.isEmpty()) {</span>
+<span class="nc" id="L28">            barf(&quot;at least one storage area must be configured&quot;);</span>
+        }
+<span class="nc" id="L30">    }</span>
+
+    private static Area parseArea(Ini ini, String name) throws IOException {
+<span class="nc" id="L33">        Section section = ini.get(name);</span>
+<span class="nc" id="L34">        String container = &quot;directory&quot;;</span>
+<span class="nc" id="L35">        List&lt;Filesystem&gt; filesystems = new ArrayList&lt;Filesystem&gt;();</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        for (Entry&lt;String, String&gt; entry : section.entrySet()) {</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">            if (entry.getKey().equals(&quot;fs&quot;)) {</span>
+<span class="nc bnc" id="L38" title="All 2 branches missed.">                for (String shortName : entry.getValue().split(&quot;,\\s*&quot;)) {</span>
+<span class="nc" id="L39">                    String fsName = &quot;fs.&quot; + shortName;</span>
+<span class="nc" id="L40">                    Section fsSection = ini.get(fsName);</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">                    if (fsSection == null) {</span>
+<span class="nc" id="L42">                        barf(&quot;missing &quot; + fsName + &quot; referred to by &quot; + name</span>
+                                + &quot;/fs&quot;);
+                    }
+<span class="nc" id="L45">                    filesystems.add(parseFilesystem(ini, fsSection));</span>
+                }
+<span class="nc bnc" id="L47" title="All 2 branches missed.">            } else if (entry.getKey().equals(&quot;container&quot;)) {</span>
+<span class="nc" id="L48">                container = entry.getValue();</span>
+            } else {
+<span class="nc" id="L50">                barf(&quot;unknown option: &quot; + name + &quot;/&quot; + entry.getKey());</span>
+            }
+<span class="nc" id="L52">        }</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (filesystems.isEmpty()) {</span>
+<span class="nc" id="L54">            barf(name + &quot; needs at least one fs defined&quot;);</span>
+        }
+<span class="nc" id="L56">        return new Area(Database.open(), name, filesystems, container);</span>
+    }
+
+    private static Filesystem parseFilesystem(Ini ini, Section section) {
+<span class="nc" id="L60">        Path path = null;</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        for (Entry&lt;String, String&gt; entry : section.entrySet()) {</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            if (entry.getKey().equals(&quot;path&quot;)) {</span>
+<span class="nc" id="L63">                path = Paths.get(entry.getValue());</span>
+            } else {
+<span class="nc" id="L65">                barf(&quot;unknown option: &quot; + section.getName() + &quot;/&quot;</span>
+                        + entry.getKey());
+            }
+<span class="nc" id="L68">        }</span>
+<span class="nc" id="L69">        return new Filesystem(section.getName(), path);</span>
+    }
+
+    private static void barf(String message) {
+<span class="nc" id="L73">        throw new IllegalArgumentException(message);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>

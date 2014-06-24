@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../resources/report.css" type="text/css"/><link rel="shortcut icon" href="../resources/report.gif" type="image/gif"/><title>RemoteBlob.java</title><link rel="stylesheet" href="../resources/prettify.css" type="text/css"/><script type="text/javascript" src="../resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="right"><a href="../sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">doss</a> &gt; <a href="index.html" class="el_package">doss.net</a> &gt; <span class="el_source">RemoteBlob.java</span></div><h1>RemoteBlob.java</h1><pre class="source lang-java linenums">package doss.net;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.channels.Channels;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
+
+import org.apache.thrift.TException;
+
+import doss.Blob;
+
+class RemoteBlob implements Blob {
+    private final DossService.Client client;
+    private final StatResponse stat;
+
+<span class="fc" id="L19">    RemoteBlob(DossService.Client client, StatResponse stat) {</span>
+<span class="fc" id="L20">        this.client = client;</span>
+<span class="fc" id="L21">        this.stat = stat;</span>
+<span class="fc" id="L22">    }</span>
+
+    @Override
+    public long size() throws IOException {
+<span class="fc" id="L26">        return stat.getSize();</span>
+    }
+
+    @Override
+    public long id() {
+<span class="fc" id="L31">        return stat.getBlobId();</span>
+    }
+
+    @Override
+    public InputStream openStream() throws IOException {
+<span class="nc" id="L36">        return Channels.newInputStream(openChannel());</span>
+    }
+
+    @Override
+    public SeekableByteChannel openChannel() throws IOException {
+<span class="fc" id="L41">        return new RemoteChannel(client, stat);</span>
+    }
+
+    @Override
+    public FileTime created() throws IOException {
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">        if (stat.isSetCreatedMillis()) {</span>
+<span class="fc" id="L47">            return FileTime.fromMillis(stat.getCreatedMillis());</span>
+        } else {
+<span class="nc" id="L49">            return null;</span>
+        }
+    }
+
+    @Override
+    public String digest(String algorithm) throws NoSuchAlgorithmException, IOException {
+        try {
+<span class="fc" id="L56">            return client.digest(id(), algorithm);</span>
+<span class="nc" id="L57">        } catch (TException e) {</span>
+<span class="nc" id="L58">            throw new IOException(e);</span>
+        }
+    }
+
+    @Override
+    public List&lt;String&gt; verify() throws IOException {
+        try {
+<span class="nc" id="L65">            return client.verify(id());</span>
+<span class="nc" id="L66">        } catch (TException e) {</span>
+<span class="nc" id="L67">            throw new IOException(e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.6.3.201306030806</span></div></body></html>
