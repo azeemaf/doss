@@ -3,14 +3,14 @@
 
   <groupId>au.gov.nla</groupId>
   <artifactId>doss</artifactId>
-  <version>0.26.0</version>
+  <version>0.26.1-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>doss</name>
 
   <scm>
     <developerConnection>scm:git:ssh://git@github.com/nla/doss.git</developerConnection>
-    <tag>0.26.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <build>
