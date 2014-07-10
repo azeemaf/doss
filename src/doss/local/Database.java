@@ -1,6 +1,8 @@
 package doss.local;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -10,6 +12,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.compress.utils.Charsets;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.sqlobject.Bind;
@@ -24,7 +27,8 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import com.googlecode.flyway.core.Flyway;
 
-abstract class Database implements Closeable, GetHandle, Transactional<Database> {
+abstract class Database implements Closeable, GetHandle,
+        Transactional<Database> {
 
     /*
      * Connection meta data URL doesn't include H2 switches. We have to manually
@@ -50,6 +54,15 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
      * Opens a DOSS database stored on the local filesystem.
      */
     public static Database open(Path dbPath) {
+        Path urlFile = dbPath.resolve("jdbc-url");
+        if (Files.exists(dbPath.resolve("jdbc-url"))) {
+            try {
+                String url = Files.readAllLines(urlFile, Charsets.UTF_8).get(0);
+                return open(new DBI(url));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         return open(new DBI("jdbc:h2:file:" + dbPath + "/doss" + H2_SWITCHES));
     }
 
@@ -94,7 +107,8 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
     public abstract long nextId();
 
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
-    public abstract void insertBlob(@Bind("blobId") long blobId, @Bind("containerId") long containerId,
+    public abstract void insertBlob(@Bind("blobId") long blobId,
+            @Bind("containerId") long containerId,
             @Bind("offset") long offset);
 
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
@@ -104,10 +118,13 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
-    public static class BlobLocationMapper implements ResultSetMapper<BlobLocation> {
+    public static class BlobLocationMapper implements
+            ResultSetMapper<BlobLocation> {
         @Override
-        public BlobLocation map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-            return new BlobLocation(r.getLong("container_id"), r.getLong("offset"));
+        public BlobLocation map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new BlobLocation(r.getLong("container_id"),
+                    r.getLong("offset"));
         }
     }
 
@@ -122,10 +139,12 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
     public abstract long sealContainer(@Bind("id") long containerId);
 
     @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
-    public abstract Long findBlobIdForLegacyPathAndLock(@Bind("legacy_path") String legacyPath);
+    public abstract Long findBlobIdForLegacyPathAndLock(
+            @Bind("legacy_path") String legacyPath);
 
     @SqlUpdate("INSERT INTO legacy_paths (blob_id, legacy_path) VALUES (:blob_id, :legacy_path)")
-    public abstract long insertLegacy(@Bind("blob_id") long blobId, @Bind("legacy_path") String legacyPath);
+    public abstract long insertLegacy(@Bind("blob_id") long blobId,
+            @Bind("legacy_path") String legacyPath);
 
     @Transaction
     public Long findOrInsertBlobIdByLegacyPath(String legacyPath) {
@@ -141,10 +160,12 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
     public abstract String locateLegacy(@Bind("blob_id") long blobId);
 
     @SqlQuery("SELECT digest FROM digests WHERE blob_id = :blob_id AND algorithm = :algorithm")
-    public abstract String getDigest(@Bind("blob_id") long blobId, @Bind("algorithm") String algorithm);
+    public abstract String getDigest(@Bind("blob_id") long blobId,
+            @Bind("algorithm") String algorithm);
 
     @SqlUpdate("INSERT INTO digests (blob_id, algorithm, digest) VALUES(:blob_id, :algorithm, :digest)")
-    public abstract void insertDigest(@Bind("blob_id") long blobId, @Bind("algorithm") String algorithm,
+    public abstract void insertDigest(@Bind("blob_id") long blobId,
+            @Bind("algorithm") String algorithm,
             @Bind("digest") String digest);
 
     @SqlQuery("SELECT algorithm, digest FROM digests WHERE blob_id = :blob_id")
@@ -152,7 +173,8 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
 
     public Map<String, String> getDigests(long blobId) {
         HashMap<String, String> out = new HashMap<String, String>();
-        for (Map<String, Object> row : getHandle().select("SELECT algorithm, digest FROM digests WHERE blob_id = ?",
+        for (Map<String, Object> row : getHandle().select(
+                "SELECT algorithm, digest FROM digests WHERE blob_id = ?",
                 blobId)) {
             out.put((String) row.get("algorithm"), (String) row.get("digest"));
         }
