@@ -36,6 +36,8 @@ abstract class Database implements Closeable, GetHandle,
      */
     static final String H2_SWITCHES = ";AUTO_SERVER=true;MVCC=true";
 
+    private String jdbcUrl;
+
     /**
      * Opens an in-memory database for internal testing.
      */
@@ -44,7 +46,9 @@ abstract class Database implements Closeable, GetHandle,
     }
 
     public static Database open(String jdbcUrl) {
-        return open(new DBI(jdbcUrl));
+        Database db = open(new DBI(jdbcUrl));
+        db.jdbcUrl = jdbcUrl;
+        return db;
     }
 
     @Override
@@ -57,13 +61,12 @@ abstract class Database implements Closeable, GetHandle,
         Path urlFile = dbPath.resolve("jdbc-url");
         if (Files.exists(dbPath.resolve("jdbc-url"))) {
             try {
-                String url = Files.readAllLines(urlFile, Charsets.UTF_8).get(0);
-                return open(new DBI(url));
+                return open(Files.readAllLines(urlFile, Charsets.UTF_8).get(0));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
-        return open(new DBI("jdbc:h2:file:" + dbPath + "/doss" + H2_SWITCHES));
+        return open("jdbc:h2:file:" + dbPath + "/doss" + H2_SWITCHES);
     }
 
     public static Database open(DBI dbi) {
@@ -89,7 +92,8 @@ abstract class Database implements Closeable, GetHandle,
         Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
         DatabaseMetaData md = getHandle().getConnection().getMetaData();
         Flyway flyway = new Flyway();
-        flyway.setDataSource(md.getURL() + H2_SWITCHES, md.getUserName(), "");
+        flyway.setDataSource(jdbcUrl != null ? jdbcUrl : md.getURL()
+                + H2_SWITCHES, md.getUserName(), "");
         flyway.setLocations("doss/migrations");
         return flyway;
     }
