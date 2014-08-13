@@ -27,6 +27,8 @@ import joptsimple.OptionSet;
 
 import org.apache.thrift.transport.TTransportException;
 
+import doss.local.Admin;
+import doss.local.Container;
 import doss.local.LocalBlobStore;
 import doss.net.BlobStoreServer;
 
@@ -77,7 +79,8 @@ public class Main {
 
                     try (BlobStore blobStore = openBlobStore()) {
                         if (blobStore instanceof LocalBlobStore) {
-                            out.println("LocalBlobStore version: " + ((LocalBlobStore) blobStore).version());
+                            out.println("LocalBlobStore version: "
+                                    + ((LocalBlobStore) blobStore).version());
                         }
                     }
                     out.println("Java version: "
@@ -123,7 +126,8 @@ public class Main {
                 }
             }
         },
-        digest("<algorithm> <blobId>", "Prints a digest (sha1, md5, etc) of a blob") {
+        digest("<algorithm> <blobId>",
+                "Prints a digest (sha1, md5, etc) of a blob") {
 
             void digestBlob(String algorithm, String blobId) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
@@ -255,6 +259,30 @@ public class Main {
                 }
             }
         },
+        containers("", "Lists all containers") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Admin admin = new Admin((LocalBlobStore) bs);
+                    for (Container c : admin.listContainers()) {
+                        out.format("%8d %d\n", c.id(), c.size());
+                    }
+                }
+            }
+        },
+        seal("<containerId ..>", "Seals a container") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Admin admin = new Admin((LocalBlobStore) bs);
+                    for (String containerId : args) {
+                        admin.sealContainer(Long.parseLong(containerId));
+                    }
+                }
+            }
+        },
         server("[-b bindaddr] [-p port]",
                 "Run a DOSS server on the given part") {
             final OptionParser OPTION_PARSER = new OptionParser("c:");
@@ -303,8 +331,7 @@ public class Main {
                     }
                 }
             }
-        },
-        ;
+        };
 
         final String descrption, parameters;
 

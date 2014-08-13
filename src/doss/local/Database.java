@@ -142,6 +142,9 @@ abstract class Database implements Closeable, GetHandle,
     @SqlUpdate("UPDATE containers SET sealed = true WHERE container_id = :id")
     public abstract long sealContainer(@Bind("id") long containerId);
 
+    @SqlQuery("SELECT container_id FROM containers")
+    public abstract Iterable<Long> findAllContainers();
+
     @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
     public abstract Long findBlobIdForLegacyPathAndLock(
             @Bind("legacy_path") String legacyPath);
