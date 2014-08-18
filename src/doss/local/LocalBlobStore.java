@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.compress.utils.Charsets;
+
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
@@ -39,10 +41,30 @@ public class LocalBlobStore implements BlobStore {
             db = Database.open(jdbcUrl);
         }
         symlinker = new Symlinker(subdir("blob"));
-        List<Filesystem> fslist = new ArrayList<>();
-        fslist.add(new Filesystem("fs.staging", subdir("staging")));
-        stagingArea = new Area(db, "area.staging", fslist, "directory");
-        areas.add(stagingArea);
+        Path configFile = rootDir.resolve("conf/doss.conf");
+        if (!Files.exists(configFile)) {
+            createDefaultConfig(configFile);
+        }
+        Config config = new Config(db, configFile);
+        areas.addAll(config.areas());
+        stagingArea = findStagingArea(areas);
+    }
+
+    private void createDefaultConfig(Path configFile)
+            throws IOException, NotDirectoryException {
+        Files.createDirectory(rootDir.resolve("conf"));
+        String defaultConfig = "[area.staging]\nfs=staging\n\n[fs.staging]\npath="
+                + subdir("staging").toString() + "\n";
+        Files.write(configFile, defaultConfig.getBytes(Charsets.UTF_8));
+    }
+
+    private static Area findStagingArea(List<Area> areas) {
+        for (Area area : areas) {
+            if (area.name().equals("area.staging")) {
+                return area;
+            }
+        }
+        throw new RuntimeException("no area.staging configured in doss.conf");
     }
 
     public static void init(Path root) throws IOException {
@@ -84,7 +106,8 @@ public class LocalBlobStore implements BlobStore {
      * @throws CorruptBlobStoreException
      *             if the blob store is missing or corrupt
      */
-    public static BlobStore open(Path root, String jdbcUrl) throws CorruptBlobStoreException {
+    public static BlobStore open(Path root, String jdbcUrl)
+            throws CorruptBlobStoreException {
         try {
             return new LocalBlobStore(root, jdbcUrl);
         } catch (IOException e) {

@@ -1,7 +1,6 @@
 package doss.local;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -11,16 +10,29 @@ import java.util.Map.Entry;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 
-public class Config {
-    public static void main(String args[]) throws Exception {
-        Ini ini = new Ini();
-        ini.load(new StringReader(
-                "[area.staging]\nfs=staging\n[fs.staging]\npath = /staging"));
+/**
+ * Example config file:
+ * 
+ * <pre>
+ * [area.staging]
+ * fs=staging
+ *   
+ * [fs.staging]
+ * path = /staging
+ * </pre>
+ */
+class Config {
+    private final Ini ini;
+    private List<Area> areas;
+    private final Database db;
 
-        List<Area> areas = new ArrayList<>();
+    Config(Database db, Path path) throws IOException {
+        this.db = db;
+        ini = new Ini(path.toFile());
+        areas = new ArrayList<>();
         for (String section : ini.keySet()) {
             if (section.startsWith("area.")) {
-                areas.add(parseArea(ini, section));
+                areas.add(parseArea(section));
             }
         }
 
@@ -29,7 +41,11 @@ public class Config {
         }
     }
 
-    private static Area parseArea(Ini ini, String name) throws IOException {
+    public List<Area> areas() {
+        return areas;
+    }
+
+    private Area parseArea(String name) throws IOException {
         Section section = ini.get(name);
         String container = "directory";
         List<Filesystem> filesystems = new ArrayList<Filesystem>();
@@ -42,7 +58,7 @@ public class Config {
                         barf("missing " + fsName + " referred to by " + name
                                 + "/fs");
                     }
-                    filesystems.add(parseFilesystem(ini, fsSection));
+                    filesystems.add(parseFilesystem(fsSection));
                 }
             } else if (entry.getKey().equals("container")) {
                 container = entry.getValue();
@@ -53,10 +69,10 @@ public class Config {
         if (filesystems.isEmpty()) {
             barf(name + " needs at least one fs defined");
         }
-        return new Area(Database.open(), name, filesystems, container);
+        return new Area(db, name, filesystems, container);
     }
 
-    private static Filesystem parseFilesystem(Ini ini, Section section) {
+    private Filesystem parseFilesystem(Section section) {
         Path path = null;
         for (Entry<String, String> entry : section.entrySet()) {
             if (entry.getKey().equals("path")) {

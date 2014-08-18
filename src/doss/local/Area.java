@@ -15,23 +15,29 @@ public class Area implements AutoCloseable {
     private long maxContainerSize = 10L * 1024 * 1024 * 1024;
     private Container currentContainer;
 
-    public Area(Database db, String name, List<Filesystem> filesystems, String containerType) throws IOException {
+    public Area(Database db, String name, List<Filesystem> filesystems,
+            String containerType) throws IOException {
         this.db = db;
         this.name = name;
         this.filesystems = filesystems;
         this.containerType = containerType;
         if (filesystems.size() != 1) {
-            throw new IllegalArgumentException(name + ": currently only a single fs per area is implemented");
+            throw new IllegalArgumentException(name
+                    + ": currently only a single fs per area is implemented");
         }
         if (!Objects.equals(containerType, "directory")) {
-            throw new IllegalArgumentException(name + ": currently only directory container type is supported, not " + containerType);
+            throw new IllegalArgumentException(
+                    name
+                            + ": currently only directory container type is supported, not "
+                            + containerType);
         }
         root = filesystems.get(0).path();
         Long containerId = db.findAnOpenContainer(name);
         if (containerId == null) {
             containerId = db.createContainer(name);
         }
-        currentContainer = new DirectoryContainer(containerId, root.resolve(containerId.toString()));
+        currentContainer = new DirectoryContainer(containerId,
+                root.resolve(containerId.toString()));
     }
 
     /**
@@ -56,7 +62,8 @@ public class Area implements AutoCloseable {
             currentContainer.close();
             db.sealContainer(currentContainer.id());
             long containerId = db.createContainer(name);
-            currentContainer = new DirectoryContainer(containerId, root.resolve(Long.toString(containerId)));
+            currentContainer = new DirectoryContainer(containerId,
+                    root.resolve(Long.toString(containerId)));
         }
         return currentContainer;
     }
@@ -66,7 +73,16 @@ public class Area implements AutoCloseable {
      * 
      * @throws IOException
      */
-    public synchronized Container container(Long containerId) throws IOException {
-        return new DirectoryContainer(containerId, root.resolve(Long.toString(containerId)));
+    public synchronized Container container(Long containerId)
+            throws IOException {
+        return new DirectoryContainer(containerId, root.resolve(Long
+                .toString(containerId)));
+    }
+
+    /**
+     * Returns the name of this area. eg "area.staging"
+     */
+    public String name() {
+        return name;
     }
 }
