@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -23,10 +24,11 @@ public class TarContainer implements Container {
     final private Path path;
     final private long id;
     final private SeekableByteChannel channel;
-    final private ByteBuffer headerBuffer = ByteBuffer
-            .allocate(TAR_ENTRY_HEADER_LENGTH);
-    private static final int TAR_ENTRY_HEADER_LENGTH = 512;
-    private static final byte[] FOOTER_BYTES = new byte[2 * TAR_ENTRY_HEADER_LENGTH];
+    final private ByteBuffer headerBuffer = ByteBuffer.allocate(HEADER_LENGTH);
+    private static final int BLOCK_SIZE = 512;
+    private static final int HEADER_LENGTH = BLOCK_SIZE;
+    private static final int FOOTER_LENGTH = 2 * BLOCK_SIZE;
+    private static final byte[] FOOTER_BYTES = new byte[FOOTER_LENGTH];
 
     TarContainer(long id, Path path) throws IOException, ArchiveException {
         this.path = path;
@@ -43,18 +45,24 @@ public class TarContainer implements Container {
         }
     }
 
-    @Override
-    public synchronized Blob get(long offset) throws IOException {
-        TarBlob tarBlob = null;
-
+    private synchronized TarArchiveEntry readEntry(long offset)
+            throws IOException {
         channel.position(offset);
         headerBuffer.clear();
-        channel.read(headerBuffer);
+        while (headerBuffer.hasRemaining()) {
+            int nbytes = channel.read(headerBuffer);
+            if (nbytes == -1) {
+                return null; // end of file
+            }
+        }
         headerBuffer.flip();
-        TarArchiveEntry entry = new TarArchiveEntry(headerBuffer.array());
-        tarBlob = new TarBlob(path, offset + 512, entry);
+        return new TarArchiveEntry(headerBuffer.array());
+    }
 
-        return tarBlob;
+    @Override
+    public Blob get(long offset) throws IOException {
+        return new TarBlob(path, offset + HEADER_LENGTH,
+                readEntry(offset));
     }
 
     @Override
@@ -73,8 +81,12 @@ public class TarContainer implements Container {
 
     }
 
+    private static long calculatePadding(long position) {
+        return BLOCK_SIZE - position % BLOCK_SIZE;
+    }
+
     private void writeRecordPadding() throws IOException {
-        int padding = (int) (512L - channel.position() % 512L);
+        int padding = (int) (calculatePadding(channel.position()));
         channel.write(ByteBuffer.allocate(padding));
     }
 
@@ -107,4 +119,41 @@ public class TarContainer implements Container {
         return channel.size();
     }
 
+    @Override
+    public Iterator<Blob> iterator() {
+        return new Iterator<Blob>() {
+            long pos = 0;
+
+            @Override
+            public boolean hasNext() {
+                try {
+                    return pos < size();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public Blob next() {
+                try {
+                    Blob blob = get(pos);
+                    pos += HEADER_LENGTH;
+                    pos += blob.size();
+                    pos += calculatePadding(pos);
+                    return blob;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public void remove() {
+            }
+        };
+    }
+
+    @Override
+    public void permanentlyDelete() throws IOException {
+        Files.delete(path);
+    }
 }

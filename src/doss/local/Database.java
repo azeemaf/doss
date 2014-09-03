@@ -118,7 +118,7 @@ abstract class Database implements Closeable, GetHandle,
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract void deleteBlob(@Bind("blobId") long blobId);
 
-    @SqlQuery("SELECT container_id, offset FROM blobs WHERE blob_id = :blobId")
+    @SqlQuery("SELECT area, blobs.container_id, offset FROM containers, blobs WHERE blob_id = :blobId AND containers.container_id = blobs.container_id")
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
@@ -127,23 +127,76 @@ abstract class Database implements Closeable, GetHandle,
         @Override
         public BlobLocation map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
-            return new BlobLocation(r.getLong("container_id"),
+            return new BlobLocation(r.getString("area"),
+                    r.getLong("container_id"),
                     r.getLong("offset"));
         }
     }
+
+    public static class ContainerRecord {
+        private final long containerId;
+        private final String area;
+        private final long size;
+        private final boolean sealed;
+
+        public long id() {
+            return containerId;
+        }
+
+        public String area() {
+            return area;
+        }
+
+        public long size() {
+            return size;
+        }
+
+        public boolean sealed() {
+            return sealed;
+        }
+
+        ContainerRecord(long containerId, String area, long size,
+                boolean sealed) {
+            this.containerId = containerId;
+            this.area = area;
+            this.size = size;
+            this.sealed = sealed;
+        }
+    }
+
+    public static class ContainerMapper implements
+            ResultSetMapper<ContainerRecord> {
+        @Override
+        public ContainerRecord map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new ContainerRecord(r.getLong("container_id"),
+                    r.getString("area"), r.getLong("size"),
+                    r.getBoolean("sealed"));
+        }
+    }
+
+    @SqlQuery("SELECT * FROM containers WHERE container_id = :containerId")
+    @RegisterMapper(ContainerMapper.class)
+    public abstract ContainerRecord findContainer(
+            @Bind("containerId") long containerId);
 
     @SqlQuery("SELECT container_id FROM containers WHERE sealed = 0 AND AREA = :area")
     public abstract Long findAnOpenContainer(@Bind("area") String area);
 
     @SqlUpdate("INSERT INTO containers (area) VALUES (:area)")
     @GetGeneratedKeys
-    public abstract long createContainer(@Bind("area") String name);
+    public abstract long createContainer(@Bind("area") String area);
+
+    @SqlUpdate("UPDATE containers SET area = :area WHERE container_id = :containerId")
+    public abstract long updateContainerArea(
+            @Bind("containerId") long containerId, @Bind("area") String area);
 
     @SqlUpdate("UPDATE containers SET sealed = true WHERE container_id = :id")
     public abstract long sealContainer(@Bind("id") long containerId);
 
-    @SqlQuery("SELECT container_id FROM containers")
-    public abstract Iterable<Long> findAllContainers();
+    @SqlQuery("SELECT * FROM containers")
+    @RegisterMapper(ContainerMapper.class)
+    public abstract Iterable<ContainerRecord> findAllContainers();
 
     @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
     public abstract Long findBlobIdForLegacyPathAndLock(

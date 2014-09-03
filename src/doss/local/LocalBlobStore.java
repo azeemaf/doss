@@ -7,6 +7,7 @@ import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +24,7 @@ import doss.Writable;
 import doss.core.ManagedTransaction;
 import doss.core.Transaction;
 import doss.core.Writables;
+import doss.local.Database.ContainerRecord;
 
 public class LocalBlobStore implements BlobStore {
 
@@ -30,7 +32,7 @@ public class LocalBlobStore implements BlobStore {
     final Database db;
     final Map<Long, BlobTx> txs = new ConcurrentHashMap<>();
     final Path rootDir;
-    final List<Area> areas = new ArrayList<>();
+    final Map<String, Area> areas = new HashMap<>();
     final Area stagingArea;
 
     private LocalBlobStore(Path rootDir, String jdbcUrl) throws IOException {
@@ -46,8 +48,10 @@ public class LocalBlobStore implements BlobStore {
             createDefaultConfig(configFile);
         }
         Config config = new Config(db, configFile);
-        areas.addAll(config.areas());
-        stagingArea = findStagingArea(areas);
+        for (Area area : config.areas()) {
+            areas.put(area.name(), area);
+        }
+        stagingArea = area("area.staging");
     }
 
     private void createDefaultConfig(Path configFile)
@@ -58,13 +62,13 @@ public class LocalBlobStore implements BlobStore {
         Files.write(configFile, defaultConfig.getBytes(Charsets.UTF_8));
     }
 
-    private static Area findStagingArea(List<Area> areas) {
-        for (Area area : areas) {
-            if (area.name().equals("area.staging")) {
-                return area;
-            }
+    private Area area(String name) {
+        Area area = areas.get(name);
+        if (area != null) {
+            return area;
         }
-        throw new RuntimeException("no area.staging configured in doss.conf");
+        throw new IllegalArgumentException("no area '" + name
+                + "' configured in doss.conf");
     }
 
     public static void init(Path root) throws IOException {
@@ -125,7 +129,7 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public void close() {
-        for (Area area : areas) {
+        for (Area area : areas.values()) {
             area.close();
         }
         db.close();
@@ -141,7 +145,8 @@ public class LocalBlobStore implements BlobStore {
         if (location == null) {
             throw new NoSuchBlobException(blobId);
         }
-        Container container = stagingArea.container(location.containerId());
+        Container container = area(location.area()).container(
+                location.containerId());
         Blob blob = container.get(location.offset());
         return new CachedMetadataBlob(db, blob);
     }
@@ -274,5 +279,13 @@ public class LocalBlobStore implements BlobStore {
 
     public String version() {
         return db.version();
+    }
+
+    public void moveContainer(long containerId, String destAreaName)
+            throws IOException {
+        Area destArea = area(destAreaName);
+        ContainerRecord cr = db.findContainer(containerId);
+        Area srcArea = area(cr.area());
+        destArea.moveContainerFrom(srcArea, containerId);
     }
 }

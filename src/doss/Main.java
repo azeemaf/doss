@@ -28,7 +28,6 @@ import joptsimple.OptionSet;
 import org.apache.thrift.transport.TTransportException;
 
 import doss.local.Admin;
-import doss.local.Container;
 import doss.local.LocalBlobStore;
 import doss.net.BlobStoreServer;
 
@@ -185,8 +184,10 @@ public class Main {
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
-                } else {
-                    BlobStore bs = openBlobStore();
+                    return;
+                }
+
+                try (BlobStore bs = openBlobStore()) {
 
                     boolean humanSizes = true;
                     if (args.first().equals("-b")) {
@@ -204,6 +205,12 @@ public class Main {
                         out.println("\tSize:\t\t"
                                 + (humanSizes ? readableFileSize(blob.size())
                                         : blob.size() + " B"));
+
+                        if (bs instanceof LocalBlobStore) {
+                            Admin admin = new Admin((LocalBlobStore) bs);
+                            out.println("\tLocation:\t"
+                                    + admin.locateBlob(blob.id()));
+                        }
 
                         out.println("");
                     }
@@ -265,9 +272,7 @@ public class Main {
             void execute(Arguments args) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
                     Admin admin = new Admin((LocalBlobStore) bs);
-                    for (Container c : admin.listContainers()) {
-                        out.format("%8d %d\n", c.id(), c.size());
-                    }
+                    admin.listContainers();
                 }
             }
         },
@@ -280,6 +285,17 @@ public class Main {
                     for (String containerId : args) {
                         admin.sealContainer(Long.parseLong(containerId));
                     }
+                }
+            }
+        },
+        moveContainer("<containerId> <area>", "Moves a container to a new area") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (LocalBlobStore bs = (LocalBlobStore) openBlobStore()) {
+                    long containerId = Long.parseLong(args.first());
+                    String area = args.rest().first();
+                    bs.moveContainer(containerId, area);
                 }
             }
         },

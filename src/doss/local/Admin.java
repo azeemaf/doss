@@ -1,7 +1,8 @@
 package doss.local;
 
 import java.io.IOException;
-import java.util.Iterator;
+
+import doss.local.Database.ContainerRecord;
 
 /**
  * Admin tools. Should not be used by client applications. Potentially dangerous
@@ -14,33 +15,12 @@ public class Admin {
         this.blobStore = blobStore;
     }
 
-    public Iterable<Container> listContainers() throws IOException {
-        return new Iterable<Container>() {
-            Iterator<Long> idIt = blobStore.db.findAllContainers().iterator();
-
-            @Override
-            public Iterator<Container> iterator() {
-                return new Iterator<Container>() {
-                    @Override
-                    public boolean hasNext() {
-                        return idIt.hasNext();
-                    }
-
-                    @Override
-                    public Container next() {
-                        try {
-                            return blobStore.stagingArea.container(idIt.next());
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-
-                    @Override
-                    public void remove() {
-                    }
-                };
-            }
-        };
+    public void listContainers() throws IOException {
+        System.out.format("%8s %8s %12s %4s\n", "ID", "Size", "Area", "Sealed");
+        for (ContainerRecord c : blobStore.db.findAllContainers()) {
+            System.out.format("%8d %8d %12s %4s\n", c.id(), c.size(), c.area(),
+                    c.sealed() ? "SEAL" : "");
+        }
     }
 
     /**
@@ -49,5 +29,10 @@ public class Admin {
      */
     public void sealContainer(long containerId) {
         blobStore.db.sealContainer(containerId);
+    }
+
+    public String locateBlob(long blobId) {
+        BlobLocation loc = blobStore.db.locateBlob(blobId);
+        return loc.toString();
     }
 }

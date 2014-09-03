@@ -2,8 +2,14 @@ package doss.local;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+
+import doss.Blob;
+import doss.core.Writables;
 
 public class Area implements AutoCloseable {
 
@@ -32,12 +38,7 @@ public class Area implements AutoCloseable {
                             + containerType);
         }
         root = filesystems.get(0).path();
-        Long containerId = db.findAnOpenContainer(name);
-        if (containerId == null) {
-            containerId = db.createContainer(name);
-        }
-        currentContainer = new DirectoryContainer(containerId,
-                root.resolve(containerId.toString()));
+        currentContainer = null;
     }
 
     /**
@@ -49,7 +50,9 @@ public class Area implements AutoCloseable {
 
     @Override
     public void close() {
-        currentContainer.close();
+        if (currentContainer != null) {
+            currentContainer.close();
+        }
     }
 
     /**
@@ -58,10 +61,17 @@ public class Area implements AutoCloseable {
      * @throws IOException
      */
     public synchronized Container currentContainer() throws IOException {
-        if (currentContainer.size() > maxContainerSize) {
+        if (currentContainer != null
+                && currentContainer.size() > maxContainerSize) {
             currentContainer.close();
             db.sealContainer(currentContainer.id());
-            long containerId = db.createContainer(name);
+            currentContainer = null;
+        }
+        if (currentContainer == null) {
+            Long containerId = db.findAnOpenContainer(name);
+            if (containerId == null) {
+                containerId = db.createContainer(name);
+            }
             currentContainer = new DirectoryContainer(containerId,
                     root.resolve(Long.toString(containerId)));
         }
@@ -84,5 +94,43 @@ public class Area implements AutoCloseable {
      */
     public String name() {
         return name;
+    }
+
+    // TODO: failure handling, journaling?
+    void moveContainerFrom(Area srcArea, long containerId) throws IOException {
+        try (Container in = srcArea.container(containerId);
+                Container out = container(containerId)) {
+            // copy container
+            for (Blob blob : in) {
+                out.put(blob.id(), Writables.wrap(blob));
+            }
+
+            // verify copy of container
+            Iterator<Blob> inIt = in.iterator();
+            Iterator<Blob> outIt = out.iterator();
+            while (inIt.hasNext() && outIt.hasNext()) {
+                Blob inBlob = inIt.next();
+                Blob outBlob = outIt.next();
+                assert inBlob.id() == outBlob.id();
+                assert inBlob.size() == outBlob.size();
+                try {
+                    assert inBlob.digest("SHA-1").equals(
+                            outBlob.digest("SHA-1"));
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IOException(e);
+                }
+            }
+
+            // update index
+            db.updateContainerArea(containerId, name());
+
+            // remove the old container
+            in.permanentlyDelete();
+        }
+
+    }
+
+    List<Filesystem> filesystems() {
+        return Collections.unmodifiableList(filesystems);
     }
 }
