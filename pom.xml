@@ -46,60 +46,7 @@
           </archive>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.6.3.201306030806</version>
-        <configuration>
-          <destfile>${basedir}/target/coverage-reports/jacoco-unit.exec</destfile>
-          <datafile>${basedir}/target/coverage-reports/jacoco-unit.exec</datafile>
-        </configuration>
-        <executions>
-          <execution>
-            <id>prepare-agent</id>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>report</id>
-            <phase>site</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
-    <pluginManagement>
-      <plugins>
-        <!--Tells M2Eclipse to stop needlessly worrying. It has no influence on the Maven build itself. -->
-        <plugin>
-          <groupId>org.eclipse.m2e</groupId>
-          <artifactId>lifecycle-mapping</artifactId>
-          <version>1.0.0</version>
-          <configuration>
-            <lifecycleMappingMetadata>
-              <pluginExecutions>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.jacoco</groupId>
-                    <artifactId>jacoco-maven-plugin</artifactId>
-                    <versionRange>[0.6.3.201306030806,)</versionRange>
-                    <goals>
-                      <goal>prepare-agent</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore />
-                  </action>
-                </pluginExecution>
-              </pluginExecutions>
-            </lifecycleMappingMetadata>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <extensions>
       <extension>
         <groupId>org.apache.maven.wagon</groupId>
