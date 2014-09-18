@@ -4,6 +4,8 @@ import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.nio.file.StandardOpenOption.WRITE;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
@@ -12,7 +14,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
+import java.util.Iterator;
 
+import doss.Blob;
 import doss.Writable;
 
 /**
@@ -43,9 +48,11 @@ class DirectoryContainer implements Container {
     public long put(long id, Writable output) throws IOException {
         Long offset = 0L;
         while (true) {
-            try (WritableByteChannel channel = Files.newByteChannel(dataPathFor(offset), CREATE_NEW, WRITE)) {
+            try (WritableByteChannel channel = Files.newByteChannel(
+                    dataPathFor(offset), CREATE_NEW, WRITE)) {
                 output.writeTo(channel);
-                Files.write(idPathFor(offset), Long.toString(id).getBytes("UTF-8"), CREATE_NEW, WRITE);
+                Files.write(idPathFor(offset),
+                        Long.toString(id).getBytes("UTF-8"), CREATE_NEW, WRITE);
                 return offset;
             } catch (FileAlreadyExistsException e) {
                 offset++;
@@ -82,10 +89,54 @@ class DirectoryContainer implements Container {
         long size = 0;
 
         @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                throws IOException {
             size += Files.size(file);
             return CONTINUE;
         }
     }
 
+    private class DirIterator implements Iterator<Blob> {
+        Iterator<File> fileIter = Arrays.asList(
+                dir.toFile().listFiles(new FilenameFilter() {
+                    @Override
+                    public boolean accept(File arg0, String name) {
+                        return !name.contains(".");
+                    }
+                })).iterator();
+
+        @Override
+        public boolean hasNext() {
+            return fileIter.hasNext();
+        }
+
+        @Override
+        public Blob next() {
+            File f = fileIter.next();
+            try {
+                return get(Long.parseLong(f.getName()));
+            } catch (NumberFormatException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+    }
+
+    @Override
+    public Iterator<Blob> iterator() {
+        return new DirIterator();
+    }
+
+    @Override
+    public void permanentlyDelete() throws IOException {
+        for (File f : dir.toFile().listFiles()) {
+            f.delete();
+        }
+        Files.delete(dir);
+    }
 }

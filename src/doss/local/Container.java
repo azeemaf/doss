@@ -25,7 +25,7 @@ import doss.core.Sized;
  * verification at a whole container level as most storage hardware is far more
  * efficient at large sequential reads and writes than small random ones.
  */
-public interface Container extends AutoCloseable, Named, Sized {
+public interface Container extends AutoCloseable, Named, Sized, Iterable<Blob> {
 
     public Blob get(long offset) throws IOException;
 
@@ -33,4 +33,9 @@ public interface Container extends AutoCloseable, Named, Sized {
 
     @Override
     void close();
+
+    /**
+     * DANGER
+     */
+    void permanentlyDelete() throws IOException;
 }

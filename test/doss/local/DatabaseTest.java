@@ -12,6 +12,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException;
 
 public class DatabaseTest {
     static Database db;
@@ -46,11 +47,12 @@ public class DatabaseTest {
 
     @Test
     public void testInsertBlob() {
-        assertInsertAndLocatable(1L, 2L, 3L);
-        assertInsertAndLocatable(111111111111L, 222222222222L, 333333333333L);
-        assertInsertAndLocatable(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
-        assertInsertAndLocatable(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
-        assertLocatable(1L, 2L, 3L);
+        long containedId = db.createContainer("staging");
+        assertInsertAndLocatable(1L, containedId, 3L);
+        assertInsertAndLocatable(111111111111L, containedId, 333333333333L);
+        assertInsertAndLocatable(Long.MIN_VALUE, containedId, Long.MIN_VALUE);
+        assertInsertAndLocatable(Long.MAX_VALUE, containedId, Long.MAX_VALUE);
+        assertLocatable(1L, containedId, 3L);
     }
 
     private void assertInsertAndLocatable(long blobId, long containerId,
@@ -69,10 +71,36 @@ public class DatabaseTest {
 
     @Test
     public void testDeleteBlob() {
-        db.insertBlob(1, 2, 3);
+        long containedId = db.createContainer("staging");
+        db.insertBlob(1, containedId, 3);
         assertNotNull(db.locateBlob(1));
         db.deleteBlob(1);
         assertNull(db.locateBlob(1));
     }
 
+    @Test
+    public void testMultipleOpenContainers() {
+        String area = "unit-test";
+        Long firstId = db.createContainer(area);
+        assertEquals(firstId, db.findAnOpenContainer(area));
+        db.createContainer(area);
+        db.createContainer(area);
+        assertEquals(firstId, db.findAnOpenContainer(area));
+    }
+
+    @Test
+    public void testDigests() {
+        db.insertDigest(1, "sha1", "test");
+        db.insertDigest(1, "md5", "test2");
+        db.insertDigest(2, "sha1", "test3");
+        assertEquals("test", db.getDigest(1, "sha1"));
+        assertEquals("test2", db.getDigest(1, "md5"));
+        assertEquals("test3", db.getDigest(2, "sha1"));
+    }
+
+    @Test(expected = UnableToExecuteStatementException.class)
+    public void testDuplicateDigests() {
+        db.insertDigest(1, "sha1", "test");
+        db.insertDigest(1, "sha1", "test");
+    }
 }

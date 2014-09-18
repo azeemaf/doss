@@ -8,6 +8,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 import doss.Blob;
 
@@ -50,4 +53,23 @@ class FileBlob implements Blob {
                 .creationTime();
     }
 
+    @Override
+    public String digest(String algorithm) throws NoSuchAlgorithmException, IOException {
+        try (SeekableByteChannel channel = openChannel()) {
+            return Digests.calculate(algorithm, channel);
+        }
+    }
+
+    @Override
+    public List<String> verify() throws IOException {
+        List<String> errors = new ArrayList<String>();
+        if (!Files.exists(path)) {
+            errors.add("missing from filesystem: " + path);
+        } else if (!Files.isRegularFile(path)) {
+            errors.add("not a regular file: " + path);
+        } else if (!Files.isReadable(path)) {
+            errors.add("not readable: " + path);
+        }
+        return errors;
+    }
 }

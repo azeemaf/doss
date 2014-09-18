@@ -7,9 +7,12 @@ import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.compress.utils.Charsets;
 
 import doss.Blob;
 import doss.BlobStore;
@@ -21,6 +24,7 @@ import doss.Writable;
 import doss.core.ManagedTransaction;
 import doss.core.Transaction;
 import doss.core.Writables;
+import doss.local.Database.ContainerRecord;
 
 public class LocalBlobStore implements BlobStore {
 
@@ -28,17 +32,43 @@ public class LocalBlobStore implements BlobStore {
     final Database db;
     final Map<Long, BlobTx> txs = new ConcurrentHashMap<>();
     final Path rootDir;
-    final List<Area> areas = new ArrayList<>();
+    final Map<String, Area> areas = new HashMap<>();
     final Area stagingArea;
 
-    private LocalBlobStore(Path rootDir) throws IOException {
+    private LocalBlobStore(Path rootDir, String jdbcUrl) throws IOException {
         this.rootDir = rootDir;
-        db = Database.open(subdir("db"));
+        if (jdbcUrl == null) {
+            db = Database.open(subdir("db"));
+        } else {
+            db = Database.open(jdbcUrl);
+        }
         symlinker = new Symlinker(subdir("blob"));
-        List<Filesystem> fslist = new ArrayList<>();
-        fslist.add(new Filesystem("fs.staging", subdir("staging")));
-        stagingArea = new Area(db, "area.staging", fslist, "directory");
-        areas.add(stagingArea);
+        Path configFile = rootDir.resolve("conf/doss.conf");
+        if (!Files.exists(configFile)) {
+            createDefaultConfig(configFile);
+        }
+        Config config = new Config(db, configFile);
+        for (Area area : config.areas()) {
+            areas.put(area.name(), area);
+        }
+        stagingArea = area("area.staging");
+    }
+
+    private void createDefaultConfig(Path configFile)
+            throws IOException, NotDirectoryException {
+        Files.createDirectory(rootDir.resolve("conf"));
+        String defaultConfig = "[area.staging]\nfs=staging\n\n[fs.staging]\npath="
+                + subdir("staging").toString() + "\n";
+        Files.write(configFile, defaultConfig.getBytes(Charsets.UTF_8));
+    }
+
+    private Area area(String name) {
+        Area area = areas.get(name);
+        if (area != null) {
+            return area;
+        }
+        throw new IllegalArgumentException("no area '" + name
+                + "' configured in doss.conf");
     }
 
     public static void init(Path root) throws IOException {
@@ -62,7 +92,28 @@ public class LocalBlobStore implements BlobStore {
      */
     public static BlobStore open(Path root) throws CorruptBlobStoreException {
         try {
-            return new LocalBlobStore(root);
+            return new LocalBlobStore(root, null);
+        } catch (IOException e) {
+            throw new CorruptBlobStoreException(root, e);
+        }
+    }
+
+    /**
+     * Opens a BlobStore that stores all its data and indexes on the local file
+     * system.
+     * 
+     * @param root
+     *            directory to store data in
+     * @param jdbcUrl
+     *            jdbcUrl for the DOSS SQL database
+     * @return a new BlobStore
+     * @throws CorruptBlobStoreException
+     *             if the blob store is missing or corrupt
+     */
+    public static BlobStore open(Path root, String jdbcUrl)
+            throws CorruptBlobStoreException {
+        try {
+            return new LocalBlobStore(root, jdbcUrl);
         } catch (IOException e) {
             throw new CorruptBlobStoreException(root, e);
         }
@@ -78,7 +129,7 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public void close() {
-        for (Area area : areas) {
+        for (Area area : areas.values()) {
             area.close();
         }
         db.close();
@@ -94,11 +145,10 @@ public class LocalBlobStore implements BlobStore {
         if (location == null) {
             throw new NoSuchBlobException(blobId);
         }
-
-        // TODO: support multiple containers
-        // This following call allow access to multiple containers
-        return stagingArea.container(location.containerId()).get(
-                location.offset());
+        Container container = area(location.area()).container(
+                location.containerId());
+        Blob blob = container.get(location.offset());
+        return new CachedMetadataBlob(db, blob);
     }
 
     @Override
@@ -162,6 +212,12 @@ public class LocalBlobStore implements BlobStore {
             }
         };
 
+        public void setExtension(final long blobId, final String ext)
+                throws NoSuchBlobException, IOException {
+            Blob blob = get(blobId);
+            symlinker.updateLinkPath(blobId, ext);
+        }
+
         @Override
         public Blob put(final Path source) throws IOException {
             return put(Writables.wrap(source));
@@ -195,7 +251,7 @@ public class LocalBlobStore implements BlobStore {
             }
             addedBlobs.add(blobId);
             db.commit();
-            return container.get(offset);
+            return new CachedMetadataBlob(db, container.get(offset));
         }
 
         /**
@@ -219,5 +275,17 @@ public class LocalBlobStore implements BlobStore {
             addedBlobs.add(blobId);
             return blobId;
         }
+    }
+
+    public String version() {
+        return db.version();
+    }
+
+    public void moveContainer(long containerId, String destAreaName)
+            throws IOException {
+        Area destArea = area(destAreaName);
+        ContainerRecord cr = db.findContainer(containerId);
+        Area srcArea = area(cr.area());
+        destArea.moveContainerFrom(srcArea, containerId);
     }
 }

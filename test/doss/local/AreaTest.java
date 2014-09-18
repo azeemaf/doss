@@ -19,44 +19,70 @@ import doss.core.Writables;
 
 public class AreaTest {
 
-    Area area;
+    Area staging;
     Database db;
-    Path root;
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Before
     public void setUp() throws Exception {
-        root = folder.newFolder("fs").toPath();
         db = Database.open();
         db.migrate();
-        openArea();
+        staging = createArea("staging");
     }
 
-    private void openArea() throws IOException {
+    private Area openArea(String name, Path root) throws IOException {
         List<Filesystem> fses = new ArrayList<>();
-        fses.add(new Filesystem("fs.staging", root));
-        area = new Area(db, "area.staging", fses, "directory");
+        fses.add(new Filesystem("fs." + name, root));
+        return new Area(db, "area." + name, fses, "directory");
+    }
+
+    private Area createArea(String name) throws IOException {
+        return openArea(name, folder.newFolder(name).toPath());
     }
 
     @After
     public void tearDown() throws Exception {
-        area.close();
+        staging.close();
         db.close();
     }
 
     @Test
     public void testCurrentContainer() throws Exception {
-        Container container = area.currentContainer();
+        Container container = staging.currentContainer();
         assertNotNull(container);
-        area.setMaxContainerSize(10);
+        staging.setMaxContainerSize(10);
         container.put(1, Writables.wrap("hello this is a long string"));
-        Container container2 = area.currentContainer();
+        Container container2 = staging.currentContainer();
         assertNotEquals(container.id(), container2.id());
         // ensure reopening opens the second container
-        area.close();
-        openArea();
-        assertEquals(container2.id(), area.currentContainer().id());
+        Path root = staging.filesystems().get(0).path();
+        staging.close();
+        staging = openArea("staging", root);
+        assertEquals(container2.id(), staging.currentContainer().id());
+    }
+
+    @Test
+    public void testReadingAnOldContainerDoesntSwitchCurrentContainer()
+            throws Exception {
+        Container container1 = staging.currentContainer();
+        container1.put(1, Writables.wrap("hello this is a long string"));
+        staging.setMaxContainerSize(10);
+
+        Container container2 = staging.currentContainer();
+        assertEquals(container2.id(), staging.currentContainer().id());
+        staging.container(container1.id());
+        assertEquals(container2.id(), staging.currentContainer().id());
+    }
+
+    @Test
+    public void testMovingContainer()
+            throws Exception {
+        try (Area master = createArea("master")) {
+            Container container1 = staging.currentContainer();
+            container1.put(1, Writables.wrap("hello this is a long string"));
+            master.moveContainerFrom(staging, container1.id());
+        }
     }
 }

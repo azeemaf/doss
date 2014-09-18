@@ -1,13 +1,18 @@
 package doss.local;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.compress.utils.Charsets;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.sqlobject.Bind;
@@ -22,7 +27,8 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import com.googlecode.flyway.core.Flyway;
 
-abstract class Database implements Closeable, GetHandle, Transactional<Database> {
+abstract class Database implements Closeable, GetHandle,
+        Transactional<Database> {
 
     /*
      * Connection meta data URL doesn't include H2 switches. We have to manually
@@ -30,11 +36,19 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
      */
     static final String H2_SWITCHES = ";AUTO_SERVER=true;MVCC=true";
 
+    private String jdbcUrl;
+
     /**
      * Opens an in-memory database for internal testing.
      */
     static Database open() {
         return open(new DBI("jdbc:h2:mem:testing;MVCC=true"));
+    }
+
+    public static Database open(String jdbcUrl) {
+        Database db = open(new DBI(jdbcUrl));
+        db.jdbcUrl = jdbcUrl;
+        return db;
     }
 
     @Override
@@ -44,7 +58,15 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
      * Opens a DOSS database stored on the local filesystem.
      */
     public static Database open(Path dbPath) {
-        return open(new DBI("jdbc:h2:file:" + dbPath + "/doss" + H2_SWITCHES));
+        Path urlFile = dbPath.resolve("jdbc-url");
+        if (Files.exists(dbPath.resolve("jdbc-url"))) {
+            try {
+                return open(Files.readAllLines(urlFile, Charsets.UTF_8).get(0));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return open("jdbc:h2:file:" + dbPath + "/doss" + H2_SWITCHES);
     }
 
     public static Database open(DBI dbi) {
@@ -56,12 +78,7 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
      */
     public Database migrate() {
         try {
-            // silence flyway's annoying default logging
-            Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
-            DatabaseMetaData md = getHandle().getConnection().getMetaData();
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(md.getURL() + H2_SWITCHES, md.getUserName(), "");
-            flyway.setLocations("doss/migrations");
+            Flyway flyway = openFlyway();
             flyway.setInitOnMigrate(true);
             flyway.migrate();
         } catch (SQLException e) {
@@ -70,41 +87,124 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
         return this;
     }
 
+    private Flyway openFlyway() throws SQLException {
+        // silence flyway's annoying default logging
+        Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
+        DatabaseMetaData md = getHandle().getConnection().getMetaData();
+        Flyway flyway = new Flyway();
+        flyway.setDataSource(jdbcUrl != null ? jdbcUrl : md.getURL()
+                + H2_SWITCHES, md.getUserName(), "");
+        flyway.setLocations("doss/migrations");
+        return flyway;
+    }
+
+    public String version() {
+        try {
+            Flyway flyway = openFlyway();
+            return flyway.info().current().getVersion().toString();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @SqlQuery("SELECT NEXTVAL('ID_SEQ')")
     public abstract long nextId();
 
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
-    public abstract void insertBlob(@Bind("blobId") long blobId, @Bind("containerId") long containerId, @Bind("offset") long offset);
+    public abstract void insertBlob(@Bind("blobId") long blobId,
+            @Bind("containerId") long containerId,
+            @Bind("offset") long offset);
 
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract void deleteBlob(@Bind("blobId") long blobId);
 
-    @SqlQuery("SELECT container_id, offset FROM blobs WHERE blob_id = :blobId")
+    @SqlQuery("SELECT area, blobs.container_id, offset FROM containers, blobs WHERE blob_id = :blobId AND containers.container_id = blobs.container_id")
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
-    public static class BlobLocationMapper implements ResultSetMapper<BlobLocation> {
+    public static class BlobLocationMapper implements
+            ResultSetMapper<BlobLocation> {
         @Override
-        public BlobLocation map(int index, ResultSet r, StatementContext ctx) throws SQLException {
-            return new BlobLocation(r.getLong("container_id"), r.getLong("offset"));
+        public BlobLocation map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new BlobLocation(r.getString("area"),
+                    r.getLong("container_id"),
+                    r.getLong("offset"));
         }
     }
+
+    public static class ContainerRecord {
+        private final long containerId;
+        private final String area;
+        private final long size;
+        private final boolean sealed;
+
+        public long id() {
+            return containerId;
+        }
+
+        public String area() {
+            return area;
+        }
+
+        public long size() {
+            return size;
+        }
+
+        public boolean sealed() {
+            return sealed;
+        }
+
+        ContainerRecord(long containerId, String area, long size,
+                boolean sealed) {
+            this.containerId = containerId;
+            this.area = area;
+            this.size = size;
+            this.sealed = sealed;
+        }
+    }
+
+    public static class ContainerMapper implements
+            ResultSetMapper<ContainerRecord> {
+        @Override
+        public ContainerRecord map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new ContainerRecord(r.getLong("container_id"),
+                    r.getString("area"), r.getLong("size"),
+                    r.getBoolean("sealed"));
+        }
+    }
+
+    @SqlQuery("SELECT * FROM containers WHERE container_id = :containerId")
+    @RegisterMapper(ContainerMapper.class)
+    public abstract ContainerRecord findContainer(
+            @Bind("containerId") long containerId);
 
     @SqlQuery("SELECT container_id FROM containers WHERE sealed = 0 AND AREA = :area")
     public abstract Long findAnOpenContainer(@Bind("area") String area);
 
     @SqlUpdate("INSERT INTO containers (area) VALUES (:area)")
     @GetGeneratedKeys
-    public abstract long createContainer(@Bind("area") String name);
+    public abstract long createContainer(@Bind("area") String area);
+
+    @SqlUpdate("UPDATE containers SET area = :area WHERE container_id = :containerId")
+    public abstract long updateContainerArea(
+            @Bind("containerId") long containerId, @Bind("area") String area);
 
     @SqlUpdate("UPDATE containers SET sealed = true WHERE container_id = :id")
     public abstract long sealContainer(@Bind("id") long containerId);
 
+    @SqlQuery("SELECT * FROM containers")
+    @RegisterMapper(ContainerMapper.class)
+    public abstract Iterable<ContainerRecord> findAllContainers();
+
     @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
-    public abstract Long findBlobIdForLegacyPathAndLock(@Bind("legacy_path") String legacyPath);
+    public abstract Long findBlobIdForLegacyPathAndLock(
+            @Bind("legacy_path") String legacyPath);
 
     @SqlUpdate("INSERT INTO legacy_paths (blob_id, legacy_path) VALUES (:blob_id, :legacy_path)")
-    public abstract long insertLegacy(@Bind("blob_id") long blobId, @Bind("legacy_path") String legacyPath);
+    public abstract long insertLegacy(@Bind("blob_id") long blobId,
+            @Bind("legacy_path") String legacyPath);
 
     @Transaction
     public Long findOrInsertBlobIdByLegacyPath(String legacyPath) {
@@ -118,4 +218,26 @@ abstract class Database implements Closeable, GetHandle, Transactional<Database>
 
     @SqlQuery("SELECT legacy_path FROM legacy_paths WHERE blob_id = :blob_id")
     public abstract String locateLegacy(@Bind("blob_id") long blobId);
+
+    @SqlQuery("SELECT digest FROM digests WHERE blob_id = :blob_id AND algorithm = :algorithm")
+    public abstract String getDigest(@Bind("blob_id") long blobId,
+            @Bind("algorithm") String algorithm);
+
+    @SqlUpdate("INSERT INTO digests (blob_id, algorithm, digest) VALUES(:blob_id, :algorithm, :digest)")
+    public abstract void insertDigest(@Bind("blob_id") long blobId,
+            @Bind("algorithm") String algorithm,
+            @Bind("digest") String digest);
+
+    @SqlQuery("SELECT algorithm, digest FROM digests WHERE blob_id = :blob_id")
+    public abstract ResultSet getDigestsIterable(@Bind("blob_id") long blobId);
+
+    public Map<String, String> getDigests(long blobId) {
+        HashMap<String, String> out = new HashMap<String, String>();
+        for (Map<String, Object> row : getHandle().select(
+                "SELECT algorithm, digest FROM digests WHERE blob_id = ?",
+                blobId)) {
+            out.put((String) row.get("algorithm"), (String) row.get("digest"));
+        }
+        return out;
+    }
 }

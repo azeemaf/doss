@@ -5,6 +5,10 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
+
+import org.apache.thrift.TException;
 
 import doss.Blob;
 
@@ -43,6 +47,24 @@ class RemoteBlob implements Blob {
             return FileTime.fromMillis(stat.getCreatedMillis());
         } else {
             return null;
+        }
+    }
+
+    @Override
+    public String digest(String algorithm) throws NoSuchAlgorithmException, IOException {
+        try {
+            return client.digest(id(), algorithm);
+        } catch (TException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public List<String> verify() throws IOException {
+        try {
+            return client.verify(id());
+        } catch (TException e) {
+            throw new IOException(e);
         }
     }
 }

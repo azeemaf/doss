@@ -29,7 +29,15 @@ service DossService {
         throws (1:RemoteNoSuchBlobException noSuchBlobException,
                 2:RemoteIOException ioException),
 
+    string digest(1:BlobId blobId, 2:string algorithm)
+        throws (1:RemoteNoSuchBlobException noSuchBlobException,
+                2:RemoteIOException ioException),
+
     binary read(1:BlobId blobId, 2:i64 offset, 3:i32 length)
+        throws (1:RemoteNoSuchBlobException noSuchBlobException,
+                2:RemoteIOException ioException),
+
+    list<string> verify(1:BlobId blobId)
         throws (1:RemoteNoSuchBlobException noSuchBlobException,
                 2:RemoteIOException ioException),
 
