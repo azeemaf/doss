@@ -6,7 +6,8 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -23,7 +24,7 @@ public class TarContainer implements Container {
 
     final private Path path;
     final private long id;
-    final private SeekableByteChannel channel;
+    final private FileChannel channel;
     final private ByteBuffer headerBuffer = ByteBuffer.allocate(HEADER_LENGTH);
     private static final int BLOCK_SIZE = 512;
     private static final int HEADER_LENGTH = BLOCK_SIZE;
@@ -33,7 +34,7 @@ public class TarContainer implements Container {
     TarContainer(long id, Path path) throws IOException, ArchiveException {
         this.path = path;
         this.id = id;
-        channel = Files.newByteChannel(path, READ, WRITE, CREATE);
+        channel = FileChannel.open(path, READ, WRITE, CREATE);
     }
 
     @Override
@@ -71,14 +72,14 @@ public class TarContainer implements Container {
         if (channel.size() > 1024) {
             channel.position(channel.size() - 1024);
         }
-
         long offset = channel.position();
-        writeRecordHeader(id, output);
-        output.writeTo(channel);
-        writeRecordPadding();
-        writeArchiveFooter();
+        try (FileLock lock = channel.lock()) {
+            writeRecordHeader(id, output);
+            output.writeTo(channel);
+            writeRecordPadding();
+            writeArchiveFooter();
+        }
         return offset;
-
     }
 
     private static long calculatePadding(long position) {
