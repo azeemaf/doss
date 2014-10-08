@@ -23,11 +23,11 @@ public class Admin {
         }
     }
 
-    /**
-     * Beware: only sets the flag in the database. Any active processes may keep
-     * using the container.
-     */
-    public void sealContainer(long containerId) {
+    public void sealContainer(long containerId) throws ContainerInUseException {
+        if (blobStore.db.checkContainerForOpenTxs(containerId)) {
+            throw new ContainerInUseException(containerId);
+        }
+        // FIXME: race
         blobStore.db.sealContainer(containerId);
     }
 

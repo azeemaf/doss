@@ -268,6 +268,10 @@ abstract class Database implements Closeable, GetHandle,
     @SqlQuery("SELECT blob_id FROM tx_blobs WHERE tx_id = :tx_id")
     public abstract List<Long> listBlobsByTx(@Bind("tx_id") long txId);
 
+    @SqlQuery("SELECT 1 FROM blobs, tx_blobs, txs WHERE blobs.container_id = :container_id AND tx_blobs.blob_id = blobs.blob_id AND txs.tx_id = tx_blobs.tx_id AND (txs.state = 0) OR (txs.state = 1)")
+    public abstract boolean checkContainerForOpenTxs(
+            @Bind("container_id") long containerId);
+
     public static class TxRecord {
         public long id;
         public int state;
