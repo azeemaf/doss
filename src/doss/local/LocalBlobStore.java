@@ -32,7 +32,6 @@ public class LocalBlobStore implements BlobStore {
     private final static Logger logger = Logger.getLogger(LocalBlobStore.class
             .getName());
 
-    final Symlinker symlinker;
     final Database db;
     final Path rootDir;
     final Map<String, Area> areas = new HashMap<>();
@@ -47,7 +46,6 @@ public class LocalBlobStore implements BlobStore {
         } else {
             db = Database.open(jdbcUrl);
         }
-        symlinker = new Symlinker(subdir("blob"));
         Path configFile = rootDir.resolve("conf/doss.conf");
         if (!Files.exists(configFile)) {
             createDefaultConfig(configFile);
@@ -237,7 +235,6 @@ public class LocalBlobStore implements BlobStore {
             public void rollback() throws IOException {
                 for (Long blobId : db.listBlobsByTx(id)) {
                     db.deleteBlob(blobId);
-                    symlinker.unlink(blobId);
                 }
                 db.updateTxState(id, Database.TX_ROLLEDBACK);
             }
@@ -256,7 +253,6 @@ public class LocalBlobStore implements BlobStore {
         public void setExtension(final long blobId, final String ext)
                 throws NoSuchBlobException, IOException {
             get(blobId); // force existence check
-            symlinker.updateLinkPath(blobId, ext);
         }
 
         @Override
@@ -286,10 +282,6 @@ public class LocalBlobStore implements BlobStore {
             Container container = stagingArea.currentContainer();
             long offset = container.put(blobId, output);
             db.insertBlobAndTxBlob(id, blobId, container.id(), offset);
-            if (container instanceof DirectoryContainer) {
-                symlinker.link(blobId,
-                        (DirectoryContainer) container, offset);
-            }
             return new CachedMetadataBlob(db, container.get(offset));
         }
 
