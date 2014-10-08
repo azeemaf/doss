@@ -1,6 +1,7 @@
 package doss.local;
 
 import java.io.IOException;
+import java.nio.channels.FileLock;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
@@ -49,7 +50,7 @@ public class Area implements AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         if (currentContainer != null) {
             currentContainer.close();
         }
@@ -57,7 +58,7 @@ public class Area implements AutoCloseable {
 
     /**
      * The container new blobs should be packed into.
-     * 
+     *
      * @throws IOException
      */
     public synchronized Container currentContainer() throws IOException {
@@ -80,7 +81,7 @@ public class Area implements AutoCloseable {
 
     /**
      * The container with the specified container id.
-     * 
+     *
      * @throws IOException
      */
     public synchronized Container container(Long containerId)
@@ -99,6 +100,7 @@ public class Area implements AutoCloseable {
     // TODO: failure handling, journaling?
     void moveContainerFrom(Area srcArea, long containerId) throws IOException {
         try (Container in = srcArea.container(containerId);
+                FileLock inLock = in.lock();
                 Container out = container(containerId)) {
             // copy container
             for (Blob blob : in) {

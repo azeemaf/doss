@@ -1,6 +1,7 @@
 package doss.local;
 
 import java.io.IOException;
+import java.nio.channels.FileLock;
 
 import doss.Blob;
 import doss.Writable;
@@ -11,12 +12,12 @@ import doss.core.Sized;
  * A container (usually a tar file) is a sequence of blobs that have been
  * concatenated together so that an underlying filesystem sees them as a single
  * file.
- * 
+ *
  * In normal operation a BlobStore will have many containers. New blobs are
  * appended to an open container in the staging filesystem until it reaches a
  * configured size limit. The container is then sealed and then moved to the
  * preservation filesystem.
- * 
+ *
  * Motivation: By packing blobs into containers the underlying filesystem only
  * has to deal with thousands of container files rather than the billions of
  * individual blobs. This allows us to use archival filesystems which are
@@ -32,7 +33,9 @@ public interface Container extends AutoCloseable, Named, Sized, Iterable<Blob> {
     public long put(long blobId, Writable output) throws IOException;
 
     @Override
-    void close();
+    void close() throws IOException;
+
+    FileLock lock() throws IOException;
 
     /**
      * DANGER

@@ -38,12 +38,8 @@ public class TarContainer implements Container {
     }
 
     @Override
-    public synchronized void close() {
-        try {
-            channel.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public synchronized void close() throws IOException {
+        channel.close();
     }
 
     private synchronized TarArchiveEntry readEntry(long offset)
@@ -73,7 +69,7 @@ public class TarContainer implements Container {
             channel.position(channel.size() - 1024);
         }
         long offset = channel.position();
-        try (FileLock lock = channel.lock()) {
+        try (FileLock lock = lock()) {
             writeRecordHeader(id, output);
             output.writeTo(channel);
             writeRecordPadding();
@@ -156,5 +152,10 @@ public class TarContainer implements Container {
     @Override
     public void permanentlyDelete() throws IOException {
         Files.delete(path);
+    }
+
+    @Override
+    public FileLock lock() throws IOException {
+        return channel.lock();
     }
 }

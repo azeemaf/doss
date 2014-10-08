@@ -41,7 +41,7 @@ public class SymlinkerTest {
     }
 
     @After
-    public void teardown() {
+    public void teardown() throws IOException {
         if (container != null) {
             container.close();
             container = null;
