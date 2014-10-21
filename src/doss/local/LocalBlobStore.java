@@ -1,16 +1,16 @@
 package doss.local;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.Charsets;
 
@@ -25,15 +25,19 @@ import doss.core.ManagedTransaction;
 import doss.core.Transaction;
 import doss.core.Writables;
 import doss.local.Database.ContainerRecord;
+import doss.local.Database.TxRecord;
 
 public class LocalBlobStore implements BlobStore {
 
-    final Symlinker symlinker;
+    private final static Logger logger = Logger.getLogger(LocalBlobStore.class
+            .getName());
+
     final Database db;
-    final Map<Long, BlobTx> txs = new ConcurrentHashMap<>();
     final Path rootDir;
     final Map<String, Area> areas = new HashMap<>();
     final Area stagingArea;
+    final static String clientName = System.getProperty("nla.node", "java")
+            + ":" + ManagementFactory.getRuntimeMXBean().getName();
 
     private LocalBlobStore(Path rootDir, String jdbcUrl) throws IOException {
         this.rootDir = rootDir;
@@ -42,7 +46,6 @@ public class LocalBlobStore implements BlobStore {
         } else {
             db = Database.open(jdbcUrl);
         }
-        symlinker = new Symlinker(subdir("blob"));
         Path configFile = rootDir.resolve("conf/doss.conf");
         if (!Files.exists(configFile)) {
             createDefaultConfig(configFile);
@@ -130,7 +133,11 @@ public class LocalBlobStore implements BlobStore {
     @Override
     public void close() {
         for (Area area : areas.values()) {
-            area.close();
+            try {
+                area.close();
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, "Error closing area " + area.name(), e);
+            }
         }
         db.close();
     }
@@ -163,24 +170,55 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public BlobTx begin() {
-        BlobTx tx = new Tx();
-        txs.put(tx.id(), tx);
-        return tx;
+        long txId = db.nextId();
+        db.insertTx(txId, clientName);
+        return new Tx(txId);
     }
 
     @Override
     public BlobTx resume(long txId) throws NoSuchBlobTxException {
-        BlobTx tx = txs.get(txId);
-        if (tx == null) {
+        TxRecord txRecord = db.findTx(txId);
+        if (txRecord == null
+                || txRecord.state == Database.TX_COMMITTED
+                || txRecord.state == Database.TX_ROLLEDBACK) {
             throw new NoSuchBlobTxException(txId);
         }
-        return tx;
+        return new Tx(txRecord.id, txRecord.state);
     }
 
     public class Tx extends ManagedTransaction implements BlobTx {
 
-        final long id = db.nextId();
-        final List<Long> addedBlobs = new ArrayList<Long>();
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof Tx && ((Tx) obj).id == id;
+        }
+
+        final long id;
+
+        Tx(long id) {
+            this.id = id;
+        }
+
+        Tx(long id, int numericState) {
+            this.id = id;
+            switch (numericState) {
+            case Database.TX_OPEN:
+                state = State.OPEN;
+                break;
+            case Database.TX_PREPARED:
+                state = State.PREPARED;
+                break;
+            case Database.TX_COMMITTED:
+                state = State.COMMITTED;
+                break;
+            case Database.TX_ROLLEDBACK:
+                state = State.ROLLEDBACK;
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Invalid transaction state: " + numericState);
+            }
+        }
 
         // ManagedTransaction will call back into this private Transaction when
         // the transaction changes state.
@@ -190,21 +228,20 @@ public class LocalBlobStore implements BlobStore {
 
             @Override
             public void commit() throws IOException {
-                txs.remove(id);
+                db.updateTxState(id, Database.TX_COMMITTED);
             }
 
             @Override
             public void rollback() throws IOException {
-                for (Long blobId : addedBlobs) {
+                for (Long blobId : db.listBlobsByTx(id)) {
                     db.deleteBlob(blobId);
-                    symlinker.unlink(blobId);
                 }
-                txs.remove(id);
+                db.updateTxState(id, Database.TX_ROLLEDBACK);
             }
 
             @Override
             public void prepare() {
-                // TODO Auto-generated method stub
+                db.updateTxState(id, Database.TX_PREPARED);
             }
 
             @Override
@@ -212,10 +249,10 @@ public class LocalBlobStore implements BlobStore {
             }
         };
 
+        @Deprecated
         public void setExtension(final long blobId, final String ext)
                 throws NoSuchBlobException, IOException {
-            Blob blob = get(blobId);
-            symlinker.updateLinkPath(blobId, ext);
+            get(blobId); // force existence check
         }
 
         @Override
@@ -239,18 +276,12 @@ public class LocalBlobStore implements BlobStore {
         }
 
         @Override
-        public Blob put(Writable output) throws IOException {
+        public Blob put(final Writable output) throws IOException {
             state.assertOpen();
-            db.begin();
             long blobId = db.nextId();
             Container container = stagingArea.currentContainer();
             long offset = container.put(blobId, output);
-            db.insertBlob(blobId, container.id(), offset);
-            if (container instanceof DirectoryContainer) {
-                symlinker.link(blobId, (DirectoryContainer) container, offset);
-            }
-            addedBlobs.add(blobId);
-            db.commit();
+            db.insertBlobAndTxBlob(id, blobId, container.id(), offset);
             return new CachedMetadataBlob(db, container.get(offset));
         }
 
@@ -270,10 +301,7 @@ public class LocalBlobStore implements BlobStore {
          */
         public Long putLegacy(Path legacyPath) throws IOException {
             state.assertOpen();
-            Long blobId = db.findOrInsertBlobIdByLegacyPath(legacyPath
-                    .toString());
-            addedBlobs.add(blobId);
-            return blobId;
+            return db.findOrInsertBlobIdByLegacyPath(legacyPath.toString());
         }
     }
 

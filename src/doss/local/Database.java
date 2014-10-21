@@ -8,6 +8,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -116,7 +117,7 @@ abstract class Database implements Closeable, GetHandle,
             @Bind("offset") long offset);
 
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
-    public abstract void deleteBlob(@Bind("blobId") long blobId);
+    public abstract long deleteBlob(@Bind("blobId") long blobId);
 
     @SqlQuery("SELECT area, blobs.container_id, offset FROM containers, blobs WHERE blob_id = :blobId AND containers.container_id = blobs.container_id")
     @RegisterMapper(BlobLocationMapper.class)
@@ -239,5 +240,59 @@ abstract class Database implements Closeable, GetHandle,
             out.put((String) row.get("algorithm"), (String) row.get("digest"));
         }
         return out;
+    }
+
+    @SqlUpdate("INSERT INTO txs (tx_id, state, client) VALUES(:tx_id, 0, :client)")
+    public abstract void insertTx(@Bind("tx_id") long txId,
+            @Bind("client") String client);
+
+    @SqlQuery("SELECT * FROM txs WHERE tx_id = :tx_id")
+    @RegisterMapper(TxRecordMapper.class)
+    public abstract TxRecord findTx(@Bind("tx_id") long txId);
+
+    @SqlUpdate("UPDATE txs SET state = :state WHERE tx_id = :tx_id")
+    public abstract long updateTxState(@Bind("tx_id") long txId,
+            @Bind("state") long state);
+
+    @SqlUpdate("INSERT INTO tx_blobs (tx_id, blob_id) VALUES(:tx_id, :blob_id)")
+    public abstract void insertTxBlob(@Bind("tx_id") long txId,
+            @Bind("blob_id") long blobId);
+
+    @Transaction
+    public void insertBlobAndTxBlob(long txId, long blobId, long containerId,
+            long offset) {
+        insertBlob(blobId, containerId, offset);
+        insertTxBlob(txId, blobId);
+    }
+
+    @SqlQuery("SELECT blob_id FROM tx_blobs WHERE tx_id = :tx_id")
+    public abstract List<Long> listBlobsByTx(@Bind("tx_id") long txId);
+
+    @SqlQuery("SELECT 1 FROM blobs, tx_blobs, txs WHERE blobs.container_id = :container_id AND tx_blobs.blob_id = blobs.blob_id AND txs.tx_id = tx_blobs.tx_id AND (txs.state = 0) OR (txs.state = 1)")
+    public abstract boolean checkContainerForOpenTxs(
+            @Bind("container_id") long containerId);
+
+    public static class TxRecord {
+        public long id;
+        public int state;
+        public String client;
+    }
+
+    public static final int TX_OPEN = 0;
+    public static final int TX_PREPARED = 1;
+    public static final int TX_COMMITTED = 2;
+    public static final int TX_ROLLEDBACK = 3;
+
+    public static class TxRecordMapper implements ResultSetMapper<TxRecord> {
+
+        @Override
+        public TxRecord map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            TxRecord tx = new TxRecord();
+            tx.id = r.getLong("tx_id");
+            tx.state = r.getInt("state");
+            tx.client = r.getString("client");
+            return tx;
+        }
     }
 }
