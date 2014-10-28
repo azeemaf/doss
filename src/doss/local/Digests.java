@@ -17,10 +17,11 @@ public class Digests {
             IOException {
         MessageDigest md = MessageDigest.getInstance(canonicalizeAlgorithm(algorithm));
         ByteBuffer buffer = ByteBuffer.allocate(8192);
-        channel.read(buffer);
-        buffer.flip();
-        md.update(buffer);
-        buffer.clear();
+        while (channel.read(buffer) > 0) {
+            buffer.flip();
+            md.update(buffer);
+            buffer.clear();
+        }
         return DatatypeConverter.printHexBinary(md.digest()).toLowerCase();
     }
 }
