@@ -144,16 +144,4 @@
       <url>scpexe://spitfire.nla.gov.au/www/prod/maven/htdocs/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
-
-  <repositories>
-    <repository>
-      <id>nla-public-releases</id>
-      <url>http://maven.nla.gov.au/releases</url>
-    </repository>
-    <repository>
-      <id>nla-public-snapshots</id>
-      <url>http://maven.nla.gov.au/snapshots</url>
-    </repository>
-  </repositories>
-
 </project>

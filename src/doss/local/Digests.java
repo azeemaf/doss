@@ -13,8 +13,7 @@ public class Digests {
         return algorithm.replace("-", "").toLowerCase();
     }
 
-    public static String calculate(String algorithm, ReadableByteChannel channel)
-            throws NoSuchAlgorithmException,
+    public static String calculate(String algorithm, ReadableByteChannel channel) throws NoSuchAlgorithmException,
             IOException {
         MessageDigest md = MessageDigest.getInstance(canonicalizeAlgorithm(algorithm));
         ByteBuffer buffer = ByteBuffer.allocate(8192);
