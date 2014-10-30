@@ -1,5 +1,8 @@
 package doss.local;
 
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -7,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -46,7 +50,8 @@ public class TarContainerTest {
     public void get() throws IOException, ArchiveException {
 
         Path testTar = testPath.resolve("testget" + getTimestamp() + ".tar");
-        TarContainer tarContainer = new TarContainer(1, testTar);
+        FileChannel channel = FileChannel.open(testTar, CREATE, READ, WRITE);
+        TarContainer tarContainer = new TarContainer(1, testTar, channel);
 
         File file1 = createFile(testPath, "1000", "file 1 content");
         Writable newFileBytes = Writables.wrap(file1.toPath());
@@ -71,7 +76,8 @@ public class TarContainerTest {
     public void iterator() throws Exception {
 
         Path testTar = testPath.resolve("testget" + getTimestamp() + ".tar");
-        TarContainer tarContainer = new TarContainer(1, testTar);
+        FileChannel channel = FileChannel.open(testTar, CREATE, READ, WRITE);
+        TarContainer tarContainer = new TarContainer(1, testTar, channel);
 
         File file1 = createFile(testPath, "1000", "file 1 content");
         Writable newFileBytes = Writables.wrap(file1.toPath());
@@ -83,13 +89,13 @@ public class TarContainerTest {
         assertEquals(1024, offset2);
 
         Iterator<Blob> it = tarContainer.iterator();
-
         assertTrue(it.hasNext());
         assertTrue(it.hasNext());
         assertEquals(DOSSTest.slurp(it.next()), "file 1 content");
         assertTrue(it.hasNext());
         assertTrue(it.hasNext());
         assertEquals(DOSSTest.slurp(it.next()), "file2 content");
+        DOSSTest.slurp(it.next());
         assertFalse(it.hasNext());
         assertFalse(it.hasNext());
 
@@ -99,8 +105,8 @@ public class TarContainerTest {
     @Test
     public void append() throws Exception {
         Path testTar = testPath.resolve("testappend" + getTimestamp() + ".tar");
-
-        TarContainer tarContainer = new TarContainer(2, testTar);
+        FileChannel channel = FileChannel.open(testTar, CREATE, READ, WRITE);
+        TarContainer tarContainer = new TarContainer(2, testTar, channel);
 
         byte[] bytes = "file 4 content".getBytes("UTF-8");
         Writable newFileBytes = Writables.wrap(bytes);
