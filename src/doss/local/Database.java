@@ -199,6 +199,11 @@ abstract class Database implements Closeable, GetHandle,
     @RegisterMapper(ContainerMapper.class)
     public abstract Iterable<ContainerRecord> findAllContainers();
 
+    @SqlQuery("SELECT * FROM containers WHERE sealed = true AND area = :area")
+    @RegisterMapper(ContainerMapper.class)
+    abstract public List<ContainerRecord> findArchivalCandidates(
+            @Bind("area") String area);
+
     @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
     public abstract Long findBlobIdForLegacyPathAndLock(
             @Bind("legacy_path") String legacyPath);
@@ -295,4 +300,5 @@ abstract class Database implements Closeable, GetHandle,
             return tx;
         }
     }
+
 }

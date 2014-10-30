@@ -28,6 +28,7 @@ import joptsimple.OptionSet;
 import org.apache.thrift.transport.TTransportException;
 
 import doss.local.Admin;
+import doss.local.Archiver;
 import doss.local.LocalBlobStore;
 import doss.net.BlobStoreServer;
 
@@ -93,6 +94,15 @@ public class Main {
             @Override
             void execute(Arguments args) throws IOException {
                 LocalBlobStore.init(getDossHome());
+            }
+        },
+        archiver("", "Run the archiving daemon") {
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Archiver archiver = new Archiver(bs);
+                    archiver.run();
+                }
             }
         },
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
