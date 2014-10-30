@@ -7,7 +7,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 
 import doss.Blob;
 import doss.core.Writables;
@@ -17,7 +16,7 @@ public class Area implements AutoCloseable {
     private final Database db;
     private final String name;
     private final List<Filesystem> filesystems;
-    private final String containerType;
+    private final ContainerType containerType;
     private final Path root;
     private long maxContainerSize = 10L * 1024 * 1024 * 1024;
     private Container currentContainer;
@@ -27,15 +26,21 @@ public class Area implements AutoCloseable {
         this.db = db;
         this.name = name;
         this.filesystems = filesystems;
-        this.containerType = containerType;
         if (filesystems.size() != 1) {
             throw new IllegalArgumentException(name
                     + ": currently only a single fs per area is implemented");
         }
-        if (!Objects.equals(containerType, "directory")) {
+        switch (containerType) {
+        case "tar":
+            this.containerType = new TarContainerType();
+            break;
+        case "directory":
+        case "dir":
+            this.containerType = new DirectoryContainerType();
+            break;
+        default:
             throw new IllegalArgumentException(
-                    name
-                            + ": currently only directory container type is supported, not "
+                    name + ": currently only directory and tar container types are supported, not "
                             + containerType);
         }
         root = filesystems.get(0).path();
@@ -70,11 +75,12 @@ public class Area implements AutoCloseable {
         }
         if (currentContainer == null) {
             Long containerId = db.findAnOpenContainer(name);
-            if (containerId == null) {
+            if (containerId != null) {
+                currentContainer = containerType.openForWriting(root, containerId);
+            } else {
                 containerId = db.createContainer(name);
+                currentContainer = containerType.create(root, containerId);
             }
-            currentContainer = new DirectoryContainer(containerId,
-                    root.resolve(Long.toString(containerId)));
         }
         return currentContainer;
     }
@@ -86,8 +92,7 @@ public class Area implements AutoCloseable {
      */
     public synchronized Container container(Long containerId)
             throws IOException {
-        return new DirectoryContainer(containerId, root.resolve(Long
-                .toString(containerId)));
+        return containerType.openForReading(root, containerId);
     }
 
     /**
@@ -101,7 +106,7 @@ public class Area implements AutoCloseable {
     void moveContainerFrom(Area srcArea, long containerId) throws IOException {
         try (Container in = srcArea.container(containerId);
                 FileLock inLock = in.lock();
-                Container out = container(containerId)) {
+                Container out = containerType.create(root, containerId)) {
             // copy container
             for (Blob blob : in) {
                 out.put(blob.id(), Writables.wrap(blob));

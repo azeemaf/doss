@@ -1,9 +1,5 @@
 package doss.local;
 
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.READ;
-import static java.nio.file.StandardOpenOption.WRITE;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -12,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 
-import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 
 import doss.Blob;
@@ -31,10 +26,10 @@ public class TarContainer implements Container {
     private static final int FOOTER_LENGTH = 2 * BLOCK_SIZE;
     private static final byte[] FOOTER_BYTES = new byte[FOOTER_LENGTH];
 
-    TarContainer(long id, Path path) throws IOException, ArchiveException {
+    TarContainer(long id, Path path, FileChannel channel) throws IOException {
         this.path = path;
         this.id = id;
-        channel = FileChannel.open(path, READ, WRITE, CREATE);
+        this.channel = channel;
     }
 
     @Override
@@ -75,6 +70,7 @@ public class TarContainer implements Container {
             writeRecordPadding();
             writeArchiveFooter();
         }
+
         return offset;
     }
 
@@ -91,10 +87,7 @@ public class TarContainer implements Container {
      * Write the 1024 zero byte end of archive marker.
      */
     private void writeArchiveFooter() throws IOException {
-        ByteBuffer endByteByffer = ByteBuffer.wrap(FOOTER_BYTES);
-        endByteByffer.flip();
-        endByteByffer.rewind();
-        channel.write(endByteByffer);
+        channel.write(ByteBuffer.wrap(FOOTER_BYTES));
     }
 
     private void writeRecordHeader(long id, SizedWritable output)

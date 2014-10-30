@@ -11,6 +11,7 @@ import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
@@ -149,4 +150,11 @@ public class TarContainerTest {
         return newFile;
     }
 
+    @Test
+    public void testContainerPath() {
+        Path root = Paths.get("/area");
+        TarContainerType t = new TarContainerType();
+        assertEquals("/area/004/123/456/nla.doss-4123456789.tar", t.tarPath(root, 4123456789L)
+                .toString());
+    }
 }
