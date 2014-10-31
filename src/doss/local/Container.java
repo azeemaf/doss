@@ -1,7 +1,6 @@
 package doss.local;
 
 import java.io.IOException;
-import java.nio.channels.FileLock;
 
 import doss.Blob;
 import doss.Writable;
@@ -34,8 +33,6 @@ public interface Container extends AutoCloseable, Named, Sized, Iterable<Blob> {
 
     @Override
     void close() throws IOException;
-
-    FileLock lock() throws IOException;
 
     /**
      * DANGER

@@ -3,7 +3,6 @@ package doss.local;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -64,13 +63,10 @@ public class TarContainer implements Container {
             channel.position(channel.size() - 1024);
         }
         long offset = channel.position();
-        try (FileLock lock = lock()) {
-            writeRecordHeader(id, output);
-            output.writeTo(channel);
-            writeRecordPadding();
-            writeArchiveFooter();
-        }
-
+        writeRecordHeader(id, output);
+        output.writeTo(channel);
+        writeRecordPadding();
+        writeArchiveFooter();
         return offset;
     }
 
@@ -147,8 +143,4 @@ public class TarContainer implements Container {
         Files.delete(path);
     }
 
-    @Override
-    public FileLock lock() throws IOException {
-        return channel.lock();
-    }
 }

@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.nio.channels.FileLock;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -161,11 +160,6 @@ public class AreaTest {
         @Override
         public void close() throws IOException {
             wrapped.close();
-        }
-
-        @Override
-        public FileLock lock() throws IOException {
-            return wrapped.lock();
         }
 
         @Override

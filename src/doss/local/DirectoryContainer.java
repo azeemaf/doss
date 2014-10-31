@@ -1,15 +1,12 @@
 package doss.local;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
-import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileVisitResult;
@@ -30,7 +27,6 @@ class DirectoryContainer implements Container {
 
     final long id;
     final Path dir;
-    final FileChannel lockChannel;
 
     public DirectoryContainer(long id, Path dir) throws IOException {
         this.id = id;
@@ -40,7 +36,6 @@ class DirectoryContainer implements Container {
         } catch (FileAlreadyExistsException e) {
             // okay
         }
-        lockChannel = FileChannel.open(dir.resolve(".lock"), CREATE, WRITE);
     }
 
     @Override
@@ -53,9 +48,8 @@ class DirectoryContainer implements Container {
     public long put(long id, Writable output) throws IOException {
         Long offset = 0L;
         while (true) {
-            try (FileLock lock = lock();
-                    WritableByteChannel channel = Files.newByteChannel(
-                            dataPathFor(offset), CREATE_NEW, WRITE)) {
+            try (WritableByteChannel channel = Files.newByteChannel(
+                    dataPathFor(offset), CREATE_NEW, WRITE)) {
                 output.writeTo(channel);
                 Files.write(idPathFor(offset),
                         Long.toString(id).getBytes("UTF-8"), CREATE_NEW, WRITE);
@@ -76,7 +70,6 @@ class DirectoryContainer implements Container {
 
     @Override
     public void close() throws IOException {
-        lockChannel.close();
     }
 
     @Override
@@ -145,11 +138,6 @@ class DirectoryContainer implements Container {
             f.delete();
         }
         Files.delete(dir);
-    }
-
-    @Override
-    public FileLock lock() throws IOException {
-        return lockChannel.lock();
     }
 
 }
