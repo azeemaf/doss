@@ -3,7 +3,7 @@
 
   <groupId>au.gov.nla</groupId>
   <artifactId>doss</artifactId>
-  <version>0.26.3-SNAPSHOT</version>
+  <version>0.26.4</version>
   <packaging>jar</packaging>
 
   <name>doss</name>
