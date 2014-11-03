@@ -23,11 +23,11 @@ public class Writables {
     public static Writable wrap(final Path path) {
         return new SizedWritable() {
             @Override
-            public void writeTo(WritableByteChannel targetChannel)
+            public long writeTo(WritableByteChannel targetChannel)
                     throws IOException {
                 try (FileChannel sourceChannel = (FileChannel) Files
                         .newByteChannel(path, StandardOpenOption.READ)) {
-                    sourceChannel.transferTo(0, Long.MAX_VALUE, targetChannel);
+                    return copy(sourceChannel, targetChannel);
                 }
             }
 
@@ -41,8 +41,8 @@ public class Writables {
     public static Writable wrap(final byte[] bytes) {
         return new SizedWritable() {
             @Override
-            public void writeTo(WritableByteChannel channel) throws IOException {
-                channel.write(ByteBuffer.wrap(bytes));
+            public long writeTo(WritableByteChannel channel) throws IOException {
+                return channel.write(ByteBuffer.wrap(bytes));
             }
 
             @Override
@@ -64,30 +64,42 @@ public class Writables {
                 + writable.getClass());
     }
 
-    private static void copy(ReadableByteChannel in, WritableByteChannel out)
+    private static long copy(ReadableByteChannel in, WritableByteChannel out)
             throws IOException {
         if (in instanceof FileChannel) {
-            ((FileChannel) in).transferTo(0, Long.MAX_VALUE, out);
-        } else if (out instanceof FileChannel) {
-            ((FileChannel) out).transferFrom(in, 0, Long.MAX_VALUE);
+            FileChannel infc = (FileChannel) in;
+            long size = infc.size();
+            long copied = 0;
+            while (copied < size) {
+                long nread = infc.transferTo(copied, Long.MAX_VALUE, out);
+                if (nread > 0) {
+                    copied += nread;
+                }
+            }
+            return copied;
         } else {
+            long copied = 0;
             ByteBuffer buffer = ByteBuffer.allocateDirect(64 * 1024);
             while (in.read(buffer) != -1) {
                 buffer.flip();
                 while (buffer.hasRemaining()) {
-                    out.write(buffer);
+                    long written = out.write(buffer);
+                    if (written > 0) {
+                        copied += written;
+                    }
                 }
                 buffer.compact();
             }
+            return copied;
         }
     }
 
     public static Writable wrap(final Blob blob) {
         return new SizedWritable() {
             @Override
-            public void writeTo(WritableByteChannel out) throws IOException {
+            public long writeTo(WritableByteChannel out) throws IOException {
                 try (SeekableByteChannel in = blob.openChannel()) {
-                    copy(in, out);
+                    return copy(in, out);
                 }
             }
 

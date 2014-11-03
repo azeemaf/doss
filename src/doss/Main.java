@@ -74,7 +74,7 @@ public class Main {
                     } else {
                         out.println("DOSS 2 version "
                                 + this.getClass().getPackage()
-                                        .getImplementationVersion());
+                                .getImplementationVersion());
                     }
 
                     try (BlobStore blobStore = openBlobStore()) {
@@ -104,6 +104,25 @@ public class Main {
                     archiver.run();
                 }
             }
+        },
+        bench("", "Run a basic benchmark (beware: will create and delete blobs)") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                byte[] data = new byte[2000];
+                try (BlobStore bs = openBlobStore()) {
+                    try (BlobTx tx = bs.begin()) {
+                        long start = System.currentTimeMillis();
+                        for (int i = 0; i < 1000; i++) {
+                            tx.put(data);
+                        }
+                        System.out.println("Created 1000 blobs in "
+                                + (System.currentTimeMillis() - start) + "ms");
+                        tx.rollback();
+                    }
+                }
+            }
+
         },
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
 

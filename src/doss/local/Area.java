@@ -35,7 +35,7 @@ public class Area implements AutoCloseable {
             break;
         case "directory":
         case "dir":
-            this.containerType = new DirectoryContainerType();
+            this.containerType = new DirectoryContainerType(db);
             break;
         default:
             throw new IllegalArgumentException(

@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -27,10 +28,12 @@ class DirectoryContainer implements Container {
 
     final long id;
     final Path dir;
+    final Database db;
 
-    public DirectoryContainer(long id, Path dir) throws IOException {
+    public DirectoryContainer(Database db, long id, Path dir) throws IOException {
         this.id = id;
         this.dir = dir;
+        this.db = db;
         try {
             Files.createDirectory(dir);
         } catch (FileAlreadyExistsException e) {
@@ -44,15 +47,41 @@ class DirectoryContainer implements Container {
         return new FileBlob(Long.parseLong(id), dataPathFor(offset));
     }
 
+    private long lastOffset() throws IOException {
+        Long offset = db.getContainerLastOffset(id);
+        if (offset != null) {
+            return offset;
+        }
+        try (DirectoryStream<Path> s = Files.newDirectoryStream(dir)) {
+            long largest = 0L;
+            for (Path p : s) {
+                String filename = p.getFileName().toString();
+                if (filename.endsWith(".id")) {
+                    continue;
+                }
+                try {
+                    long n = Long.parseLong(filename);
+                    if (n > largest) {
+                        largest = n;
+                    }
+                } catch (NumberFormatException e) {
+                    // ignore it
+                }
+            }
+            return largest;
+        }
+    }
+
     @Override
-    public long put(long id, Writable output) throws IOException {
-        Long offset = 0L;
+    public long put(long blobId, Writable output) throws IOException {
+        Long offset = lastOffset() + 1;
         while (true) {
             try (WritableByteChannel channel = Files.newByteChannel(
                     dataPathFor(offset), CREATE_NEW, WRITE)) {
-                output.writeTo(channel);
-                Files.write(idPathFor(offset),
-                        Long.toString(id).getBytes("UTF-8"), CREATE_NEW, WRITE);
+                long size = output.writeTo(channel);
+                Files.write(idPathFor(offset), Long.toString(blobId).getBytes("UTF-8"), CREATE_NEW,
+                        WRITE);
+                int n = db.increaseContainerSize(id, size, offset);
                 return offset;
             } catch (FileAlreadyExistsException e) {
                 offset++;
@@ -79,9 +108,13 @@ class DirectoryContainer implements Container {
 
     @Override
     public long size() throws IOException {
-        // TODO optimize
+        long size = db.getContainerSize(id);
+        if (size != 0) {
+            return size;
+        }
         SizeCalculator counter = new SizeCalculator();
         Files.walkFileTree(dir, counter);
+        db.setContainerSize(id, counter.size);
         return counter.size;
     }
 

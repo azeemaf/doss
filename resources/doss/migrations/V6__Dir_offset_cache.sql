@@ -1,0 +1,1 @@
+ALTER TABLE containers ADD last_offset bigint;

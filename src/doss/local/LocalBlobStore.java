@@ -86,7 +86,7 @@ public class LocalBlobStore implements BlobStore {
     /**
      * Opens a BlobStore that stores all its data and indexes on the local file
      * system.
-     * 
+     *
      * @param root
      *            directory to store data and indexes in
      * @return a new BlobStore
@@ -104,7 +104,7 @@ public class LocalBlobStore implements BlobStore {
     /**
      * Opens a BlobStore that stores all its data and indexes on the local file
      * system.
-     * 
+     *
      * @param root
      *            directory to store data in
      * @param jdbcUrl
@@ -289,13 +289,13 @@ public class LocalBlobStore implements BlobStore {
          * Slightly dodgey addition to LocalBlobStore Tx, for importing legacy
          * files into a local DOSS. Files do not get a symlink as there are no
          * legacy jp2s.
-         * 
+         *
          * @param legacyPath
          *            The full path to the legacy DOSS storage system.
-         * 
+         *
          * @return The Blob id for the legacy file. File can now be retrieved
          *         just like any other DOSS stored file
-         * 
+         *
          * @throws IOException
          *             when it's unhappy
          */

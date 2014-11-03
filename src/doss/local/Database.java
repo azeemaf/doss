@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 import org.apache.commons.compress.utils.Charsets;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.StatementContext;
+import org.skife.jdbi.v2.logging.PrintStreamLog;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
@@ -71,6 +72,9 @@ abstract class Database implements Closeable, GetHandle,
     }
 
     public static Database open(DBI dbi) {
+        if (System.getenv("DOSS_LOG_SQL") != null) {
+            dbi.setSQLLog(new PrintStreamLog());
+        }
         return dbi.open(Database.class);
     }
 
@@ -269,6 +273,20 @@ abstract class Database implements Closeable, GetHandle,
         insertBlob(blobId, containerId, offset);
         insertTxBlob(txId, blobId);
     }
+
+    @SqlUpdate("UPDATE containers SET size = size + :delta, last_offset = :last_offset WHERE container_id = :container_id")
+    public abstract int increaseContainerSize(@Bind("container_id") long containerId,
+            @Bind("delta") long delta, @Bind("last_offset") long lastOffset);
+
+    @SqlUpdate("UPDATE containers SET size = :size WHERE container_id = :container_id")
+    public abstract int setContainerSize(@Bind("container_id") long containerId,
+            @Bind("size") long size);
+
+    @SqlQuery("SELECT size FROM containers WHERE container_id = :container_id")
+    public abstract long getContainerSize(@Bind("container_id") long containerId);
+
+    @SqlQuery("SELECT last_offset FROM containers WHERE container_id = :container_id")
+    public abstract Long getContainerLastOffset(@Bind("container_id") long containerId);
 
     @SqlQuery("SELECT blob_id FROM tx_blobs WHERE tx_id = :tx_id")
     public abstract List<Long> listBlobsByTx(@Bind("tx_id") long txId);

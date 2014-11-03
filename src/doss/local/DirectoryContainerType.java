@@ -5,6 +5,12 @@ import java.nio.file.Path;
 
 class DirectoryContainerType implements ContainerType {
 
+    final Database db;
+
+    public DirectoryContainerType(Database db) {
+        this.db = db;
+    }
+
     @Override
     public String name() {
         return "directory";
@@ -22,7 +28,7 @@ class DirectoryContainerType implements ContainerType {
 
     @Override
     public Container openForWriting(Path areaRoot, long containerId) throws IOException {
-        return new DirectoryContainer(containerId, areaRoot.resolve(Long.toString(containerId)));
+        return new DirectoryContainer(db, containerId, areaRoot.resolve(Long.toString(containerId)));
     }
 
 }
