@@ -121,7 +121,7 @@ Once the container state becomes "WRITTEN", normal blobstore read operations are
 Cleanup phase
 -------------
 
-The cleanup phase deletes the original blob files from the staging filesystem. It updates the container state "ARCHIVED" to make the cleanup as complete.
+The cleanup phase deletes the original blob files from the staging filesystem. It updates the container state "ARCHIVED" to mark the cleanup as complete.
 
 container_id | state
 -------------|---------
@@ -131,7 +131,7 @@ container_id | state
 Notes on error handling
 -----------------------
 
-Each phase is completely independent can be run repeatedly (NOTE: but not multiple instances simultaneously) without harm.  If a phase encounters an I/O error it will close any open files and exit throwing an exception.  The archiver can be re-executed once the underlying filesystems are fixed.  Some steps will then have been run twice for the one container, but that's ok, they will just overwrite any incomplete work from when the error occurred.  More specifically:
+Each phase is completely independent can be run repeatedly (but not multiple instances simultaneously) without harm.  If a phase encounters an I/O error it will close any open files and exit throwing an exception.  The archiver can be re-executed once the underlying filesystems are fixed.  Some steps will then have been run twice for the one container, but that's ok, they will just overwrite any incomplete work from when the error occurred.  More specifically:
 
 * Data copy phase will delete and then replace a partially written tar in incoming/
 * Data copy phase will skip writing and moving, but re-verify a tar file already moved to data/ but which is not marked as WRITTEN.  If verification fails it will stop for manual intervention as it will NEVER overwrite existing files in data/.  If verification succeeds it will just mark the contianer as WRITTEN.
