@@ -131,4 +131,8 @@ container_id | state
 Notes on error handling
 -----------------------
 
-Each phase is completely independent can be run multiple times without harm.  If a phase encounters an I/O error it will close any open files and exit throwing an exception.  The archiver can be re-executed once the underlying filesystems are fixed.  Some steps will then have been run twice for the one container, but that's ok, they will just overwrite any incomplete work from when the error occurred.
+Each phase is completely independent can be run multiple times without harm.  If a phase encounters an I/O error it will close any open files and exit throwing an exception.  The archiver can be re-executed once the underlying filesystems are fixed.  Some steps will then have been run twice for the one container, but that's ok, they will just overwrite any incomplete work from when the error occurred.  More specifically:
+
+* Data copy phase will truncate and then overwrite a partially written tar in incoming/
+* Data copy phase will skip writing and moving, but re-verify a tar file already moved to data/ but which is not marked as WRITTEN.  If verification fails it will stop for manual intervention as it will NEVER overwrite existing files in data/.  If verification succeeds it will just mark the contianer as WRITTEN.
+* Cleanup phase will ignore already deleted blob files and just continue operating.  The assumption being that a previous attempt at cleanup died partway through.
