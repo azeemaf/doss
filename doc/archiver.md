@@ -7,7 +7,7 @@ Archiving is split into 3 phases corresponding to a change of state tracked in t
 * Data copy (SEALED -> WRITTEN)
 * Cleanup   (WRITEN -> ARCHIVED)
 
-The archiver will normally run each phase one after the other.
+The archiver will normally run each phase one after the other. It will complete selection for all containers, then data copy for all containers and finally cleanup for all containers.
 
 The archiver requires two or more filesystems to be configured:
 
