@@ -118,7 +118,7 @@ container_id | state
 
 Once the container state becomes "WRITTEN", normal blobstore read operations are directed to the display filesystem rather than staging filesystem.
 
-Cleaned phase
+Cleanup phase
 -------------
 
 The cleanup phase deletes the original blob files from the staging filesystem. It updates the container state "ARCHIVED" to make the cleanup as complete.
