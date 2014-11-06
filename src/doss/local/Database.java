@@ -32,7 +32,7 @@ import com.googlecode.flyway.core.Flyway;
 import doss.NoSuchBlobException;
 
 abstract class Database implements Closeable, GetHandle,
-Transactional<Database> {
+        Transactional<Database> {
 
     /*
      * Connection meta data URL doesn't include H2 switches. We have to manually
@@ -128,17 +128,18 @@ Transactional<Database> {
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract long deleteBlob(@Bind("blobId") long blobId);
 
-    @SqlQuery("SELECT blobs.container_id, offset FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id WHERE blob_id = :blobId ")
+    @SqlQuery("SELECT blobs.container_id, offset, state FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id WHERE blob_id = :blobId ")
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
     public static class BlobLocationMapper implements
-    ResultSetMapper<BlobLocation> {
+            ResultSetMapper<BlobLocation> {
         @Override
         public BlobLocation map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
             return new BlobLocation((Long) r.getObject("container_id"),
-                    (Long) r.getObject("offset"));
+                    (Long) r.getObject("offset"),
+                    r.getInt("state"));
         }
     }
 
@@ -146,6 +147,7 @@ Transactional<Database> {
         private final long containerId;
         private final long size;
         private final int state;
+        private final String sha1;
 
         public long id() {
             return containerId;
@@ -155,10 +157,11 @@ Transactional<Database> {
             return size;
         }
 
-        ContainerRecord(long containerId, long size, int state) {
+        ContainerRecord(long containerId, long size, int state, String sha1) {
             this.containerId = containerId;
             this.size = size;
             this.state = state;
+            this.sha1 = sha1;
         }
 
         public String stateName() {
@@ -179,15 +182,19 @@ Transactional<Database> {
         public int state() {
             return state;
         }
+
+        public String sha1() {
+            return sha1;
+        }
     }
 
     public static class ContainerMapper implements
-    ResultSetMapper<ContainerRecord> {
+            ResultSetMapper<ContainerRecord> {
         @Override
         public ContainerRecord map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
             return new ContainerRecord(r.getLong("container_id"),
-                    r.getLong("size"), r.getInt("state"));
+                    r.getLong("size"), r.getInt("state"), r.getString("sha1"));
         }
     }
 
@@ -352,4 +359,8 @@ Transactional<Database> {
 
     @SqlUpdate("UPDATE blobs SET offset = :offset WHERE blob_id = :blob_id")
     public abstract int setBlobOffset(@Bind("blob_id") long blobId, @Bind("offset") long offset);
+
+    @SqlUpdate("UPDATE containers SET sha1 = :sha1 WHERE container_id = container_id")
+    public abstract int setContainerSha1(@Bind("container_id") long containerId,
+            @Bind("sha1") String sha1);
 }

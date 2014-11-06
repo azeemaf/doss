@@ -6,6 +6,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 
@@ -107,13 +108,26 @@ public class TarContainer implements Container {
 
     @Override
     public Iterator<Blob> iterator() {
+        final long size;
+        try {
+            size = size();
+        } catch (IOException e1) {
+            throw new RuntimeException(e1);
+        }
         return new Iterator<Blob>() {
             long pos = 0;
+            TarArchiveEntry entry = null;
 
             @Override
             public boolean hasNext() {
                 try {
-                    return pos < size();
+                    if (entry == null) {
+                        entry = readEntry(pos);
+                    }
+                    if (entry.getName().isEmpty()) {
+                        return false;
+                    }
+                    return pos < size;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -122,10 +136,14 @@ public class TarContainer implements Container {
             @Override
             public Blob next() {
                 try {
-                    Blob blob = get(pos);
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+                    Blob blob = new TarBlob(path, pos + HEADER_LENGTH, entry);
                     pos += HEADER_LENGTH;
                     pos += blob.size();
                     pos += calculatePadding(pos);
+                    entry = null;
                     return blob;
                 } catch (IOException e) {
                     throw new RuntimeException(e);

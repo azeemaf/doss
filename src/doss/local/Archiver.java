@@ -6,7 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -114,14 +116,70 @@ public class Archiver {
                 }
             }
 
-            // TODO: verify
+            // verify all blobs exist and have the right contents
+            for (Path fsRoot : blobStore.masterRoots) {
+                verifyContainerContents(containerId, fsRoot);
+            }
 
+            // calculate whole container digests and compare to each other
+            String lastDigest = null;
+            for (Path fsRoot : blobStore.masterRoots) {
+                Path path = incomingPath(fsRoot, containerId);
+                try (FileChannel chan = FileChannel.open(path, StandardOpenOption.READ)) {
+                    String digest = Digests.calculate("SHA1", chan);
+                    if (lastDigest != null && !digest.equals(lastDigest)) {
+                        throw new IOException("tar digests do not match. Expected " + lastDigest
+                                + " but got " + digest + " for " + path);
+                    }
+                    lastDigest = digest;
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            db.setContainerSha1(containerId, lastDigest);
+
+            // all ok, do the final move
             for (Path fsRoot : blobStore.masterRoots) {
                 Path dest = blobStore.tarPath(fsRoot, containerId);
                 Files.createDirectories(dest.getParent());
                 Files.move(incomingPath(fsRoot, containerId), dest, StandardCopyOption.ATOMIC_MOVE);
             }
             db.updateContainerState(containerId, Database.CNT_WRITTEN);
+        }
+    }
+
+    private void verifyContainerContents(long containerId, Path fsRoot) throws IOException {
+        Path tarPath = incomingPath(fsRoot, containerId);
+        try (TarContainer tar = new TarContainer(containerId, tarPath, FileChannel.open(
+                tarPath, StandardOpenOption.READ))) {
+            Iterator<Blob> it = tar.iterator();
+            for (long blobId : db.findBlobsByContainer(containerId)) {
+                Blob stagingBlob = blobStore.get(blobId);
+                if (!it.hasNext()) {
+                    throw new IOException("tar ended prematurely");
+                }
+                Blob tarBlob = it.next();
+                if (stagingBlob.id() != tarBlob.id()) {
+                    throw new IOException("expected blob " + stagingBlob.id()
+                            + " but found " + tarBlob.id());
+                }
+                if (stagingBlob.size() != tarBlob.size()) {
+                    throw new IOException("blob " + tarBlob.id() + " expected size "
+                            + stagingBlob.size()
+                            + " but found " + tarBlob.size());
+                }
+                String tarDigest = Digests.calculate("SHA1", tarBlob);
+                String stagingDigest = Digests.calculate("SHA1", stagingBlob);
+                if (!tarDigest.equals(stagingDigest)) {
+                    throw new IOException("copy verify failed for blob " + tarBlob.id()
+                            + " expected SHA1 " + stagingDigest + " but tar contains " + tarDigest);
+                }
+            }
+            if (it.hasNext()) {
+                throw new IOException(tarPath + " has more records than expected");
+            }
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
     }
 

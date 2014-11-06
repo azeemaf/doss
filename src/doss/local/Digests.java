@@ -8,12 +8,15 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.xml.bind.DatatypeConverter;
 
-public class Digests {
+import doss.Blob;
+
+class Digests {
     public static String canonicalizeAlgorithm(String algorithm) {
         return algorithm.replace("-", "").toLowerCase();
     }
 
-    public static String calculate(String algorithm, ReadableByteChannel channel) throws NoSuchAlgorithmException,
+    public static String calculate(String algorithm, ReadableByteChannel channel)
+            throws NoSuchAlgorithmException,
             IOException {
         MessageDigest md = MessageDigest.getInstance(canonicalizeAlgorithm(algorithm));
         ByteBuffer buffer = ByteBuffer.allocate(8192);
@@ -24,4 +27,12 @@ public class Digests {
         }
         return DatatypeConverter.printHexBinary(md.digest()).toLowerCase();
     }
+
+    public static String calculate(String algorithm, Blob blob) throws NoSuchAlgorithmException,
+    IOException {
+        try (ReadableByteChannel chan = blob.openChannel()) {
+            return calculate(algorithm, chan);
+        }
+    }
+
 }

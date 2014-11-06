@@ -60,7 +60,6 @@ public class ArchiverTest extends DOSSTest {
         {
             Blob blob = blobStore.get(blobId1);
             assertEquals(TEST_STRING, slurp(blob));
-            //assertTrue(blob instanceof FileBlob);
 
             BlobLocation loc = db.locateBlob(blobId1);
             assertEquals((Long) containerId, loc.containerId());
@@ -68,6 +67,7 @@ public class ArchiverTest extends DOSSTest {
 
             ContainerRecord c = db.findContainer(containerId);
             assertEquals(Database.CNT_WRITTEN, c.state());
+            assertEquals(40, c.sha1().length());
         }
 
         archiver.cleanupPhase();

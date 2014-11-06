@@ -137,7 +137,15 @@ public class LocalBlobStore implements BlobStore {
         if (location == null) {
             throw new NoSuchBlobException(blobId);
         }
-        if (location.containerId() == null || location.offset() == null) {
+        if (location.isInStagingArea()) {
+            /*
+             * FIXME: there's a race here that will need a minor redesign to fix:
+             *
+             * 1. we check file is in staging area and return FileBlob.
+             * 2. archiver goes and archives the file and deletes from staging.
+             * 3. client now calls openChannel() and gets file not found error
+             *
+             */
             return new FileBlob(blobId, stagingPath(blobId));
         }
         try (Container container = openContainer(location.containerId())) {
