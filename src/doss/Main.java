@@ -96,12 +96,12 @@ public class Main {
                 LocalBlobStore.init(getDossHome());
             }
         },
-        archiver("", "Run the archiving daemon") {
+        archiver("[-f]", "Run the archiving daemon") {
             @Override
             void execute(Arguments args) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
                     Archiver archiver = new Archiver(bs);
-                    archiver.run();
+                    archiver.run(!args.isEmpty() && args.first().equals("-f"));
                 }
             }
         },
@@ -314,17 +314,6 @@ public class Main {
                     for (String containerId : args) {
                         admin.sealContainer(Long.parseLong(containerId));
                     }
-                }
-            }
-        },
-        moveContainer("<containerId> <area>", "Moves a container to a new area") {
-
-            @Override
-            void execute(Arguments args) throws IOException {
-                try (LocalBlobStore bs = (LocalBlobStore) openBlobStore()) {
-                    long containerId = Long.parseLong(args.first());
-                    String area = args.rest().first();
-                    bs.moveContainer(containerId, area);
                 }
             }
         },

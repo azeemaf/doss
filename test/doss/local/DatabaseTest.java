@@ -47,7 +47,7 @@ public class DatabaseTest {
 
     @Test
     public void testInsertBlob() {
-        long containedId = db.createContainer("staging");
+        long containedId = db.createContainer();
         assertInsertAndLocatable(1L, containedId, 3L);
         assertInsertAndLocatable(111111111111L, containedId, 333333333333L);
         assertInsertAndLocatable(Long.MIN_VALUE, containedId, Long.MIN_VALUE);
@@ -65,13 +65,13 @@ public class DatabaseTest {
     private void assertLocatable(long blobId, long containerId, long offset) {
         BlobLocation location = db.locateBlob(blobId);
         assertNotNull(location);
-        assertEquals("container id", containerId, location.containerId());
-        assertEquals("offset", offset, location.offset());
+        assertEquals("container id", (Long) containerId, location.containerId());
+        assertEquals("offset", (Long) offset, location.offset());
     }
 
     @Test
     public void testDeleteBlob() {
-        long containedId = db.createContainer("staging");
+        long containedId = db.createContainer();
         db.insertBlob(1, containedId, 3);
         assertNotNull(db.locateBlob(1));
         db.deleteBlob(1);
@@ -80,12 +80,11 @@ public class DatabaseTest {
 
     @Test
     public void testMultipleOpenContainers() {
-        String area = "unit-test";
-        Long firstId = db.createContainer(area);
-        assertEquals(firstId, db.findAnOpenContainer(area));
-        db.createContainer(area);
-        db.createContainer(area);
-        assertEquals(firstId, db.findAnOpenContainer(area));
+        Long firstId = db.createContainer();
+        assertEquals(firstId, db.findAnOpenContainer());
+        db.createContainer();
+        db.createContainer();
+        assertEquals(firstId, db.findAnOpenContainer());
     }
 
     @Test

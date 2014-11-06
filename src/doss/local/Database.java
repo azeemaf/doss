@@ -29,8 +29,10 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import com.googlecode.flyway.core.Flyway;
 
+import doss.NoSuchBlobException;
+
 abstract class Database implements Closeable, GetHandle,
-        Transactional<Database> {
+Transactional<Database> {
 
     /*
      * Connection meta data URL doesn't include H2 switches. We have to manually
@@ -120,63 +122,72 @@ abstract class Database implements Closeable, GetHandle,
             @Bind("containerId") long containerId,
             @Bind("offset") long offset);
 
+    @SqlUpdate("INSERT INTO blobs (blob_id) VALUES (:blobId)")
+    public abstract void insertBlob(@Bind("blobId") long blobId);
+
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract long deleteBlob(@Bind("blobId") long blobId);
 
-    @SqlQuery("SELECT area, blobs.container_id, offset FROM containers, blobs WHERE blob_id = :blobId AND containers.container_id = blobs.container_id")
+    @SqlQuery("SELECT blobs.container_id, offset FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id WHERE blob_id = :blobId ")
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
     public static class BlobLocationMapper implements
-            ResultSetMapper<BlobLocation> {
+    ResultSetMapper<BlobLocation> {
         @Override
         public BlobLocation map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
-            return new BlobLocation(r.getString("area"),
-                    r.getLong("container_id"),
-                    r.getLong("offset"));
+            return new BlobLocation((Long) r.getObject("container_id"),
+                    (Long) r.getObject("offset"));
         }
     }
 
     public static class ContainerRecord {
         private final long containerId;
-        private final String area;
         private final long size;
-        private final boolean sealed;
+        private final int state;
 
         public long id() {
             return containerId;
-        }
-
-        public String area() {
-            return area;
         }
 
         public long size() {
             return size;
         }
 
-        public boolean sealed() {
-            return sealed;
+        ContainerRecord(long containerId, long size, int state) {
+            this.containerId = containerId;
+            this.size = size;
+            this.state = state;
         }
 
-        ContainerRecord(long containerId, String area, long size,
-                boolean sealed) {
-            this.containerId = containerId;
-            this.area = area;
-            this.size = size;
-            this.sealed = sealed;
+        public String stateName() {
+            switch (state) {
+            case CNT_OPEN:
+                return "OPEN";
+            case CNT_SEALED:
+                return "SEALED";
+            case CNT_ARCHIVED:
+                return "RCHIVED";
+            case CNT_WRITTEN:
+                return "WRITTEN";
+            default:
+                return "UNKNOWN_" + state;
+            }
+        }
+
+        public int state() {
+            return state;
         }
     }
 
     public static class ContainerMapper implements
-            ResultSetMapper<ContainerRecord> {
+    ResultSetMapper<ContainerRecord> {
         @Override
         public ContainerRecord map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
             return new ContainerRecord(r.getLong("container_id"),
-                    r.getString("area"), r.getLong("size"),
-                    r.getBoolean("sealed"));
+                    r.getLong("size"), r.getInt("state"));
         }
     }
 
@@ -185,28 +196,20 @@ abstract class Database implements Closeable, GetHandle,
     public abstract ContainerRecord findContainer(
             @Bind("containerId") long containerId);
 
-    @SqlQuery("SELECT container_id FROM containers WHERE sealed = 0 AND AREA = :area")
-    public abstract Long findAnOpenContainer(@Bind("area") String area);
+    @SqlQuery("SELECT container_id FROM containers WHERE state = 0")
+    public abstract Long findAnOpenContainer();
 
-    @SqlUpdate("INSERT INTO containers (area) VALUES (:area)")
+    @SqlUpdate("INSERT INTO containers (state) VALUES (" + CNT_OPEN + ")")
     @GetGeneratedKeys
-    public abstract long createContainer(@Bind("area") String area);
-
-    @SqlUpdate("UPDATE containers SET area = :area WHERE container_id = :containerId")
-    public abstract long updateContainerArea(
-            @Bind("containerId") long containerId, @Bind("area") String area);
-
-    @SqlUpdate("UPDATE containers SET sealed = true WHERE container_id = :id")
-    public abstract long sealContainer(@Bind("id") long containerId);
+    public abstract long createContainer();
 
     @SqlQuery("SELECT * FROM containers")
     @RegisterMapper(ContainerMapper.class)
     public abstract Iterable<ContainerRecord> findAllContainers();
 
-    @SqlQuery("SELECT * FROM containers WHERE sealed = true AND area = :area")
-    @RegisterMapper(ContainerMapper.class)
-    abstract public List<ContainerRecord> findArchivalCandidates(
-            @Bind("area") String area);
+    @SqlQuery("SELECT blobs.blob_id FROM blobs, tx_blobs, txs WHERE blobs.blob_id = tx_blobs.blob_id AND txs.tx_id = tx_blobs.tx_id AND blobs.container_id IS NULL AND txs.state = "
+            + TX_COMMITTED)
+    abstract public List<Long> findCommittedButUnassignedBlobs();
 
     @SqlQuery("SELECT blob_id FROM legacy_paths WHERE legacy_path = :legacy_path FOR UPDATE")
     public abstract Long findBlobIdForLegacyPathAndLock(
@@ -268,15 +271,14 @@ abstract class Database implements Closeable, GetHandle,
             @Bind("blob_id") long blobId);
 
     @Transaction
-    public void insertBlobAndTxBlob(long txId, long blobId, long containerId,
-            long offset) {
-        insertBlob(blobId, containerId, offset);
+    public void insertBlobAndTxBlob(long txId, long blobId) {
+        insertBlob(blobId);
         insertTxBlob(txId, blobId);
     }
 
-    @SqlUpdate("UPDATE containers SET size = size + :delta, last_offset = :last_offset WHERE container_id = :container_id")
+    @SqlUpdate("UPDATE containers SET size = size + :delta WHERE container_id = :container_id")
     public abstract int increaseContainerSize(@Bind("container_id") long containerId,
-            @Bind("delta") long delta, @Bind("last_offset") long lastOffset);
+            @Bind("delta") long delta);
 
     @SqlUpdate("UPDATE containers SET size = :size WHERE container_id = :container_id")
     public abstract int setContainerSize(@Bind("container_id") long containerId,
@@ -291,10 +293,6 @@ abstract class Database implements Closeable, GetHandle,
     @SqlQuery("SELECT blob_id FROM tx_blobs WHERE tx_id = :tx_id")
     public abstract List<Long> listBlobsByTx(@Bind("tx_id") long txId);
 
-    @SqlQuery("SELECT 1 FROM blobs, tx_blobs, txs WHERE blobs.container_id = :container_id AND tx_blobs.blob_id = blobs.blob_id AND txs.tx_id = tx_blobs.tx_id AND (txs.state = 0) OR (txs.state = 1)")
-    public abstract boolean checkContainerForOpenTxs(
-            @Bind("container_id") long containerId);
-
     public static class TxRecord {
         public long id;
         public int state;
@@ -305,6 +303,12 @@ abstract class Database implements Closeable, GetHandle,
     public static final int TX_PREPARED = 1;
     public static final int TX_COMMITTED = 2;
     public static final int TX_ROLLEDBACK = 3;
+    public static final int TX_ROLLINGBACK = 4;
+
+    public static final int CNT_OPEN = 0;
+    public static final int CNT_SEALED = 1;
+    public static final int CNT_WRITTEN = 2;
+    public static final int CNT_ARCHIVED = 3;
 
     public static class TxRecordMapper implements ResultSetMapper<TxRecord> {
 
@@ -319,4 +323,33 @@ abstract class Database implements Closeable, GetHandle,
         }
     }
 
+    @SqlUpdate("UPDATE blobs SET container_id = :container_id WHERE blob_id = :blob_id")
+    public abstract int setBlobContainerId(@Bind("blob_id") long blobId,
+            @Bind("container_id") long containerId);
+
+    @Transaction
+    public void addBlobToContainer(long blobId, Long containerId, long size) {
+        if (setBlobContainerId(blobId, containerId) != 1) {
+            throw new NoSuchBlobException(blobId);
+        }
+        if (increaseContainerSize(containerId, size) != 1) {
+            throw new NoSuchContainerException(containerId);
+        }
+    }
+
+    @SqlUpdate("UPDATE containers SET state = :state WHERE container_id = :container_id")
+    public abstract int updateContainerState(@Bind("container_id") long containerId,
+            @Bind("state") int cntSelected);
+
+    @SqlQuery("SELECT * FROM containers WHERE state = :state")
+    public abstract List<Long> findContainersByState(@Bind("state") long state);
+
+    @SqlQuery("SELECT blob_id FROM blobs WHERE container_id = :container_id")
+    public abstract List<Long> findBlobsByContainer(@Bind("container_id") long containerId);
+
+    @SqlUpdate("UPDATE containers SET state = " + CNT_SEALED + " WHERE state = " + CNT_OPEN)
+    public abstract int sealAllContainers();
+
+    @SqlUpdate("UPDATE blobs SET offset = :offset WHERE blob_id = :blob_id")
+    public abstract int setBlobOffset(@Bind("blob_id") long blobId, @Bind("offset") long offset);
 }

@@ -1,30 +1,24 @@
 package doss.local;
 
 class BlobLocation {
-    final private String area;
-    final private long containerId;
-    final private long offset;
+    final private Long containerId;
+    final private Long offset;
 
-    public BlobLocation(String area, long containerId, long offset) {
+    public BlobLocation(Long containerId, Long offset) {
         this.containerId = containerId;
         this.offset = offset;
-        this.area = area;
     }
 
-    public long containerId() {
+    public Long containerId() {
         return containerId;
     }
 
-    public long offset() {
+    public Long offset() {
         return offset;
-    }
-
-    public String area() {
-        return area;
     }
 
     @Override
     public String toString() {
-        return area + ":" + containerId + ":" + offset;
+        return containerId + ":" + offset;
     }
 }

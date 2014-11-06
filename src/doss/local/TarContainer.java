@@ -143,4 +143,13 @@ public class TarContainer implements Container {
         Files.delete(path);
     }
 
+    public Path path() {
+        return path;
+    }
+
+    @Override
+    public void fsync() throws IOException {
+        channel.force(true);
+    }
+
 }
