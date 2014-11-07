@@ -161,7 +161,8 @@ public class LocalBlobStore implements BlobStore {
         for (long x = containerId / 1000; x > 0; x = x / 1000) {
             dirs = String.format("%03d/%s", x % 1000, dirs);
         }
-        return path.resolve(dirs).resolve(String.format("nla.doss-%d.tar", containerId));
+        return path.resolve("data").resolve(dirs)
+                .resolve(String.format("nla.doss-%d.tar", containerId));
     }
 
     private Container openContainer(long containerId) throws IOException {
@@ -198,13 +199,16 @@ public class LocalBlobStore implements BlobStore {
         return new Tx(txRecord.id, txRecord.state);
     }
 
-    protected Path stagingPath(long blobId) {
-        Path path = stagingRoot;
+    protected static Path stagingPath(Path root, long blobId) {
         String dirs = "";
         for (long x = blobId / 1000; x > 0; x = x / 1000) {
-            dirs = String.format("%3d/%s", x % 1000, dirs);
+            dirs = String.format("%d/%s", x % 1000, dirs);
         }
-        return path.resolve(dirs).resolve(String.format("nla.blob-%d", blobId));
+        return root.resolve("data").resolve(dirs).resolve(String.format("nla.blob-%d", blobId));
+    }
+
+    protected Path stagingPath(long blobId) {
+        return stagingPath(stagingRoot, blobId);
     }
 
     public class Tx extends ManagedTransaction implements BlobTx {

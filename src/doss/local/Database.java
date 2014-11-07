@@ -117,6 +117,9 @@ abstract class Database implements Closeable, GetHandle,
     @SqlQuery("SELECT NEXTVAL('ID_SEQ')")
     public abstract long nextId();
 
+    @SqlUpdate("ALTER SEQUENCE ID_SEQ INCREMENT BY :delta")
+    public abstract void increaseBlobIdSequence(@Bind("delta") long delta);
+
     @SqlUpdate("INSERT INTO blobs (blob_id, container_id, offset) VALUES (:blobId, :containerId, :offset)")
     public abstract void insertBlob(@Bind("blobId") long blobId,
             @Bind("containerId") long containerId,
@@ -363,4 +366,5 @@ abstract class Database implements Closeable, GetHandle,
     @SqlUpdate("UPDATE containers SET sha1 = :sha1 WHERE container_id = container_id")
     public abstract int setContainerSha1(@Bind("container_id") long containerId,
             @Bind("sha1") String sha1);
+
 }

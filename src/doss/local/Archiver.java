@@ -1,11 +1,15 @@
 package doss.local;
 
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -93,8 +97,9 @@ public class Archiver {
             try {
                 for (Path fsRoot : blobStore.masterRoots) {
                     Path tarPath = incomingPath(fsRoot, containerId);
-                    tars.add(new TarContainer(containerId, tarPath, FileChannel.open(
-                            tarPath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)));
+                    Files.deleteIfExists(tarPath); // remove any debris from a crashed previous attempt
+                    FileChannel channel = FileChannel.open(tarPath, CREATE_NEW, WRITE);
+                    tars.add(new TarContainer(containerId, tarPath, channel));
                 }
 
                 List<Long> blobIds = db.findBlobsByContainer(containerId);
@@ -125,7 +130,7 @@ public class Archiver {
             String lastDigest = null;
             for (Path fsRoot : blobStore.masterRoots) {
                 Path path = incomingPath(fsRoot, containerId);
-                try (FileChannel chan = FileChannel.open(path, StandardOpenOption.READ)) {
+                try (FileChannel chan = FileChannel.open(path, READ)) {
                     String digest = Digests.calculate("SHA1", chan);
                     if (lastDigest != null && !digest.equals(lastDigest)) {
                         throw new IOException("tar digests do not match. Expected " + lastDigest
@@ -151,7 +156,7 @@ public class Archiver {
     private void verifyContainerContents(long containerId, Path fsRoot) throws IOException {
         Path tarPath = incomingPath(fsRoot, containerId);
         try (TarContainer tar = new TarContainer(containerId, tarPath, FileChannel.open(
-                tarPath, StandardOpenOption.READ))) {
+                tarPath, READ))) {
             Iterator<Blob> it = tar.iterator();
             for (long blobId : db.findBlobsByContainer(containerId)) {
                 Blob stagingBlob = blobStore.get(blobId);
@@ -198,8 +203,20 @@ public class Archiver {
                 Path blobPath = blobStore.stagingPath(blobId);
                 logger.info("Deleting " + blobPath);
                 Files.deleteIfExists(blobPath);
+                deleteEmptyTree(blobPath.getParent(), blobStore.stagingRoot.resolve("data"));
             }
             db.updateContainerState(containerId, Database.CNT_ARCHIVED);
+        }
+    }
+
+    private void deleteEmptyTree(Path path, Path root) throws IOException {
+        try {
+            while (path.startsWith(root) && !path.equals(root) && Files.isDirectory(path)) {
+                Files.deleteIfExists(path);
+                path = path.getParent();
+            }
+        } catch (DirectoryNotEmptyException e) {
+            // that's ok
         }
     }
 }

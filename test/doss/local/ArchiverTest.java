@@ -1,9 +1,12 @@
 package doss.local;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import java.nio.file.Files;
 
 import org.junit.Test;
 
@@ -16,16 +19,32 @@ public class ArchiverTest extends DOSSTest {
 
     @Test
     public void test() throws Exception {
-        Database db = ((LocalBlobStore) blobStore).db;
+        LocalBlobStore blobStore = (LocalBlobStore) this.blobStore;
+        Database db = blobStore.db;
         long blobId1, blobId2, blobId3;
+
+        // make sure we're using multiple directory levels
+        db.increaseBlobIdSequence(1000);
+
         try (BlobTx tx = blobStore.begin()) {
             blobId1 = tx.put(TEST_BYTES).id();
+            tx.commit();
+        }
+
+        // rolled back, should not be archived
+        try (BlobTx tx = blobStore.begin()) {
+            tx.put(TEST_BYTES).id();
+            tx.rollback();
+        }
+
+        try (BlobTx tx = blobStore.begin()) {
             blobId2 = tx.put(TEST_BYTES).id();
             blobId3 = tx.put(TEST_BYTES).id();
             tx.commit();
         }
         Archiver archiver = new Archiver(blobStore);
 
+        assertTrue(Files.exists(blobStore.stagingPath(blobId1)));
         assertEquals(3, db.findCommittedButUnassignedBlobs().size());
         {
             BlobLocation loc = db.locateBlob(blobId1);
@@ -70,6 +89,8 @@ public class ArchiverTest extends DOSSTest {
             assertEquals(40, c.sha1().length());
         }
 
+        assertTrue(Files.exists(blobStore.stagingPath(blobId1)));
+
         archiver.cleanupPhase();
 
         {
@@ -84,6 +105,12 @@ public class ArchiverTest extends DOSSTest {
             ContainerRecord c = db.findContainer(containerId);
             assertEquals(Database.CNT_ARCHIVED, c.state());
         }
+
+        // ensure staging blob files were deleted
+        assertFalse(Files.exists(blobStore.stagingPath(blobId1)));
+
+        // ensure parent directory which should now be empty is gone too
+        assertFalse(Files.exists(blobStore.stagingPath(blobId1).getParent()));
 
     }
 }
