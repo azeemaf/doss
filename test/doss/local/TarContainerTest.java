@@ -95,7 +95,6 @@ public class TarContainerTest {
         assertTrue(it.hasNext());
         assertTrue(it.hasNext());
         assertEquals(DOSSTest.slurp(it.next()), "file2 content");
-        DOSSTest.slurp(it.next());
         assertFalse(it.hasNext());
         assertFalse(it.hasNext());
 
