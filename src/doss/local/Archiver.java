@@ -203,20 +203,23 @@ public class Archiver {
                 Path blobPath = blobStore.stagingPath(blobId);
                 logger.info("Deleting " + blobPath);
                 Files.deleteIfExists(blobPath);
-                deleteEmptyTree(blobPath.getParent(), blobStore.stagingRoot.resolve("data"));
+                deleteEmptyDirs(blobPath.getParent(), blobStore.stagingRoot.resolve("data"));
             }
             db.updateContainerState(containerId, Database.CNT_ARCHIVED);
         }
     }
 
-    private void deleteEmptyTree(Path path, Path root) throws IOException {
+    /**
+     * Walk upwards from path to root deleting empty directories.
+     */
+    private void deleteEmptyDirs(Path path, Path root) throws IOException {
         try {
             while (path.startsWith(root) && !path.equals(root) && Files.isDirectory(path)) {
                 Files.deleteIfExists(path);
                 path = path.getParent();
             }
         } catch (DirectoryNotEmptyException e) {
-            // that's ok
+            // we're done
         }
     }
 }
