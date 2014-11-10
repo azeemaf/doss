@@ -96,6 +96,12 @@ public class Main {
                 LocalBlobStore.init(getDossHome());
             }
         },
+        upgrade("", "Run the database migrations") {
+            @Override
+            void execute(Arguments args) throws IOException {
+                LocalBlobStore.init(getDossHome());
+            }
+        },
         archiver("[-f]", "Run the archiving daemon") {
             @Override
             void execute(Arguments args) throws IOException {
