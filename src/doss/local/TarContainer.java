@@ -87,9 +87,9 @@ public class TarContainer implements Container {
         channel.write(ByteBuffer.wrap(FOOTER_BYTES));
     }
 
-    private void writeRecordHeader(long id, SizedWritable output)
+    private void writeRecordHeader(long blobId, SizedWritable output)
             throws IOException {
-        TarArchiveEntry entry = new TarArchiveEntry(String.valueOf(id));
+        TarArchiveEntry entry = new TarArchiveEntry("nla.doss-" + this.id + "/nla.blob-" + blobId);
         entry.setSize(output.size());
         headerBuffer.clear();
         entry.writeEntryHeader(headerBuffer.array());

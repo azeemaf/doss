@@ -29,7 +29,9 @@ public class TarBlob implements Blob {
 
     @Override
     public long id() {
-        return Long.parseLong(tarEntry.getName());
+        String name = tarEntry.getName();
+        int i = name.lastIndexOf('-');
+        return Long.parseLong(name.substring(i + 1));
     }
 
     @Override
