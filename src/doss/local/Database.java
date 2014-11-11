@@ -99,8 +99,11 @@ abstract class Database implements Closeable, GetHandle,
         Logger.getLogger("com.googlecode.flyway").setLevel(Level.SEVERE);
         DatabaseMetaData md = getHandle().getConnection().getMetaData();
         Flyway flyway = new Flyway();
-        flyway.setDataSource(jdbcUrl != null ? jdbcUrl : md.getURL()
-                + H2_SWITCHES, md.getUserName(), "");
+        if (jdbcUrl != null) {
+            flyway.setDataSource(jdbcUrl, null, null);
+        } else {
+            flyway.setDataSource(md.getURL() + H2_SWITCHES, md.getUserName(), "");
+        }
         flyway.setLocations("doss/migrations");
         return flyway;
     }
@@ -108,7 +111,12 @@ abstract class Database implements Closeable, GetHandle,
     public String version() {
         try {
             Flyway flyway = openFlyway();
-            return flyway.info().current().getVersion().toString();
+            String current = flyway.info().current().getVersion().toString();
+            int npending = flyway.info().pending().length;
+            if (npending > 0) {
+                return current + " (" + npending + " migrations pending)";
+            }
+            return current;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
