@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ import com.googlecode.flyway.core.Flyway;
 import doss.NoSuchBlobException;
 
 abstract class Database implements Closeable, GetHandle,
-        Transactional<Database> {
+Transactional<Database> {
 
     /*
      * Connection meta data URL doesn't include H2 switches. We have to manually
@@ -133,29 +134,30 @@ abstract class Database implements Closeable, GetHandle,
             @Bind("containerId") long containerId,
             @Bind("offset") long offset);
 
-    @SqlUpdate("INSERT INTO blobs (blob_id) VALUES (:blobId)")
-    public abstract void insertBlob(@Bind("blobId") long blobId);
+    @SqlUpdate("INSERT INTO blobs (blob_id, tx_id) VALUES (:blobId, :txId)")
+    public abstract void insertBlob(@Bind("blobId") long blobId, @Bind("txId") long txId);
 
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract long deleteBlob(@Bind("blobId") long blobId);
 
-    @SqlQuery("SELECT blobs.blob_id,  blobs.container_id, offset, state FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id WHERE blob_id = :blobId ")
+    @SqlQuery("SELECT blobs.blob_id,  blobs.container_id, offset, state, blobs.tx_id FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id WHERE blob_id = :blobId ")
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
 
-    @SqlQuery("SELECT blobs.blob_id, blobs.container_id, offset, state FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id")
+    @SqlQuery("SELECT blobs.blob_id, blobs.container_id, offset, state, blobs.tx_id FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id")
     @RegisterMapper(BlobLocationMapper.class)
     public abstract Iterable<BlobLocation> locateAllBlobs();
 
     public static class BlobLocationMapper implements
-            ResultSetMapper<BlobLocation> {
+    ResultSetMapper<BlobLocation> {
         @Override
         public BlobLocation map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
             return new BlobLocation(r.getLong("blob_id"),
                     (Long) r.getObject("container_id"),
                     (Long) r.getObject("offset"),
-                    r.getInt("state"));
+                    (Integer) r.getObject("state"),
+                    (Long) r.getObject("tx_id"));
         }
     }
 
@@ -205,7 +207,7 @@ abstract class Database implements Closeable, GetHandle,
     }
 
     public static class ContainerMapper implements
-            ResultSetMapper<ContainerRecord> {
+    ResultSetMapper<ContainerRecord> {
         @Override
         public ContainerRecord map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
@@ -230,7 +232,7 @@ abstract class Database implements Closeable, GetHandle,
     @RegisterMapper(ContainerMapper.class)
     public abstract Iterable<ContainerRecord> findAllContainers();
 
-    @SqlQuery("SELECT blobs.blob_id FROM blobs, tx_blobs, txs WHERE blobs.blob_id = tx_blobs.blob_id AND txs.tx_id = tx_blobs.tx_id AND blobs.container_id IS NULL AND txs.state = "
+    @SqlQuery("SELECT blobs.blob_id FROM blobs, txs WHERE blobs.tx_id = txs.tx_id AND blobs.container_id IS NULL AND txs.state = "
             + TX_COMMITTED)
     abstract public List<Long> findCommittedButUnassignedBlobs();
 
@@ -277,7 +279,7 @@ abstract class Database implements Closeable, GetHandle,
         return out;
     }
 
-    @SqlUpdate("INSERT INTO txs (tx_id, state, client) VALUES(:tx_id, 0, :client)")
+    @SqlUpdate("INSERT INTO txs (tx_id, state, client, opened) VALUES(:tx_id, 0, :client, CURRENT_TIMESTAMP())")
     public abstract void insertTx(@Bind("tx_id") long txId,
             @Bind("client") String client);
 
@@ -285,18 +287,13 @@ abstract class Database implements Closeable, GetHandle,
     @RegisterMapper(TxRecordMapper.class)
     public abstract TxRecord findTx(@Bind("tx_id") long txId);
 
-    @SqlUpdate("UPDATE txs SET state = :state WHERE tx_id = :tx_id")
+    @SqlUpdate("UPDATE txs SET state = :state, closed = CURRENT_TIMESTAMP() WHERE tx_id = :tx_id")
     public abstract long updateTxState(@Bind("tx_id") long txId,
             @Bind("state") long state);
 
-    @SqlUpdate("INSERT INTO tx_blobs (tx_id, blob_id) VALUES(:tx_id, :blob_id)")
-    public abstract void insertTxBlob(@Bind("tx_id") long txId,
-            @Bind("blob_id") long blobId);
-
     @Transaction
     public void insertBlobAndTxBlob(long txId, long blobId) {
-        insertBlob(blobId);
-        insertTxBlob(txId, blobId);
+        insertBlob(blobId, txId);
     }
 
     @SqlUpdate("UPDATE containers SET size = size + :delta WHERE container_id = :container_id")
@@ -313,13 +310,15 @@ abstract class Database implements Closeable, GetHandle,
     @SqlQuery("SELECT last_offset FROM containers WHERE container_id = :container_id")
     public abstract Long getContainerLastOffset(@Bind("container_id") long containerId);
 
-    @SqlQuery("SELECT blob_id FROM tx_blobs WHERE tx_id = :tx_id")
+    @SqlQuery("SELECT blob_id FROM blobs WHERE tx_id = :tx_id")
     public abstract List<Long> listBlobsByTx(@Bind("tx_id") long txId);
 
     public static class TxRecord {
         public long id;
         public int state;
         public String client;
+        public Date opened;
+        public Date closed;
     }
 
     public static final int TX_OPEN = 0;
@@ -342,6 +341,8 @@ abstract class Database implements Closeable, GetHandle,
             tx.id = r.getLong("tx_id");
             tx.state = r.getInt("state");
             tx.client = r.getString("client");
+            tx.opened = r.getDate("opened");
+            tx.closed = r.getDate("closed");
             return tx;
         }
     }

@@ -173,7 +173,7 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
-    IOException {
+            IOException {
         String path = legacyPath.toAbsolutePath().toString();
         if (!Files.exists(legacyPath)) {
             throw new NoSuchFileException(path);
@@ -334,7 +334,7 @@ public class LocalBlobStore implements BlobStore {
              */
             state.assertOpen();
             long blobId = db.nextId();
-            db.insertBlobAndTxBlob(id, blobId);
+            db.insertBlob(blobId, this.id);
             Path blobFile = stagingPath(blobId);
             Files.createDirectories(blobFile.getParent());
             try (WritableByteChannel channel = Files.newByteChannel(blobFile, CREATE_NEW, WRITE)) {

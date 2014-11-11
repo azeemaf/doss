@@ -4,13 +4,16 @@ class BlobLocation {
     final private long blobId;
     final private Long containerId;
     final private Long offset;
-    final private int containerState;
+    final private Integer containerState;
+    final private Long txId;
 
-    public BlobLocation(long blobId, Long containerId, Long offset, int containerState) {
+    public BlobLocation(long blobId, Long containerId, Long offset, Integer containerState,
+            Long txId) {
         this.blobId = blobId;
         this.containerId = containerId;
         this.offset = offset;
         this.containerState = containerState;
+        this.txId = txId;
     }
 
     public long blobId() {
@@ -25,14 +28,19 @@ class BlobLocation {
         return offset;
     }
 
-    public int containerState() {
+    public Long txId() {
+        return txId;
+    }
+
+    public Integer containerState() {
         return containerState;
     }
 
     public boolean isInStagingArea() {
         return containerId == null || offset == null ||
-                (containerState != Database.CNT_WRITTEN &&
-                containerState != Database.CNT_ARCHIVED);
+                containerState == null ||
+                (!containerState.equals(Database.CNT_WRITTEN) &&
+                !containerState.equals(Database.CNT_ARCHIVED));
     }
 
     @Override

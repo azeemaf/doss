@@ -79,6 +79,11 @@ public class Fsck {
                                     "in wrong location. Should be " + blobStore.stagingPath(blobId));
                         } else if (!Files.isReadable(file)) {
                             report(file, "not readable");
+                        } else if (loc.containerId() != null && loc.containerState() == null) {
+                            report(file, "has container id nla.doss-" + loc.containerId()
+                                    + " but container state is null");
+                        } else if (loc.txId() == null) {
+                            report(file, "has null tx_id");
                         } else if (verbose) {
                             report(file, "OK");
                         }
