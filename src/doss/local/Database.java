@@ -139,16 +139,21 @@ abstract class Database implements Closeable, GetHandle,
     @SqlUpdate("DELETE FROM blobs WHERE blob_id = :blobId")
     public abstract long deleteBlob(@Bind("blobId") long blobId);
 
-    @SqlQuery("SELECT blobs.container_id, offset, state FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id WHERE blob_id = :blobId ")
+    @SqlQuery("SELECT blobs.blob_id,  blobs.container_id, offset, state FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id WHERE blob_id = :blobId ")
     @RegisterMapper(BlobLocationMapper.class)
     public abstract BlobLocation locateBlob(@Bind("blobId") long blobId);
+
+    @SqlQuery("SELECT blobs.blob_id, blobs.container_id, offset, state FROM blobs LEFT JOIN containers ON containers.container_id = blobs.container_id")
+    @RegisterMapper(BlobLocationMapper.class)
+    public abstract Iterable<BlobLocation> locateAllBlobs();
 
     public static class BlobLocationMapper implements
             ResultSetMapper<BlobLocation> {
         @Override
         public BlobLocation map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
-            return new BlobLocation((Long) r.getObject("container_id"),
+            return new BlobLocation(r.getLong("blob_id"),
+                    (Long) r.getObject("container_id"),
                     (Long) r.getObject("offset"),
                     r.getInt("state"));
         }

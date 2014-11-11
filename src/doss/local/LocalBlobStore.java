@@ -199,7 +199,7 @@ public class LocalBlobStore implements BlobStore {
         return new Tx(txRecord.id, txRecord.state);
     }
 
-    protected static Path stagingPath(Path root, long blobId) {
+    static Path stagingPath(Path root, long blobId) {
         String dirs = "";
         for (long x = blobId / 1000; x > 0; x = x / 1000) {
             dirs = String.format("%d/%s", x % 1000, dirs);
@@ -207,7 +207,24 @@ public class LocalBlobStore implements BlobStore {
         return root.resolve("data").resolve(dirs).resolve(String.format("nla.blob-%d", blobId));
     }
 
-    protected Path stagingPath(long blobId) {
+    long parseBlobFileName(String filename) {
+        if (filename.startsWith("nla.blob-")) {
+            return Long.parseLong(filename.substring("nla.blob-".length()));
+        } else {
+            throw new IllegalArgumentException("invalid blob filename: " + filename);
+        }
+    }
+
+    long parseContinerFileName(String filename) {
+        if (filename.startsWith("nla.doss-") && filename.endsWith(".tar")) {
+            return Long.parseLong(filename.substring("nla.doss-".length(), filename.length()
+                    - ".tar".length()));
+        } else {
+            throw new IllegalArgumentException("invalid container filename: " + filename);
+        }
+    }
+
+    Path stagingPath(long blobId) {
         return stagingPath(stagingRoot, blobId);
     }
 
@@ -349,4 +366,5 @@ public class LocalBlobStore implements BlobStore {
     public String version() {
         return db.version();
     }
+
 }
