@@ -28,7 +28,7 @@ public class Fsck {
 
     private final LocalBlobStore blobStore;
     private final Database db;
-    private boolean verbose = true;
+    private boolean verbose = false;
 
     public Fsck(LocalBlobStore blobStore) {
         this.blobStore = blobStore;
