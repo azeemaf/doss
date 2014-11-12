@@ -35,10 +35,12 @@ class DirectoryContainer implements Container {
         this.dir = dir;
         this.db = db;
         try {
-            Files.createDirectory(dir);
+            if (!Files.exists(dir)) {
+                Files.createDirectory(dir);
+            }
         } catch (FileAlreadyExistsException e) {
             // okay
-        }
+        } 
     }
 
     @Override
