@@ -23,11 +23,11 @@ public class Writables {
     public static Writable wrap(final Path path) {
         return new SizedWritable() {
             @Override
-            public long writeTo(WritableByteChannel targetChannel)
+            public void writeTo(WritableByteChannel targetChannel)
                     throws IOException {
                 try (FileChannel sourceChannel = (FileChannel) Files
                         .newByteChannel(path, StandardOpenOption.READ)) {
-                    return copy(sourceChannel, targetChannel);
+                    copy(sourceChannel, targetChannel);
                 }
             }
 
@@ -41,8 +41,8 @@ public class Writables {
     public static Writable wrap(final byte[] bytes) {
         return new SizedWritable() {
             @Override
-            public long writeTo(WritableByteChannel channel) throws IOException {
-                return channel.write(ByteBuffer.wrap(bytes));
+            public void writeTo(WritableByteChannel channel) throws IOException {
+                channel.write(ByteBuffer.wrap(bytes));
             }
 
             @Override
@@ -97,9 +97,9 @@ public class Writables {
     public static Writable wrap(final Blob blob) {
         return new SizedWritable() {
             @Override
-            public long writeTo(WritableByteChannel out) throws IOException {
+            public void writeTo(WritableByteChannel out) throws IOException {
                 try (SeekableByteChannel in = blob.openChannel()) {
-                    return copy(in, out);
+                    copy(in, out);
                 }
             }
 

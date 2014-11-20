@@ -17,6 +17,6 @@ public interface Writable {
      *             if I/O error occurs
      * @return bytes written
      */
-    long writeTo(WritableByteChannel channel) throws IOException;
+    void writeTo(WritableByteChannel channel) throws IOException;
 
 }

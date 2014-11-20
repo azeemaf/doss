@@ -111,11 +111,10 @@ public class RemoteBlobStoreTest {
             assertNotNull(tx);
             Blob b = tx.put(new Writable() {
                 @Override
-                public long writeTo(WritableByteChannel channel)
+                public void writeTo(WritableByteChannel channel)
                         throws IOException {
                     long n = channel.write(ByteBuffer.wrap(bytes));
                     n += channel.write(ByteBuffer.wrap(bytes));
-                    return n;
                 }
             });
             assertNotNull(b);

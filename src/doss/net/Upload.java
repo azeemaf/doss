@@ -32,7 +32,7 @@ public class Upload {
             public Blob call() throws Exception {
                 return tx.put(new Writable() {
                     @Override
-                    public long writeTo(WritableByteChannel channel)
+                    public void writeTo(WritableByteChannel channel)
                             throws IOException {
                         try {
                             while (true) {
@@ -44,7 +44,6 @@ public class Upload {
                                     bytesWritten += written;
                                 }
                             }
-                            return bytesWritten;
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                             throw new RuntimeException(e);

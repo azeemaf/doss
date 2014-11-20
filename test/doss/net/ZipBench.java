@@ -80,7 +80,7 @@ public class ZipBench {
     private static Writable dummyZip(final int nEntries) {
         return new Writable() {
             @Override
-            public long writeTo(WritableByteChannel channel) throws IOException {
+            public void writeTo(WritableByteChannel channel) throws IOException {
                 try (CountingOutputStream outc = new CountingOutputStream(
                         Channels.newOutputStream(channel))) {
                     try (ZipOutputStream out = new ZipOutputStream(
@@ -90,7 +90,6 @@ public class ZipBench {
                             out.write(testData);
                         }
                     }
-                    return outc.getBytesWritten();
                 }
             }
         };
