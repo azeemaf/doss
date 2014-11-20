@@ -38,4 +38,6 @@ public interface Container extends AutoCloseable, Named, Sized, Iterable<Blob> {
      * DANGER
      */
     void permanentlyDelete() throws IOException;
+
+    void fsync() throws IOException;
 }

@@ -16,19 +16,19 @@ public class Admin {
     }
 
     public void listContainers() throws IOException {
-        System.out.format("%8s %8s %12s %4s\n", "ID", "Size", "Area", "Sealed");
+        System.out.format("%8s %8s %10s\n", "ID", "Size", "State");
         for (ContainerRecord c : blobStore.db.findAllContainers()) {
-            System.out.format("%8d %8d %12s %4s\n", c.id(), c.size(), c.area(),
-                    c.sealed() ? "SEAL" : "");
+            System.out.format("%8d %8d %10s\n", c.id(), c.size(), c.stateName());
         }
     }
 
     public void sealContainer(long containerId) throws ContainerInUseException {
-        if (blobStore.db.checkContainerForOpenTxs(containerId)) {
-            throw new ContainerInUseException(containerId);
+        ContainerRecord c = blobStore.db.findContainer(containerId);
+        if (c.state() != Database.CNT_OPEN) {
+            throw new IllegalStateException("Container " + containerId
+                    + " cannot be sealed from state " + c.stateName());
         }
-        // FIXME: race
-        blobStore.db.sealContainer(containerId);
+        blobStore.db.updateContainerState(containerId, Database.CNT_SEALED);
     }
 
     public String locateBlob(long blobId) {

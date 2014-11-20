@@ -29,6 +29,7 @@ import org.apache.thrift.transport.TTransportException;
 
 import doss.local.Admin;
 import doss.local.Archiver;
+import doss.local.Fsck;
 import doss.local.LocalBlobStore;
 import doss.net.BlobStoreServer;
 
@@ -74,7 +75,7 @@ public class Main {
                     } else {
                         out.println("DOSS 2 version "
                                 + this.getClass().getPackage()
-                                .getImplementationVersion());
+                                        .getImplementationVersion());
                     }
 
                     try (BlobStore blobStore = openBlobStore()) {
@@ -96,12 +97,18 @@ public class Main {
                 LocalBlobStore.init(getDossHome());
             }
         },
-        archiver("", "Run the archiving daemon") {
+        upgrade("", "Run the database migrations") {
+            @Override
+            void execute(Arguments args) throws IOException {
+                LocalBlobStore.init(getDossHome());
+            }
+        },
+        archiver("[-f]", "Run the archiving daemon") {
             @Override
             void execute(Arguments args) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
                     Archiver archiver = new Archiver(bs);
-                    archiver.run();
+                    archiver.run(!args.isEmpty() && args.first().equals("-f"));
                 }
             }
         },
@@ -171,6 +178,19 @@ public class Main {
             @Override
             void execute(Arguments args) throws IOException {
                 digestBlob(args.first(), args.rest().first());
+            }
+        },
+        fsck("[-v]", "Run sanity checks") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Fsck fsck = new Fsck((LocalBlobStore) bs);
+                    if (!args.isEmpty() && args.first().equals("-v")) {
+                        fsck.setVerbose(true);
+                    }
+                    fsck.run();
+                }
             }
         },
         get("<blobId ...>", "Copy blobs to the current working directory.") {
@@ -314,17 +334,6 @@ public class Main {
                     for (String containerId : args) {
                         admin.sealContainer(Long.parseLong(containerId));
                     }
-                }
-            }
-        },
-        moveContainer("<containerId> <area>", "Moves a container to a new area") {
-
-            @Override
-            void execute(Arguments args) throws IOException {
-                try (LocalBlobStore bs = (LocalBlobStore) openBlobStore()) {
-                    long containerId = Long.parseLong(args.first());
-                    String area = args.rest().first();
-                    bs.moveContainer(containerId, area);
                 }
             }
         },

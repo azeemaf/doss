@@ -1,30 +1,51 @@
 package doss.local;
 
 class BlobLocation {
-    final private String area;
-    final private long containerId;
-    final private long offset;
+    final private long blobId;
+    final private Long containerId;
+    final private Long offset;
+    final private Integer containerState;
+    final private Long txId;
 
-    public BlobLocation(String area, long containerId, long offset) {
+    public BlobLocation(long blobId, Long containerId, Long offset, Integer containerState,
+            Long txId) {
+        this.blobId = blobId;
         this.containerId = containerId;
         this.offset = offset;
-        this.area = area;
+        this.containerState = containerState;
+        this.txId = txId;
     }
 
-    public long containerId() {
+    public long blobId() {
+        return blobId;
+    }
+
+    public Long containerId() {
         return containerId;
     }
 
-    public long offset() {
+    public Long offset() {
         return offset;
     }
 
-    public String area() {
-        return area;
+    public Long txId() {
+        return txId;
+    }
+
+    public Integer containerState() {
+        return containerState;
+    }
+
+    public boolean isInStagingArea() {
+        return containerId == null || offset == null ||
+                containerState == null ||
+                (!containerState.equals(Database.CNT_WRITTEN) &&
+                !containerState.equals(Database.CNT_ARCHIVED));
     }
 
     @Override
     public String toString() {
-        return area + ":" + containerId + ":" + offset;
+        return containerId + ":" + offset;
     }
+
 }
