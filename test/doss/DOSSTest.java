@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -66,7 +67,7 @@ public class DOSSTest {
         try (SeekableByteChannel channel = blob.openChannel()) {
             byte[] buf = new byte[(int) channel.size()];
             channel.read(ByteBuffer.wrap(buf));
-            return new String(buf, "UTF-8");
+            return new String(buf, StandardCharsets.UTF_8);
         }
     }
 
@@ -79,7 +80,7 @@ public class DOSSTest {
     public static Blob writeTempBlob(BlobStore store, String testString)
             throws IOException, Exception {
         try (BlobTx tx = store.begin()) {
-            Blob blob = tx.put(testString.getBytes("UTF-8"));
+            Blob blob = tx.put(testString.getBytes(StandardCharsets.UTF_8));
             tx.commit();
             return blob;
         }
@@ -94,7 +95,7 @@ public class DOSSTest {
      */
     protected Path makeTempFile(String contents) throws IOException {
         Path path = folder.newFile().toPath();
-        Files.write(path, contents.getBytes());
+        Files.write(path, contents.getBytes(StandardCharsets.UTF_8));
         return path;
     }
 }
