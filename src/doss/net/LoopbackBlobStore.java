@@ -1,8 +1,7 @@
 package doss.net;
 
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.InetAddress;
 
 import org.apache.thrift.transport.TTransportException;
 
@@ -37,13 +36,12 @@ public class LoopbackBlobStore extends WrappedBlobStore {
 
     public static BlobStore open(BlobStore wrapped) throws IOException,
             TTransportException {
-        ServerSocket serverSocket = new ServerSocket(0);
-        BlobStoreServer server = new BlobStoreServer(wrapped, serverSocket);
+        BlobStoreServer server = new BlobStoreServer(wrapped, 0, -1,
+                InetAddress.getLoopbackAddress());
         Thread serverThread = new Thread(server);
         serverThread.start();
-        Socket clientSocket = new Socket("127.0.0.1",
-                serverSocket.getLocalPort());
-        RemoteBlobStore client = new RemoteBlobStore(clientSocket);
+        RemoteBlobStore client = RemoteBlobStore.openSecure(server.getInetAddress()
+                .getHostAddress(), server.getPort());
         return new LoopbackBlobStore(server, client);
     }
 }

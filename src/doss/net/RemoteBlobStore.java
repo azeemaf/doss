@@ -1,13 +1,20 @@
 package doss.net;
 
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -15,6 +22,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyManagementException;
@@ -34,7 +43,10 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -85,9 +97,18 @@ public class RemoteBlobStore implements BlobStore {
         }
     }
 
+    static Path getConfigPath() {
+        String xdgConfigHome = System.getenv("XDG_CONFIG_HOME");
+        if (xdgConfigHome != null) {
+            return Paths.get(xdgConfigHome, "doss");
+        } else {
+            return Paths.get(System.getProperty("user.home"), ".config", "doss");
+        }
+    }
+
     public static RemoteBlobStore openSecure(String host, int port)
             throws IOException {
-        Path configPath = Paths.get("/export/home/aosborne/.doss");
+        Path configPath = getConfigPath();
         SSLContext sslContext;
         try {
             sslContext = SSLContext.getInstance("SSL");
@@ -310,13 +331,23 @@ public class RemoteBlobStore implements BlobStore {
             }
         }
 
+        private static final Set<StandardOpenOption> options = new HashSet<>(Arrays.asList(
+                CREATE, TRUNCATE_EXISTING, WRITE));
+        private static final Set<PosixFilePermission> perms = PosixFilePermissions
+                .fromString("rw-------");
+
         private static void saveKeyAndCert(Path savePath, PrivateKey key,
                 X509Certificate cert) {
             try {
-                Files.write(savePath.resolve("client.key"), key.getEncoded(),
-                        StandardOpenOption.CREATE);
-                Files.write(savePath.resolve("client.crt"), cert.getEncoded(),
-                        StandardOpenOption.CREATE);
+                if (!Files.exists(savePath)) {
+                    Files.createDirectories(savePath);
+                }
+                try (ByteChannel chan = Files.newByteChannel(savePath.resolve("client.key"),
+                        options, PosixFilePermissions.asFileAttribute(perms))) {
+                    chan.write(ByteBuffer.wrap(key.getEncoded()));
+                }
+                Files.write(savePath.resolve("client.crt"), cert.getEncoded(), CREATE,
+                        TRUNCATE_EXISTING, WRITE);
             } catch (IOException | CertificateEncodingException e) {
                 throw new RuntimeException(e);
             }
@@ -324,12 +355,20 @@ public class RemoteBlobStore implements BlobStore {
 
         private static KeyPair generateKeyPair() {
             try {
-                // TODO: save key and cert
                 KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
                 keyGen.initialize(2048, new SecureRandom());
                 return keyGen.generateKeyPair();
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
+            }
+        }
+
+        private static String getHostName() {
+            try {
+                return InetAddress.getLocalHost().getHostName();
+            } catch (UnknownHostException e) {
+                throw new RuntimeException(
+                        "Unable to get local hostname to generate SSL certificate", e);
             }
         }
 
@@ -341,7 +380,7 @@ public class RemoteBlobStore implements BlobStore {
                             .currentTimeMillis()),
                     new Date(), new Date(System.currentTimeMillis() + 30
                             * 365 * 24 * 60 * 60
-                            * 1000), new X500Name("CN=snowy.nla.gov.au"),
+                            * 1000), new X500Name("CN=" + getHostName()),
                     keyInfo);
             ContentSigner signer;
             try {
@@ -461,18 +500,23 @@ public class RemoteBlobStore implements BlobStore {
                 knownHost = new KnownHost(addr.getHostString(), addr.getAddress().getHostAddress(),
                         chain[0].getPublicKey());
                 try {
-                    Files.write(knownHostsPath, knownHost.toString().getBytes(UTF8), StandardOpenOption.APPEND,
+                    Files.write(knownHostsPath, knownHost.toString().getBytes(UTF8),
+                            StandardOpenOption.APPEND,
                             StandardOpenOption.CREATE);
                 } catch (IOException e) {
                     throw new CertificateException("failed adding known hosts entry", e);
                 }
-                System.err.println("DOSS: added " + knownHost.host + " (" + knownHost.ip + ") to " + knownHostsPath);
-                System.err.println("DOSS: server key fingerprint is " + Crypto.fingerprint(knownHost.publicKey));
+                System.err.println("DOSS: added " + knownHost.host + " (" + knownHost.ip + ") to "
+                        + knownHostsPath);
+                System.err.println("DOSS: server key fingerprint is "
+                        + Crypto.fingerprint(knownHost.publicKey));
             } else {
                 try {
                     chain[0].verify(knownHost.publicKey);
-                } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchProviderException | SignatureException e) {
-                    throw new CertificateException("error verifying server's certificate against " + knownHostsPath
+                } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchProviderException
+                        | SignatureException e) {
+                    throw new CertificateException("error verifying server's certificate against "
+                            + knownHostsPath
                             + ":" + knownHost.lineno, e);
                 }
             }

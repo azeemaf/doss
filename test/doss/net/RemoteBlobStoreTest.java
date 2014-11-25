@@ -13,7 +13,9 @@ import java.nio.file.Path;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import doss.Blob;
 import doss.BlobStore;
@@ -28,14 +30,24 @@ public class RemoteBlobStoreTest {
     private static final Charset UTF8 = Charset.forName("UTF-8");
     private static final String s = "hello world";
 
+    @Rule
+    public TemporaryFolder temp = new TemporaryFolder();
+
+    private String oldHome = null;
+
     @Before
     public void setup() throws Exception {
+        String oldHome = System.getProperty("user.home");
+        System.setProperty("user.home", temp.newFolder().toString());
         localStore = TempBlobStore.open();
-        remoteStore = SecureLoopbackBlobStore.open(localStore);
+        remoteStore = LoopbackBlobStore.open(localStore);
     }
 
     @After
     public void tearDown() {
+        if (oldHome != null) {
+            System.setProperty("user.home", oldHome);
+        }
         remoteStore.close();
         localStore.close();
     }

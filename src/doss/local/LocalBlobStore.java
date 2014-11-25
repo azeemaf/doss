@@ -59,6 +59,10 @@ public class LocalBlobStore implements BlobStore {
         masterRoots = config.masterRoots;
     }
 
+    public Path getConfigDir() {
+        return rootDir.resolve("conf");
+    }
+
     private void createDefaultConfig(Path configFile)
             throws IOException, NotDirectoryException {
         Files.createDirectory(rootDir.resolve("conf"));
@@ -174,7 +178,7 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
-    IOException {
+            IOException {
         String path = legacyPath.toAbsolutePath().toString();
         if (!Files.exists(legacyPath)) {
             throw new NoSuchFileException(path);

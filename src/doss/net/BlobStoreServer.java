@@ -1,9 +1,10 @@
 package doss.net;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -13,7 +14,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -62,15 +62,18 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import doss.BlobStore;
+import doss.local.LocalBlobStore;
 import doss.net.DossService.Iface;
 
 public class BlobStoreServer implements Runnable, Closeable {
     final private TServer server;
     final Map<TTransport, Connection> handlers = new ConcurrentHashMap<>();
+    private final ServerSocket socket;
 
     public BlobStoreServer(BlobStore blobStore, ServerSocket socket)
             throws IOException,
             TTransportException {
+        this.socket = socket;
         TServerTransport serverTransport = new TServerSocket(socket);
         server = new TSimpleServer(
                 new TServer.Args(serverTransport)
@@ -90,8 +93,10 @@ public class BlobStoreServer implements Runnable, Closeable {
             public void deleteContext(ServerContext context, TProtocol in,
                     TProtocol out) {
                 Connection conn = (Connection) context;
-                handlers.remove(conn);
-                conn.disconnect();
+                if (conn != null) {
+                    handlers.remove(conn);
+                    conn.disconnect();
+                }
             }
 
             @Override
@@ -175,6 +180,18 @@ public class BlobStoreServer implements Runnable, Closeable {
             this.blobStore = blobStore;
         }
 
+        private Path getConfigPath() {
+            if (blobStore instanceof LocalBlobStore) {
+                return ((LocalBlobStore) blobStore).getConfigDir();
+            } else {
+                return RemoteBlobStore.getConfigPath();
+            }
+        }
+
+        private Path getAuthorizedKeysPath() {
+            return getConfigPath().resolve("authorized_keys");
+        }
+
         @Override
         public void checkClientTrusted(X509Certificate[] chain,
                 String authType, Socket socket) throws CertificateException {
@@ -185,9 +202,7 @@ public class BlobStoreServer implements Runnable, Closeable {
             System.out.println("checking client "
                     + cert.getSubjectX500Principal().getName());
             // check local store
-
-            try (BufferedReader rdr = new BufferedReader(new FileReader(
-                    "/export/home/aosborne/.doss/authorized_keys"))) {
+            try (BufferedReader rdr = Files.newBufferedReader(getAuthorizedKeysPath(), UTF_8);) {
                 String line;
                 while ((line = rdr.readLine()) != null) {
                     if (!line.startsWith("doss-rsa ")) {
@@ -211,8 +226,7 @@ public class BlobStoreServer implements Runnable, Closeable {
 
         private void addAuthorizedKey(X509Certificate cert) {
             try {
-                Path keyFile = Paths
-                        .get("/export/home/aosborne/.doss/authorized_keys");
+                Path keyFile = getAuthorizedKeysPath();
                 Files.createDirectories(keyFile.getParent());
                 Files.write(keyFile,
                         ("doss-rsa "
@@ -357,5 +371,13 @@ public class BlobStoreServer implements Runnable, Closeable {
     @Override
     public void close() {
         server.stop();
+    }
+
+    public int getPort() {
+        return socket.getLocalPort();
+    }
+
+    public InetAddress getInetAddress() {
+        return socket.getInetAddress();
     }
 }
