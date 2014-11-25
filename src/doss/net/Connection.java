@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.thrift.TException;
@@ -92,7 +94,7 @@ class Connection implements DossService.Iface, ServerContext {
         return blobStore.begin().id();
     }
 
-    private RemoteIOException buildIOException(long blobId, IOException e) {
+    private RemoteIOException buildIOException(long blobId, Exception e) {
         return new RemoteIOException()
                 .setBlobId(blobId)
                 .setType(e.getClass().getName())
@@ -158,5 +160,27 @@ class Connection implements DossService.Iface, ServerContext {
     @Override
     public long finishPut(long handle) throws TException {
         return uploads.remove(handle).finish();
+    }
+
+    @Override
+    public String digest(long blobId, String algorithm) throws RemoteNoSuchBlobException, RemoteIOException, TException {
+        try {
+            return blobStore.get(blobId).digest(algorithm);
+        } catch (NoSuchBlobException e) {
+            throw new RemoteNoSuchBlobException().setBlobId(blobId);
+        } catch (IOException | NoSuchAlgorithmException e) {
+            throw buildIOException(blobId, e);
+        }
+    }
+
+    @Override
+    public List<String> verify(long blobId) throws RemoteNoSuchBlobException, RemoteIOException, TException {
+        try {
+            return blobStore.get(blobId).verify();
+        } catch (NoSuchBlobException e) {
+            throw new RemoteNoSuchBlobException().setBlobId(blobId);
+        } catch (IOException e) {
+            throw buildIOException(blobId, e);
+        }
     }
 }

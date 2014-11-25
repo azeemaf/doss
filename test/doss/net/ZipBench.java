@@ -11,6 +11,8 @@ import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.compress.utils.CountingOutputStream;
+
 import de.schlichtherle.truezip.rof.ReadOnlyFile;
 import de.schlichtherle.truezip.zip.ZipEntry;
 import de.schlichtherle.truezip.zip.ZipFile;
@@ -79,12 +81,14 @@ public class ZipBench {
         return new Writable() {
             @Override
             public void writeTo(WritableByteChannel channel) throws IOException {
-                try (ZipOutputStream out = new ZipOutputStream(
-                        new BufferedOutputStream(
-                                Channels.newOutputStream(channel), 8192))) {
-                    for (int i = 0; i < nEntries; i++) {
-                        out.putNextEntry(new ZipEntry(Integer.toString(i)));
-                        out.write(testData);
+                try (CountingOutputStream outc = new CountingOutputStream(
+                        Channels.newOutputStream(channel))) {
+                    try (ZipOutputStream out = new ZipOutputStream(
+                            new BufferedOutputStream(outc, 8192))) {
+                        for (int i = 0; i < nEntries; i++) {
+                            out.putNextEntry(new ZipEntry(Integer.toString(i)));
+                            out.write(testData);
+                        }
                     }
                 }
             }

@@ -100,6 +100,7 @@ public class RemoteBlobStoreTest {
             channel.read(b);
         }
         assertEquals(s, new String(b.array(), UTF8));
+        assertEquals("5eb63bbbe01eeed093cb22bb8f5acdc3", blob.digest("md5"));
     }
 
     @Test(timeout = 5000)
@@ -112,8 +113,8 @@ public class RemoteBlobStoreTest {
                 @Override
                 public void writeTo(WritableByteChannel channel)
                         throws IOException {
-                    channel.write(ByteBuffer.wrap(bytes));
-                    channel.write(ByteBuffer.wrap(bytes));
+                    long n = channel.write(ByteBuffer.wrap(bytes));
+                    n += channel.write(ByteBuffer.wrap(bytes));
                 }
             });
             assertNotNull(b);

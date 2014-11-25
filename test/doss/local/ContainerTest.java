@@ -1,4 +1,4 @@
-package doss.core;
+package doss.local;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import doss.Blob;
-import doss.local.Container;
+import doss.core.Writables;
 
 public abstract class ContainerTest {
     protected static final String TEST_DATA = "test\nstring\0a\r\nwith\tstrange\u2603characters";

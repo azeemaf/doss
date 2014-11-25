@@ -1,15 +1,22 @@
 package doss.local;
 
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.nio.channels.FileChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
+
+import org.apache.commons.compress.utils.Charsets;
 
 import doss.Blob;
 import doss.BlobStore;
@@ -22,24 +29,42 @@ import doss.Writable;
 import doss.core.ManagedTransaction;
 import doss.core.Transaction;
 import doss.core.Writables;
+import doss.local.Database.TxRecord;
 
 public class LocalBlobStore implements BlobStore {
 
-    final Symlinker symlinker;
-    final Database db;
-    final Map<Long, BlobTx> txs = new ConcurrentHashMap<>();
-    final Path rootDir;
-    final List<Area> areas = new ArrayList<>();
-    final Area stagingArea;
+    private final static Logger logger = Logger.getLogger(LocalBlobStore.class
+            .getName());
 
-    private LocalBlobStore(Path rootDir) throws IOException {
+    final Database db;
+    final Path rootDir;
+    final Path stagingRoot;
+    final List<Path> masterRoots;
+    final static String clientName = System.getProperty("nla.node", "java")
+            + ":" + ManagementFactory.getRuntimeMXBean().getName();
+
+    private LocalBlobStore(Path rootDir, String jdbcUrl) throws IOException {
         this.rootDir = rootDir;
-        db = Database.open(subdir("db"));
-        symlinker = new Symlinker(subdir("blob"));
-        List<Filesystem> fslist = new ArrayList<>();
-        fslist.add(new Filesystem("fs.staging", subdir("staging")));
-        stagingArea = new Area(db, "area.staging", fslist, "directory");
-        areas.add(stagingArea);
+        if (jdbcUrl == null) {
+            db = Database.open(subdir("db"));
+        } else {
+            db = Database.open(jdbcUrl);
+        }
+        Path configFile = rootDir.resolve("conf/doss.conf");
+        if (!Files.exists(configFile)) {
+            createDefaultConfig(configFile);
+        }
+        Config config = new Config(configFile);
+        stagingRoot = config.stagingRoot;
+        masterRoots = config.masterRoots;
+    }
+
+    private void createDefaultConfig(Path configFile)
+            throws IOException, NotDirectoryException {
+        Files.createDirectory(rootDir.resolve("conf"));
+        String defaultConfig = "[area.staging]\nfs=staging\n\n[fs.staging]\npath="
+                + subdir("staging").toString() + "\n";
+        Files.write(configFile, defaultConfig.getBytes(Charsets.UTF_8));
     }
 
     public static void init(Path root) throws IOException {
@@ -54,7 +79,7 @@ public class LocalBlobStore implements BlobStore {
     /**
      * Opens a BlobStore that stores all its data and indexes on the local file
      * system.
-     * 
+     *
      * @param root
      *            directory to store data and indexes in
      * @return a new BlobStore
@@ -63,7 +88,28 @@ public class LocalBlobStore implements BlobStore {
      */
     public static BlobStore open(Path root) throws CorruptBlobStoreException {
         try {
-            return new LocalBlobStore(root);
+            return new LocalBlobStore(root, null);
+        } catch (IOException e) {
+            throw new CorruptBlobStoreException(root, e);
+        }
+    }
+
+    /**
+     * Opens a BlobStore that stores all its data and indexes on the local file
+     * system.
+     *
+     * @param root
+     *            directory to store data in
+     * @param jdbcUrl
+     *            jdbcUrl for the DOSS SQL database
+     * @return a new BlobStore
+     * @throws CorruptBlobStoreException
+     *             if the blob store is missing or corrupt
+     */
+    public static BlobStore open(Path root, String jdbcUrl)
+            throws CorruptBlobStoreException {
+        try {
+            return new LocalBlobStore(root, jdbcUrl);
         } catch (IOException e) {
             throw new CorruptBlobStoreException(root, e);
         }
@@ -79,9 +125,6 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public void close() {
-        for (Area area : areas) {
-            area.close();
-        }
         db.close();
     }
 
@@ -95,16 +138,43 @@ public class LocalBlobStore implements BlobStore {
         if (location == null) {
             throw new NoSuchBlobException(blobId);
         }
+        if (location.isInStagingArea()) {
+            /*
+             * FIXME: there's a race here that will need a minor redesign to fix:
+             *
+             * 1. we check file is in staging area and return FileBlob.
+             * 2. archiver goes and archives the file and deletes from staging.
+             * 3. client now calls openChannel() and gets file not found error
+             *
+             */
+            return new FileBlob(blobId, stagingPath(blobId));
+        }
+        try (Container container = openContainer(location.containerId())) {
+            Blob blob = container.get(location.offset());
+            return new CachedMetadataBlob(db, blob);
+        }
 
-        // TODO: support multiple containers
-        // This following call allow access to multiple containers
-        return stagingArea.container(location.containerId()).get(
-                location.offset());
+    }
+
+    Path tarPath(Path areaRoot, long containerId) {
+        Path path = areaRoot;
+        String dirs = "";
+        for (long x = containerId / 1000; x > 0; x = x / 1000) {
+            dirs = String.format("%03d/%s", x % 1000, dirs);
+        }
+        return path.resolve("data").resolve(dirs)
+                .resolve(String.format("nla.doss-%d.tar", containerId));
+    }
+
+    private Container openContainer(long containerId) throws IOException {
+        Path path = tarPath(masterRoots.get(0), containerId);
+        FileChannel channel = FileChannel.open(path, StandardOpenOption.READ);
+        return new TarContainer(containerId, path, channel);
     }
 
     @Override
     public Blob getLegacy(Path legacyPath) throws NoSuchBlobException,
-            IOException {
+    IOException {
         String path = legacyPath.toAbsolutePath().toString();
         if (!Files.exists(legacyPath)) {
             throw new NoSuchFileException(path);
@@ -114,24 +184,92 @@ public class LocalBlobStore implements BlobStore {
 
     @Override
     public BlobTx begin() {
-        BlobTx tx = new Tx();
-        txs.put(tx.id(), tx);
-        return tx;
+        long txId = db.nextId();
+        db.insertTx(txId, clientName);
+        return new Tx(txId);
     }
 
     @Override
     public BlobTx resume(long txId) throws NoSuchBlobTxException {
-        BlobTx tx = txs.get(txId);
-        if (tx == null) {
+        TxRecord txRecord = db.findTx(txId);
+        if (txRecord == null
+                || txRecord.state == Database.TX_COMMITTED
+                || txRecord.state == Database.TX_ROLLEDBACK) {
             throw new NoSuchBlobTxException(txId);
         }
-        return tx;
+        return new Tx(txRecord.id, txRecord.state);
+    }
+
+    static Path stagingPath(Path root, long blobId) {
+        String dirs = "";
+        for (long x = blobId / 1000; x > 0; x = x / 1000) {
+            dirs = String.format("%d/%s", x % 1000, dirs);
+        }
+        return root.resolve("data").resolve(dirs).resolve(String.format("nla.blob-%d", blobId));
+    }
+
+    long parseBlobFileName(String filename) {
+        if (filename.startsWith("nla.blob-")) {
+            return Long.parseLong(filename.substring("nla.blob-".length()));
+        } else {
+            throw new IllegalArgumentException("invalid blob filename: " + filename);
+        }
+    }
+
+    long parseContinerFileName(String filename) {
+        if (filename.startsWith("nla.doss-") && filename.endsWith(".tar")) {
+            return Long.parseLong(filename.substring("nla.doss-".length(), filename.length()
+                    - ".tar".length()));
+        } else {
+            throw new IllegalArgumentException("invalid container filename: " + filename);
+        }
+    }
+
+    Path stagingPath(long blobId) {
+        return stagingPath(stagingRoot, blobId);
     }
 
     public class Tx extends ManagedTransaction implements BlobTx {
 
-        final long id = db.nextId();
-        final List<Long> addedBlobs = new ArrayList<Long>();
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof Tx && ((Tx) obj).id == id;
+        }
+
+        final long id;
+
+        Tx(long id) {
+            this.id = id;
+        }
+
+        Tx(long id, int numericState) {
+            this.id = id;
+            switch (numericState) {
+            case Database.TX_OPEN:
+                state = State.OPEN;
+                break;
+            case Database.TX_PREPARED:
+                state = State.PREPARED;
+                break;
+            case Database.TX_COMMITTED:
+                state = State.COMMITTED;
+                break;
+            case Database.TX_ROLLEDBACK:
+                state = State.ROLLEDBACK;
+                break;
+            case Database.TX_ROLLINGBACK:
+                try {
+                    callbacks.rollback();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                state = State.ROLLEDBACK;
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Invalid transaction state: " + numericState);
+            }
+        }
 
         // ManagedTransaction will call back into this private Transaction when
         // the transaction changes state.
@@ -141,33 +279,31 @@ public class LocalBlobStore implements BlobStore {
 
             @Override
             public void commit() throws IOException {
-                txs.remove(id);
+                db.updateTxState(id, Database.TX_COMMITTED);
             }
 
             @Override
             public void rollback() throws IOException {
-                for (Long blobId : addedBlobs) {
+                // this method must be safe to call multiple times
+                // and safe to call again if a previous attempt crashed halfway through
+                // therefore we continue even if the file has already been deleted
+                db.updateTxState(id, Database.TX_ROLLINGBACK);
+                for (Long blobId : db.listBlobsByTx(id)) {
+                    Files.deleteIfExists(stagingPath(blobId));
                     db.deleteBlob(blobId);
-                    symlinker.unlink(blobId);
                 }
-                txs.remove(id);
+                db.updateTxState(id, Database.TX_ROLLEDBACK);
             }
 
             @Override
             public void prepare() {
-                // TODO Auto-generated method stub
+                db.updateTxState(id, Database.TX_PREPARED);
             }
 
             @Override
             public void close() throws IllegalStateException {
             }
         };
-
-        public void setExtension(final long blobId, final String ext)
-                throws NoSuchBlobException, IOException {
-            Blob blob = get(blobId);
-            symlinker.updateLinkPath(blobId, ext);
-        }
 
         @Override
         public Blob put(final Path source) throws IOException {
@@ -190,46 +326,50 @@ public class LocalBlobStore implements BlobStore {
         }
 
         @Override
-        public Blob put(Writable output) throws IOException {
+        public Blob put(final Writable output) throws IOException {
+            /*
+             * 1. insert blobId into database (must be done prior to writing for crash cleanup)
+             * 2. create parent directories
+             * 3. write blob, if parent missing, retry from 2
+             *
+             */
             state.assertOpen();
-            db.begin();
             long blobId = db.nextId();
-            Container container = stagingArea.currentContainer();
-            long offset = container.put(blobId, output);
-            db.insertBlob(blobId, container.id(), offset);
-            if (container instanceof DirectoryContainer) {
-                symlinker.link(blobId, (DirectoryContainer) container, offset);
+            db.insertBlob(blobId, this.id);
+            Path blobFile = stagingPath(blobId);
+            Files.createDirectories(blobFile.getParent());
+            try (WritableByteChannel channel = Files.newByteChannel(blobFile, CREATE_NEW, WRITE)) {
+                output.writeTo(channel);
             }
-            addedBlobs.add(blobId);
-            db.commit();
-            return container.get(offset);
+            return new FileBlob(blobId, blobFile);
         }
 
         /**
          * Slightly dodgey addition to LocalBlobStore Tx, for importing legacy
          * files into a local DOSS. Files do not get a symlink as there are no
          * legacy jp2s.
-         * 
+         *
          * @param legacyPath
          *            The full path to the legacy DOSS storage system.
-         * 
+         *
          * @return The Blob id for the legacy file. File can now be retrieved
          *         just like any other DOSS stored file
-         * 
+         *
          * @throws IOException
          *             when it's unhappy
          */
         public Long putLegacy(Path legacyPath) throws IOException {
             state.assertOpen();
-            Long blobId = db.findOrInsertBlobIdByLegacyPath(legacyPath
-                    .toString());
-            addedBlobs.add(blobId);
-            return blobId;
+            return db.findOrInsertBlobIdByLegacyPath(legacyPath.toString());
         }
     }
 
     @Override
     public Iterable<Client> clients() {
         return db.listClients();
+    }
+
+    public String version() {
+        return db.version();
     }
 }

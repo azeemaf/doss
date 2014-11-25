@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
+import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -30,6 +31,9 @@ import joptsimple.OptionSet;
 
 import org.apache.thrift.transport.TTransportException;
 
+import doss.local.Admin;
+import doss.local.Archiver;
+import doss.local.Fsck;
 import doss.local.LocalBlobStore;
 import doss.net.BlobStoreServer;
 import doss.net.RemoteBlobStore;
@@ -76,15 +80,19 @@ public class Main {
                     } else {
                         out.println("DOSS 2 version "
                                 + this.getClass().getPackage()
-                                        .getImplementationVersion());
+                                .getImplementationVersion());
                     }
 
+                    try (BlobStore blobStore = openBlobStore()) {
+                        if (blobStore instanceof LocalBlobStore) {
+                            out.println("LocalBlobStore version: "
+                                    + ((LocalBlobStore) blobStore).version());
+                        }
+                    }
                     out.println("Java version: "
                             + System.getProperty("java.version") + ", vendor: "
                             + System.getProperty("java.vendor"));
                     out.println("Java home: " + System.getProperty("java.home"));
-                    out.println("");
-                    out.println("For more usage: help <command>");
                 }
             }
         },
@@ -93,6 +101,40 @@ public class Main {
             void execute(Arguments args) throws IOException {
                 LocalBlobStore.init(getDossHome());
             }
+        },
+        upgrade("", "Run the database migrations") {
+            @Override
+            void execute(Arguments args) throws IOException {
+                LocalBlobStore.init(getDossHome());
+            }
+        },
+        archiver("[-f]", "Run the archiving daemon") {
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Archiver archiver = new Archiver(bs);
+                    archiver.run(!args.isEmpty() && args.first().equals("-f"));
+                }
+            }
+        },
+        bench("", "Run a basic benchmark (beware: will create and delete blobs)") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                byte[] data = new byte[2000];
+                try (BlobStore bs = openBlobStore()) {
+                    try (BlobTx tx = bs.begin()) {
+                        long start = System.currentTimeMillis();
+                        for (int i = 0; i < 1000; i++) {
+                            tx.put(data);
+                        }
+                        System.out.println("Created 1000 blobs in "
+                                + (System.currentTimeMillis() - start) + "ms");
+                        tx.rollback();
+                    }
+                }
+            }
+
         },
         cat("<blobId ...>", "Concatinate and print blobs (like unix cat).") {
 
@@ -121,6 +163,38 @@ public class Main {
                     for (String arg : args) {
                         outputBlob(arg);
                     }
+                }
+            }
+        },
+        digest("<algorithm> <blobId>",
+                "Prints a digest (sha1, md5, etc) of a blob") {
+
+            void digestBlob(String algorithm, String blobId) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Blob blob = bs.get(Long.parseLong(blobId));
+                    try {
+                        out.println(blob.digest(algorithm));
+                    } catch (NoSuchAlgorithmException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                digestBlob(args.first(), args.rest().first());
+            }
+        },
+        fsck("[-v]", "Run sanity checks") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Fsck fsck = new Fsck((LocalBlobStore) bs);
+                    if (!args.isEmpty() && args.first().equals("-v")) {
+                        fsck.setVerbose(true);
+                    }
+                    fsck.run();
                 }
             }
         },
@@ -164,8 +238,10 @@ public class Main {
             void execute(Arguments args) throws IOException {
                 if (args.isEmpty()) {
                     usage();
-                } else {
-                    BlobStore bs = openBlobStore();
+                    return;
+                }
+
+                try (BlobStore bs = openBlobStore()) {
 
                     boolean humanSizes = true;
                     if (args.first().equals("-b")) {
@@ -183,6 +259,12 @@ public class Main {
                         out.println("\tSize:\t\t"
                                 + (humanSizes ? readableFileSize(blob.size())
                                         : blob.size() + " B"));
+
+                        if (bs instanceof LocalBlobStore) {
+                            Admin admin = new Admin((LocalBlobStore) bs);
+                            out.println("\tLocation:\t"
+                                    + admin.locateBlob(blob.id()));
+                        }
 
                         out.println("");
                     }
@@ -238,6 +320,28 @@ public class Main {
                 }
             }
         },
+        containers("", "Lists all containers") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Admin admin = new Admin((LocalBlobStore) bs);
+                    admin.listContainers();
+                }
+            }
+        },
+        seal("<containerId ..>", "Seals a container") {
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Admin admin = new Admin((LocalBlobStore) bs);
+                    for (String containerId : args) {
+                        admin.sealContainer(Long.parseLong(containerId));
+                    }
+                }
+            }
+        },
         server("[-b bindaddr] [-p port]",
                 "Run a DOSS server on the given part") {
             @Override
@@ -257,8 +361,8 @@ public class Main {
                         BlobStoreServer server = options.has("s") ?
                                 new BlobStoreServer(blobStore, port, 1,
                                         InetAddress.getByName(bindaddr)) :
-                                new BlobStoreServer(blobStore,
-                                        new ServerSocket(port))) {
+                                            new BlobStoreServer(blobStore,
+                                                    new ServerSocket(port))) {
                     server.run();
                 } catch (TTransportException e) {
                     throw new RuntimeException(e);
@@ -287,6 +391,28 @@ public class Main {
                 }
             }
 
+        },
+        verify("<blobId ...>", "Checks the integrity of the given blobs") {
+
+            void verifyBlob(String blobId) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    Blob blob = bs.get(Long.parseLong(blobId));
+                    for (String error : blob.verify()) {
+                        out.println("blob " + blobId + ": " + error);
+                    }
+                }
+            }
+
+            @Override
+            void execute(Arguments args) throws IOException {
+                if (args.isEmpty()) {
+                    usage();
+                } else {
+                    for (String arg : args) {
+                        verifyBlob(arg);
+                    }
+                }
+            }
         };
 
         final String descrption, parameters;

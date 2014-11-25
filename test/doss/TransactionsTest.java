@@ -33,9 +33,13 @@ public class TransactionsTest extends DOSSTest {
 
     @Test
     public void transactionsAreResumable() throws Exception {
+        long id;
         try (BlobTx tx = blobStore.begin()) {
-            BlobTx tx2 = blobStore.resume(tx.id());
-            assertEquals(tx, tx2);
+            id = tx.id();
+            tx.prepare();
+        }
+        try (BlobTx tx2 = blobStore.resume(id)) {
+            assertEquals(id, tx2.id());
             tx2.rollback();
         }
     }

@@ -1,7 +1,6 @@
 package doss.local;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -11,30 +10,39 @@ import java.util.Map.Entry;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 
-public class Config {
-    public static void main(String args[]) throws Exception {
-        Ini ini = new Ini();
-        ini.load(new StringReader(
-                "[area.staging]\nfs=staging\n[fs.staging]\npath = /staging"));
+/**
+ * Example config file:
+ *
+ * <pre>
+ * [area.staging]
+ * fs=staging
+ *
+ * [fs.staging]
+ * path = /staging
+ * </pre>
+ */
+class Config {
+    private final Ini ini;
+    Path stagingRoot = null;
+    List<Path> masterRoots = new ArrayList<>();
 
-        List<Area> areas = new ArrayList<>();
+    Config(Path path) throws IOException {
+        ini = new Ini(path.toFile());
         for (String section : ini.keySet()) {
             if (section.startsWith("area.")) {
-                areas.add(parseArea(ini, section));
+                parseArea(section);
             }
         }
-
-        if (areas.isEmpty()) {
-            barf("at least one storage area must be configured");
+        if (stagingRoot == null) {
+            barf("at least the staging area and fs must be configured");
         }
     }
 
-    private static Area parseArea(Ini ini, String name) throws IOException {
+    private void parseArea(String name) throws IOException {
         Section section = ini.get(name);
-        String container = "directory";
-        List<Filesystem> filesystems = new ArrayList<Filesystem>();
         for (Entry<String, String> entry : section.entrySet()) {
-            if (entry.getKey().equals("fs")) {
+            switch (entry.getKey()) {
+            case "fs": {
                 for (String shortName : entry.getValue().split(",\\s*")) {
                     String fsName = "fs." + shortName;
                     Section fsSection = ini.get(fsName);
@@ -42,21 +50,25 @@ public class Config {
                         barf("missing " + fsName + " referred to by " + name
                                 + "/fs");
                     }
-                    filesystems.add(parseFilesystem(ini, fsSection));
+                    Path fsRoot = parseFilesystem(fsSection);
+                    if (name.equals("area.staging")) {
+                        stagingRoot = fsRoot;
+                    } else if (name.equals("area.master")) {
+                        masterRoots.add(fsRoot);
+                    } else {
+                        barf("unknown area " + name + " expected area.master or area.staging");
+                    }
                 }
-            } else if (entry.getKey().equals("container")) {
-                container = entry.getValue();
-            } else {
+                break;
+            }
+            default:
                 barf("unknown option: " + name + "/" + entry.getKey());
+                break;
             }
         }
-        if (filesystems.isEmpty()) {
-            barf(name + " needs at least one fs defined");
-        }
-        return new Area(Database.open(), name, filesystems, container);
     }
 
-    private static Filesystem parseFilesystem(Ini ini, Section section) {
+    private Path parseFilesystem(Section section) {
         Path path = null;
         for (Entry<String, String> entry : section.entrySet()) {
             if (entry.getKey().equals("path")) {
@@ -66,7 +78,10 @@ public class Config {
                         + entry.getKey());
             }
         }
-        return new Filesystem(section.getName(), path);
+        if (path == null) {
+            barf(section.getName() + ": 'path' must be set");
+        }
+        return path;
     }
 
     private static void barf(String message) {

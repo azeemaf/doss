@@ -10,14 +10,13 @@ issues encountered in DOSS 1 by:
 * allowing objects to migrated between different storage devices without applications caring
 
 Unlike a traditional filesystem, DOSS has no notion of directories, filenames or permissions.  Objects are identified
-solely by a 64-bit integer id.  Once written an object cannot be modified.  Making sense of the collection via metadata
-and providing access controls is expected to be done by a higher layer.
+solely by a 64-bit integer id.  Once written an object cannot be modified.  Making sense of the collection via metadata and managing access control is expected to be done by a higher layer.
 
-DOSS consists of the following components:
+DOSS consists of the following software components:
 
 * DOSS server daemon
-* DOSS client library
-* doss-nfsd native gateway
+* [DOSS client library](https://github.com/nla/doss/blob/master/doc/java-api.md)
+* [doss-nfsd native gateway](https://github.com/nla/doss-nfsd/)
 
 Client API
 ----------

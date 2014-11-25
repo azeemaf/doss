@@ -38,7 +38,11 @@ try (BlobStore bs = LocalBlobStore.open("/doss-devel");
      BlobTx tx = bs.begin()) {    
     Blob blob1 = tx.put(Paths.get("/tmp/myimage.jpg"));
     Blob blob2 = tx.put(Paths.get("/tmp/mytext.txt"));
-    blob2.verifyDigest("SHA1", "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed");
+    String digest = blob2.digest("sha1");
+    if (!digest.equals("2aae6c35c94fcfb415dbe95f408b9ce91ee846ed")) {
+        // handle error
+        throw new RuntimeException("ingest failed, digest mismatch");
+    }
     tx.commit();
     return blob1.id();
 }

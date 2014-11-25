@@ -10,11 +10,12 @@ public interface Writable {
 
     /**
      * Writes this object to a byte channel.
-     * 
+     *
      * @param channel
      *            the channel to write to
      * @throws IOException
      *             if I/O error occurs
+     * @return bytes written
      */
     void writeTo(WritableByteChannel channel) throws IOException;
 
