@@ -12,6 +12,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 
 import doss.Blob;
 import doss.SizedWritable;
+import doss.Timestamped;
 import doss.Writable;
 import doss.core.Writables;
 
@@ -90,6 +91,9 @@ public class TarContainer implements Container {
     private void writeRecordHeader(long blobId, SizedWritable output)
             throws IOException {
         TarArchiveEntry entry = new TarArchiveEntry("nla.doss-" + this.id + "/nla.blob-" + blobId);
+        if (output instanceof Timestamped) {
+            entry.setModTime(((Timestamped) output).created().toMillis());
+        }
         entry.setSize(output.size());
         headerBuffer.clear();
         entry.writeEntryHeader(headerBuffer.array());

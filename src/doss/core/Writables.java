@@ -10,9 +10,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileTime;
 
 import doss.Blob;
 import doss.SizedWritable;
+import doss.Timestamped;
 import doss.Writable;
 
 /**
@@ -95,19 +97,32 @@ public class Writables {
     }
 
     public static Writable wrap(final Blob blob) {
-        return new SizedWritable() {
-            @Override
-            public void writeTo(WritableByteChannel out) throws IOException {
-                try (SeekableByteChannel in = blob.openChannel()) {
-                    copy(in, out);
-                }
-            }
+        return new BlobWritable(blob);
+    }
 
-            @Override
-            public long size() throws IOException {
-                return blob.size();
+    static class BlobWritable implements SizedWritable, Timestamped {
+        final Blob blob;
+
+        BlobWritable(Blob blob) {
+            this.blob = blob;
+        }
+
+        @Override
+        public void writeTo(WritableByteChannel out) throws IOException {
+            try (SeekableByteChannel in = blob.openChannel()) {
+                copy(in, out);
             }
-        };
+        }
+
+        @Override
+        public long size() throws IOException {
+            return blob.size();
+        }
+
+        @Override
+        public FileTime created() throws IOException {
+            return blob.created();
+        }
     }
 
 }
