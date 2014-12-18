@@ -138,17 +138,25 @@ public class Archiver {
                 tars.add(new TarContainer(containerId, tarPath, channel));
             }
 
-            List<Long> blobIds = db.findBlobsByContainer(containerId);
+            List<Long> blobIds;
+            synchronized (db) {
+                blobIds = db.findBlobsByContainer(containerId);
+            }
             logger.info("Writing " + blobIds.size() + " blobs to container " + containerId);
             for (long blobId : blobIds) {
-                Blob blob = blobStore.get(blobId);
+                Blob blob;
+                synchronized (db) {
+                    blob = blobStore.get(blobId);
+                }
                 Long offset = null;
                 for (TarContainer container : tars) {
                     logger.fine("Appending blob " + blobId + " (" + blob.size() + " bytes) to "
                             + container.path());
                     offset = container.put(blobId, Writables.wrap(blob));
                 }
-                db.setBlobOffset(blobId, offset);
+                synchronized (db) {
+                    db.setBlobOffset(blobId, offset);
+                }
             }
         } finally {
             for (Container tar : tars) {
@@ -178,15 +186,18 @@ public class Archiver {
                 throw new RuntimeException(e);
             }
         }
-        db.setContainerSha1(containerId, lastDigest);
-
+        synchronized (db) {
+            db.setContainerSha1(containerId, lastDigest);
+        }
         // all ok, do the final move
         for (Path fsRoot : blobStore.masterRoots) {
             Path dest = blobStore.tarPath(fsRoot, containerId);
             Files.createDirectories(dest.getParent());
             Files.move(incomingPath(fsRoot, containerId), dest, StandardCopyOption.ATOMIC_MOVE);
         }
-        db.updateContainerState(containerId, Database.CNT_WRITTEN);
+        synchronized (db) {
+            db.updateContainerState(containerId, Database.CNT_WRITTEN);
+        }
         logger.info("Finished data copy for container " + containerId);
     }
 
@@ -196,8 +207,15 @@ public class Archiver {
         try (TarContainer tar = new TarContainer(containerId, tarPath, FileChannel.open(
                 tarPath, READ))) {
             Iterator<Blob> it = tar.iterator();
-            for (long blobId : db.findBlobsByContainer(containerId)) {
-                Blob stagingBlob = blobStore.get(blobId);
+            List<Long> blobIds;
+            synchronized (db) {
+                blobIds = db.findBlobsByContainer(containerId);
+            }
+            for (long blobId : blobIds) {
+                Blob stagingBlob;
+                synchronized (db) {
+                    stagingBlob = blobStore.get(blobId);
+                }
                 if (!it.hasNext()) {
                     throw new IOException("tar ended prematurely");
                 }
