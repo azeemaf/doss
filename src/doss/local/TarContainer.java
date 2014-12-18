@@ -72,8 +72,8 @@ public class TarContainer implements Container {
         return offset;
     }
 
-    private static long calculatePadding(long position) {
-        return BLOCK_SIZE - position % BLOCK_SIZE;
+    static long calculatePadding(long position) {
+        return (-position) & (BLOCK_SIZE - 1);
     }
 
     private void writeRecordPadding() throws IOException {

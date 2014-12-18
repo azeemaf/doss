@@ -3,6 +3,8 @@
 /.project
 /release.properties
 /pom.xml.releaseBackup
+/.idea
+/*.iml
 .javaclasspath
 *.class
 *.jar

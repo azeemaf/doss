@@ -162,4 +162,13 @@ public class TarContainerTest {
         assertEquals("/area/004/123/456/nla.doss-4123456789.tar", t.tarPath(root, 4123456789L)
                 .toString());
     }
+
+    @Test
+    public void testContainerPadding() {
+        assertEquals(0, TarContainer.calculatePadding(0));
+        assertEquals(389, TarContainer.calculatePadding(123));
+        assertEquals(0, TarContainer.calculatePadding(512));
+        assertEquals(474, TarContainer.calculatePadding(1232132134));
+        assertEquals(0, TarContainer.calculatePadding(16722944));
+    }
 }
