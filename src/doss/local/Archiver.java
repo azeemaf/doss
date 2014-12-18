@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 import doss.Blob;
@@ -27,6 +28,8 @@ public class Archiver {
     private final LocalBlobStore blobStore;
     private final Database db;
     private final long maxContainerSize = 10L * 1024 * 1024 * 1024;
+    private boolean skipCleanup = false;
+    private int threads = 0;
 
     public Archiver(BlobStore blobStore) {
         if (!(blobStore instanceof LocalBlobStore)) {
@@ -48,7 +51,9 @@ public class Archiver {
             logger.info("Force sealed " + n + " containers");
         }
         dataCopyPhase();
-        cleanupPhase();
+        if (!skipCleanup) {
+            cleanupPhase();
+        }
     }
 
     //      * For each blob:
@@ -90,71 +95,104 @@ public class Archiver {
         List<Long> containerIds = db.findContainersByState(Database.CNT_SEALED);
         logger.info("Data copy phase: found " + containerIds.size()
                 + " full containers ready to be written");
-        for (long containerId : containerIds) {
-            List<TarContainer> tars = new ArrayList<>();
-
-            logger.info("Writing container " + containerId);
-            try {
-                for (Path fsRoot : blobStore.masterRoots) {
-                    Path tarPath = incomingPath(fsRoot, containerId);
-                    Files.deleteIfExists(tarPath); // remove any debris from a crashed previous attempt
-                    FileChannel channel = FileChannel.open(tarPath, CREATE_NEW, WRITE);
-                    tars.add(new TarContainer(containerId, tarPath, channel));
-                }
-
-                List<Long> blobIds = db.findBlobsByContainer(containerId);
-                logger.info("Writing " + blobIds.size() + " blobs to container " + containerId);
-                for (long blobId : blobIds) {
-                    Blob blob = blobStore.get(blobId);
-                    Long offset = null;
-                    for (TarContainer container : tars) {
-                        logger.fine("Appending blob " + blobId + " (" + blob.size() + " bytes) to "
-                                + container.path());
-                        offset = container.put(blobId, Writables.wrap(blob));
-                    }
-                    db.setBlobOffset(blobId, offset);
-                }
-            } finally {
-                for (Container tar : tars) {
-                    tar.fsync();
-                    tar.close();
-                }
+        if (threads == 0) {
+            for (long containerId : containerIds) {
+                writeContainer(containerId);
             }
-
-            // verify all blobs exist and have the right contents
-            for (Path fsRoot : blobStore.masterRoots) {
-                verifyContainerContents(containerId, fsRoot);
-            }
-
-            // calculate whole container digests and compare to each other
-            String lastDigest = null;
-            for (Path fsRoot : blobStore.masterRoots) {
-                Path path = incomingPath(fsRoot, containerId);
-                try (FileChannel chan = FileChannel.open(path, READ)) {
-                    String digest = Digests.calculate("SHA1", chan);
-                    if (lastDigest != null && !digest.equals(lastDigest)) {
-                        throw new IOException("tar digests do not match. Expected " + lastDigest
-                                + " but got " + digest + " for " + path);
-                    }
-                    lastDigest = digest;
-                } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            db.setContainerSha1(containerId, lastDigest);
-
-            // all ok, do the final move
-            for (Path fsRoot : blobStore.masterRoots) {
-                Path dest = blobStore.tarPath(fsRoot, containerId);
-                Files.createDirectories(dest.getParent());
-                Files.move(incomingPath(fsRoot, containerId), dest, StandardCopyOption.ATOMIC_MOVE);
-            }
-            db.updateContainerState(containerId, Database.CNT_WRITTEN);
+        } else {
+            parallelDataCopyPhase(containerIds);
         }
+    }
+
+    private void parallelDataCopyPhase(List<Long> containerIds) {
+        logger.info("Running parallel data copy with " + threads + " threads");
+        ExecutorService threadPool = Executors.newFixedThreadPool(threads);
+        try {
+            List<Callable<Void>> tasks = new ArrayList<>();
+            for (final long containerId : containerIds) {
+                tasks.add(new Callable<Void>() {
+                    @Override
+                    public Void call() throws Exception {
+                        writeContainer(containerId);
+                        return null;
+                    }
+                });
+            }
+            threadPool.invokeAll(tasks);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("parallel data copy interrupted", e);
+        } finally {
+            threadPool.shutdown();
+        }
+    }
+
+    private void writeContainer(long containerId) throws IOException {
+        List<TarContainer> tars = new ArrayList<>();
+
+        logger.info("Writing container " + containerId);
+        try {
+            for (Path fsRoot : blobStore.masterRoots) {
+                Path tarPath = incomingPath(fsRoot, containerId);
+                Files.deleteIfExists(tarPath); // remove any debris from a crashed previous attempt
+                FileChannel channel = FileChannel.open(tarPath, CREATE_NEW, WRITE);
+                tars.add(new TarContainer(containerId, tarPath, channel));
+            }
+
+            List<Long> blobIds = db.findBlobsByContainer(containerId);
+            logger.info("Writing " + blobIds.size() + " blobs to container " + containerId);
+            for (long blobId : blobIds) {
+                Blob blob = blobStore.get(blobId);
+                Long offset = null;
+                for (TarContainer container : tars) {
+                    logger.fine("Appending blob " + blobId + " (" + blob.size() + " bytes) to "
+                            + container.path());
+                    offset = container.put(blobId, Writables.wrap(blob));
+                }
+                db.setBlobOffset(blobId, offset);
+            }
+        } finally {
+            for (Container tar : tars) {
+                tar.fsync();
+                tar.close();
+            }
+        }
+
+        // verify all blobs exist and have the right contents
+        for (Path fsRoot : blobStore.masterRoots) {
+            verifyContainerContents(containerId, fsRoot);
+        }
+
+        // calculate whole container digests and compare to each other
+        String lastDigest = null;
+        for (Path fsRoot : blobStore.masterRoots) {
+            Path path = incomingPath(fsRoot, containerId);
+            logger.info("Calculating digest for " + path);
+            try (FileChannel chan = FileChannel.open(path, READ)) {
+                String digest = Digests.calculate("SHA1", chan);
+                if (lastDigest != null && !digest.equals(lastDigest)) {
+                    throw new IOException("tar digests do not match. Expected " + lastDigest
+                            + " but got " + digest + " for " + path);
+                }
+                lastDigest = digest;
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        db.setContainerSha1(containerId, lastDigest);
+
+        // all ok, do the final move
+        for (Path fsRoot : blobStore.masterRoots) {
+            Path dest = blobStore.tarPath(fsRoot, containerId);
+            Files.createDirectories(dest.getParent());
+            Files.move(incomingPath(fsRoot, containerId), dest, StandardCopyOption.ATOMIC_MOVE);
+        }
+        db.updateContainerState(containerId, Database.CNT_WRITTEN);
+        logger.info("Finished data copy for container " + containerId);
     }
 
     private void verifyContainerContents(long containerId, Path fsRoot) throws IOException {
         Path tarPath = incomingPath(fsRoot, containerId);
+        logger.info("Verifying individual records in " + tarPath);
         try (TarContainer tar = new TarContainer(containerId, tarPath, FileChannel.open(
                 tarPath, READ))) {
             Iterator<Blob> it = tar.iterator();
@@ -174,7 +212,7 @@ public class Archiver {
                             + " but found " + tarBlob.size());
                 }
                 String tarDigest = Digests.calculate("SHA1", tarBlob);
-                String stagingDigest = Digests.calculate("SHA1", stagingBlob);
+                String stagingDigest = stagingBlob.digest("SHA1");
                 if (!tarDigest.equals(stagingDigest)) {
                     throw new IOException("copy verify failed for blob " + tarBlob.id()
                             + " expected SHA1 " + stagingDigest + " but tar contains " + tarDigest);
@@ -221,5 +259,13 @@ public class Archiver {
         } catch (DirectoryNotEmptyException e) {
             // we're done
         }
+    }
+
+    public void setThreads(int threads) {
+        this.threads = threads;
+    }
+
+    public void setSkipCleanup(boolean skipCleanup) {
+        this.skipCleanup = skipCleanup;
     }
 }

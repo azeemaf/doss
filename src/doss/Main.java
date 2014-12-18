@@ -103,12 +103,29 @@ public class Main {
                 LocalBlobStore.init(getDossHome());
             }
         },
-        archiver("[-f]", "Run the archiving daemon") {
+        archiver("[-f] [-n] [-P <threads>]", "Run the archiving daemon") {
             @Override
             void execute(Arguments args) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
+                    boolean forceSeal = false;
                     Archiver archiver = new Archiver(bs);
-                    archiver.run(!args.isEmpty() && args.first().equals("-f"));
+                    for (; !args.isEmpty(); args = args.rest()) {
+                        switch (args.first()) {
+                            case "-f":
+                                forceSeal = true;
+                                break;
+                            case "-P":
+                                args = args.rest();
+                                archiver.setThreads(Integer.parseInt(args.first()));
+                                break;
+                            case "-n":
+                                archiver.setSkipCleanup(true);
+                                break;
+                            default:
+                                throw new IllegalArgumentException("Unrecognised option: " + args.first());
+                        }
+                    }
+                    archiver.run(forceSeal);
                 }
             }
         },
