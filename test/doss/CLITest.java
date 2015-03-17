@@ -7,12 +7,14 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.compress.utils.Charsets;
 import org.junit.Test;
 
 public class CLITest extends DOSSTest {
@@ -29,7 +31,7 @@ public class CLITest extends DOSSTest {
         Blob blob = writeTempBlob(blobStore, TEST_STRING);
         execute("get", blob.id());
         Path file = Paths.get(Long.toString(blob.id()));
-        String contents = new String(Files.readAllBytes(file));
+        String contents = new String(Files.readAllBytes(file), Charsets.UTF_8);
         assertEquals(TEST_STRING, contents);
         Files.deleteIfExists(file);
 
