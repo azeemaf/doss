@@ -21,6 +21,7 @@ import org.apache.commons.compress.utils.Charsets;
 import doss.Blob;
 import doss.BlobStore;
 import doss.BlobTx;
+import doss.Client;
 import doss.CorruptBlobStoreException;
 import doss.NoSuchBlobException;
 import doss.NoSuchBlobTxException;
@@ -56,6 +57,10 @@ public class LocalBlobStore implements BlobStore {
         Config config = new Config(configFile);
         stagingRoot = config.stagingRoot;
         masterRoots = config.masterRoots;
+    }
+
+    public Path getConfigDir() {
+        return rootDir.resolve("conf");
     }
 
     private void createDefaultConfig(Path configFile)
@@ -363,8 +368,12 @@ public class LocalBlobStore implements BlobStore {
         }
     }
 
+    @Override
+    public Iterable<Client> clients() {
+        return db.listClients();
+    }
+
     public String version() {
         return db.version();
     }
-
 }

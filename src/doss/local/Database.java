@@ -30,10 +30,11 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import com.googlecode.flyway.core.Flyway;
 
+import doss.Client;
 import doss.NoSuchBlobException;
 
 abstract class Database implements Closeable, GetHandle,
-Transactional<Database> {
+        Transactional<Database> {
 
     /*
      * Connection meta data URL doesn't include H2 switches. We have to manually
@@ -149,7 +150,7 @@ Transactional<Database> {
     public abstract Iterable<BlobLocation> locateAllBlobs();
 
     public static class BlobLocationMapper implements
-    ResultSetMapper<BlobLocation> {
+            ResultSetMapper<BlobLocation> {
         @Override
         public BlobLocation map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
@@ -207,7 +208,7 @@ Transactional<Database> {
     }
 
     public static class ContainerMapper implements
-    ResultSetMapper<ContainerRecord> {
+            ResultSetMapper<ContainerRecord> {
         @Override
         public ContainerRecord map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
@@ -256,6 +257,21 @@ Transactional<Database> {
 
     @SqlQuery("SELECT legacy_path FROM legacy_paths WHERE blob_id = :blob_id")
     public abstract String locateLegacy(@Bind("blob_id") long blobId);
+
+    @SqlQuery("SELECT * FROM clients")
+    public abstract List<Client> listClients();
+
+    public static class ClientMapper implements ResultSetMapper<Client> {
+
+        @Override
+        public Client map(int index, ResultSet r, StatementContext ctx)
+                throws SQLException {
+            return new Client(r.getLong("client_id"), r.getString("name"),
+                    r.getString("host"), r.getString("access"),
+                    r.getString("public_key"));
+        }
+
+    }
 
     @SqlQuery("SELECT digest FROM digests WHERE blob_id = :blob_id AND algorithm = :algorithm")
     public abstract String getDigest(@Bind("blob_id") long blobId,

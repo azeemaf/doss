@@ -48,6 +48,11 @@ public interface BlobStore extends AutoCloseable {
      */
     BlobTx resume(long txId) throws NoSuchBlobTxException;
 
+    /**
+     * Returns the list of clients which have access to this BlobStore.
+     */
+    Iterable<Client> clients();
+
     @Override
     void close();
 }

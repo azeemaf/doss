@@ -145,11 +145,27 @@
       <artifactId>truezip-driver-zip</artifactId>
       <version>7.7.4</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>bcprov-jdk16</artifactId>
+          <groupId>org.bouncycastle</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>net.sf.jopt-simple</groupId>
       <artifactId>jopt-simple</artifactId>
       <version>4.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk15on</artifactId>
+      <version>1.50</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk15on</artifactId>
+      <version>1.50</version>
     </dependency>
   </dependencies>
 
