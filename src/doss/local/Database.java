@@ -393,7 +393,7 @@ abstract class Database implements Closeable, GetHandle,
     @SqlUpdate("UPDATE blobs SET offset = :offset WHERE blob_id = :blob_id")
     public abstract int setBlobOffset(@Bind("blob_id") long blobId, @Bind("offset") long offset);
 
-    @SqlUpdate("UPDATE containers SET sha1 = :sha1 WHERE container_id = container_id")
+    @SqlUpdate("UPDATE containers SET sha1 = :sha1 WHERE container_id = :container_id")
     public abstract int setContainerSha1(@Bind("container_id") long containerId,
             @Bind("sha1") String sha1);
 
