@@ -86,7 +86,7 @@ public class ArchiverTest extends DOSSTest {
 
             ContainerRecord c = db.findContainer(containerId);
             assertEquals(Database.CNT_WRITTEN, c.state());
-            assertEquals(40, c.sha1().length());
+            assertEquals(40, db.getContainerDigest(containerId,"SHA1").length());
         }
 
         assertTrue(Files.exists(blobStore.stagingPath(blobId1)));

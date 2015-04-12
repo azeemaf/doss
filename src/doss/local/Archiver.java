@@ -187,7 +187,8 @@ public class Archiver {
             }
         }
         synchronized (db) {
-            db.setContainerSha1(containerId, lastDigest);
+            db.insertContainerDigest(containerId,"SHA1",lastDigest);
+
         }
         // all ok, do the final move
         for (Path fsRoot : blobStore.masterRoots) {
