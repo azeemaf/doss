@@ -166,7 +166,6 @@ abstract class Database implements Closeable, GetHandle,
         private final long containerId;
         private final long size;
         private final int state;
-        private final String sha1;
 
         public long id() {
             return containerId;
@@ -176,11 +175,10 @@ abstract class Database implements Closeable, GetHandle,
             return size;
         }
 
-        ContainerRecord(long containerId, long size, int state, String sha1) {
+        ContainerRecord(long containerId, long size, int state) {
             this.containerId = containerId;
             this.size = size;
             this.state = state;
-            this.sha1 = sha1;
         }
 
         public String stateName() {
@@ -190,7 +188,7 @@ abstract class Database implements Closeable, GetHandle,
             case CNT_SEALED:
                 return "SEALED";
             case CNT_ARCHIVED:
-                return "RCHIVED";
+                return "ARCHIVED";
             case CNT_WRITTEN:
                 return "WRITTEN";
             default:
@@ -201,10 +199,6 @@ abstract class Database implements Closeable, GetHandle,
         public int state() {
             return state;
         }
-
-        public String sha1() {
-            return sha1;
-        }
     }
 
     public static class ContainerMapper implements
@@ -213,7 +207,7 @@ abstract class Database implements Closeable, GetHandle,
         public ContainerRecord map(int index, ResultSet r, StatementContext ctx)
                 throws SQLException {
             return new ContainerRecord(r.getLong("container_id"),
-                    r.getLong("size"), r.getInt("state"), r.getString("sha1"));
+                    r.getLong("size"), r.getInt("state"));
         }
     }
 
@@ -393,8 +387,12 @@ abstract class Database implements Closeable, GetHandle,
     @SqlUpdate("UPDATE blobs SET offset = :offset WHERE blob_id = :blob_id")
     public abstract int setBlobOffset(@Bind("blob_id") long blobId, @Bind("offset") long offset);
 
-    @SqlUpdate("UPDATE containers SET sha1 = :sha1 WHERE container_id = :container_id")
-    public abstract int setContainerSha1(@Bind("container_id") long containerId,
-            @Bind("sha1") String sha1);
+    @SqlUpdate("INSERT INTO container_digests (container_id, algorithm, digest) VALUES(:containerId, :algorithm, :digest)")
+    public abstract void insertContainerDigest(@Bind("containerId") long containerId,
+            @Bind("algorithm") String algorithm, @Bind("digest") String digest);
+
+    @SqlQuery("SELECT digest FROM container_digests WHERE container_id = :containerId AND algorithm = :algorithm")
+    public abstract String getContainerDigest(@Bind("containerId") long containerId,
+            @Bind("algorithm") String algorithm);
 
 }
