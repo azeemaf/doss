@@ -209,7 +209,14 @@ public class RemoteBlobStore implements BlobStore {
                     public int write(ByteBuffer b) throws IOException {
                         int nbytes = b.remaining();
                         try {
-                            client.write(putHandle, b);
+                            //
+                            // FIXME: unfortunately thrift calls ByteBuffer.array() which might not be
+                            // supported by b, so clone it as a workaround.
+                            //
+                            ByteBuffer clone = ByteBuffer.allocate(nbytes);
+                            clone.put(b);
+                            clone.flip();
+                            client.write(putHandle, clone);
                             b.position(b.limit());
                         } catch (TException e) {
                             throw new RuntimeException(e);
