@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
+import org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException;
+
 import doss.Blob;
 import doss.BlobStore;
 import doss.core.Writables;
@@ -235,6 +237,13 @@ public class Archiver {
                 if (!tarDigest.equals(stagingDigest)) {
                     throw new IOException("copy verify failed for blob " + tarBlob.id()
                             + " expected " + blobStore.getPreferredAlgorithm() + " " + stagingDigest + " but tar contains " + tarDigest);
+                }
+                synchronized (db) {
+                    try {
+                        db.insertDigest(tarBlob.id(),blobStore.getPreferredAlgorithm(),tarDigest);
+                    } catch (UnableToExecuteStatementException e) {
+                        // already a a digest with this algorithm
+                    }
                 }
             }
             if (it.hasNext()) {
