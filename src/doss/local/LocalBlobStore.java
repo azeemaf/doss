@@ -40,6 +40,7 @@ public class LocalBlobStore implements BlobStore {
     final Path rootDir;
     final Path stagingRoot;
     final List<Path> masterRoots;
+    final List<String> algorithms;
     final static String clientName = System.getProperty("nla.node", "java")
             + ":" + ManagementFactory.getRuntimeMXBean().getName();
 
@@ -57,17 +58,23 @@ public class LocalBlobStore implements BlobStore {
         Config config = new Config(configFile);
         stagingRoot = config.stagingRoot;
         masterRoots = config.masterRoots;
+        algorithms = config.algorithms;
     }
 
     public Path getConfigDir() {
         return rootDir.resolve("conf");
     }
 
+    public String getPreferredAlgorithm() {
+        return(algorithms.get(algorithms.size() -1));
+    }
+
     private void createDefaultConfig(Path configFile)
             throws IOException, NotDirectoryException {
         Files.createDirectory(rootDir.resolve("conf"));
         String defaultConfig = "[area.staging]\nfs=staging\n\n[fs.staging]\npath="
-                + subdir("staging").toString() + "\n";
+                + subdir("staging").toString() + "\n"
+                + "[config]\nalgorithms=MD5,SHA1\n\n";
         Files.write(configFile, defaultConfig.getBytes(Charsets.UTF_8));
     }
 

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -25,6 +26,7 @@ class Config {
     private final Ini ini;
     Path stagingRoot = null;
     List<Path> masterRoots = new ArrayList<>();
+    List<String> algorithms = new ArrayList<>();
 
     Config(Path path) throws IOException {
         ini = new Ini(path.toFile());
@@ -36,6 +38,11 @@ class Config {
         if (stagingRoot == null) {
             barf("at least the staging area and fs must be configured");
         }
+        Section config = ini.get("config");
+        if (config == null) {
+            barf("missing config section");
+        }
+        this.algorithms = Arrays.asList(config.get("algorithms").split("\\s*,\\s*"));
     }
 
     private void parseArea(String name) throws IOException {

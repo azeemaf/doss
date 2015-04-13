@@ -46,6 +46,7 @@ public class DOSSTest {
             w.write("[area.master]\nfs=master1,master2\n\n");
             w.write("[fs.master1]\npath=" + master1Root.toString() + "\n\n");
             w.write("[fs.master2]\npath=" + master2Root.toString() + "\n\n");
+            w.write("[config]\nalgorithms=MD5,SHA1\n\n");
         }
 
         blobStore = LocalBlobStore.open(blobStoreRoot);
