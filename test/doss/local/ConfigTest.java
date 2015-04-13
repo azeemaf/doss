@@ -11,13 +11,14 @@ import doss.local.Database.ContainerRecord;
 public class ConfigTest extends DOSSTest {
 
     @Test
-    public void ensureContainersCanBeSealed() throws Exception {
+    public void checkConfigItems() throws Exception {
         LocalBlobStore blobStore = (LocalBlobStore) this.blobStore;
-		assertEquals(2,blobStore.masterRoots.size());
+    	assertEquals(2,blobStore.masterRoots.size());
 
-		{
-			List<String> algorithms = blobStore.algorithms;
-			assertEquals(2, algorithms.size());
-		}
+	{
+            List<String> algorithms = blobStore.algorithms;
+            assertEquals(2, algorithms.size());
+            assertEquals("SHA1", blobStore.getPreferredAlgorithm());
+        }
     }
 }
