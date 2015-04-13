@@ -176,7 +176,7 @@ public class Archiver {
             Path path = incomingPath(fsRoot, containerId);
             logger.info("Calculating digest for " + path);
             try (FileChannel chan = FileChannel.open(path, READ)) {
-                String digest = Digests.calculate("SHA1", chan);
+                String digest = Digests.calculate(blobStore.getPreferredAlgorithm(), chan);
                 if (lastDigest != null && !digest.equals(lastDigest)) {
                     throw new IOException("tar digests do not match. Expected " + lastDigest
                             + " but got " + digest + " for " + path);
@@ -187,7 +187,7 @@ public class Archiver {
             }
         }
         synchronized (db) {
-            db.insertContainerDigest(containerId,"SHA1",lastDigest);
+            db.insertContainerDigest(containerId,blobStore.getPreferredAlgorithm(),lastDigest);
 
         }
         // all ok, do the final move
@@ -230,11 +230,11 @@ public class Archiver {
                             + stagingBlob.size()
                             + " but found " + tarBlob.size());
                 }
-                String tarDigest = Digests.calculate("SHA1", tarBlob);
-                String stagingDigest = stagingBlob.digest("SHA1");
+                String tarDigest = Digests.calculate(blobStore.getPreferredAlgorithm(), tarBlob);
+                String stagingDigest = stagingBlob.digest(blobStore.getPreferredAlgorithm());
                 if (!tarDigest.equals(stagingDigest)) {
                     throw new IOException("copy verify failed for blob " + tarBlob.id()
-                            + " expected SHA1 " + stagingDigest + " but tar contains " + tarDigest);
+                            + " expected " + blobStore.getPreferredAlgorithm() + " " + stagingDigest + " but tar contains " + tarDigest);
                 }
             }
             if (it.hasNext()) {
