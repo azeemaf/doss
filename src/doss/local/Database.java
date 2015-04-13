@@ -276,9 +276,6 @@ abstract class Database implements Closeable, GetHandle,
             @Bind("algorithm") String algorithm,
             @Bind("digest") String digest);
 
-    @SqlQuery("SELECT algorithm, digest FROM digests WHERE blob_id = :blob_id")
-    public abstract ResultSet getDigestsIterable(@Bind("blob_id") long blobId);
-
     public Map<String, String> getDigests(long blobId) {
         HashMap<String, String> out = new HashMap<String, String>();
         for (Map<String, Object> row : getHandle().select(
