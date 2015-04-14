@@ -135,7 +135,7 @@ public class Main {
                 }
             }
         },
-        scrubber("[-n] [-c <# of containers> [-P <threads>]", "Run the scrubber daemon") {
+        scrubber("[-n] [-c <# of containers>] [-P <threads>]", "Run the scrubber daemon") {
             @Override
             void execute(Arguments args) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
