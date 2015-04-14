@@ -26,6 +26,7 @@ public class Scrubber {
     private String preferredAlgorithm;
     private int threads = 0;
     private boolean verifyOk;
+    private int containerLimit;
 
     public Scrubber(BlobStore blobStore) {
         if (!(blobStore instanceof LocalBlobStore)) {
@@ -52,6 +53,7 @@ public class Scrubber {
     public void verifyPhase() throws IOException {
         List<Long> containerIds = db.findContainersByState(Database.CNT_ARCHIVED);
         logger.info("Verify phase: found " + containerIds.size() + " containers to scrub");
+        int loops = 0;
         for (long containerId : containerIds) {
             Date cutoff = new Date(System.currentTimeMillis() - AuditCutoff);
             Date lastAuditTime = db.getLastAuditTime(containerId);
@@ -67,6 +69,10 @@ public class Scrubber {
                     db.insertAuditResult(containerId,preferredAlgorithm,new java.util.Date(),verifyOk);
                 }
            }
+            loops++;
+            if (loops >= containerLimit) {
+                break;
+            } 
         }
     }
 
@@ -148,6 +154,10 @@ public class Scrubber {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    public void setContainerLimit(int containers) {
+        this.containerLimit = containers;
     }
 
         // multi threaded one day..

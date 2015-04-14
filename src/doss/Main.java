@@ -135,7 +135,7 @@ public class Main {
                 }
             }
         },
-        scrubber("[-n] [-P <threads>]", "Run the scrubber daemon") {
+        scrubber("[-n] [-c <# of containers> [-P <threads>]", "Run the scrubber daemon") {
             @Override
             void execute(Arguments args) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
@@ -145,6 +145,10 @@ public class Main {
                         switch (args.first()) {
                             case "-n":
                                 skipDbUpdate = true;
+                                break;
+                            case "-c":
+                                args = args.rest();
+                                scrubber.setContainerLimit(Integer.parseInt(args.first()));
                                 break;
                             case "-P":
                                 args = args.rest();
