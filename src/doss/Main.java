@@ -33,6 +33,7 @@ import org.apache.thrift.transport.TTransportException;
 
 import doss.local.Admin;
 import doss.local.Archiver;
+import doss.local.Scrubber;
 import doss.local.Fsck;
 import doss.local.LocalBlobStore;
 import doss.net.BlobStoreServer;
@@ -131,6 +132,29 @@ public class Main {
                         }
                     }
                     archiver.run(forceSeal);
+                }
+            }
+        },
+        scrubber("[-n] [-P <threads>]", "Run the scrubber daemon") {
+            @Override
+            void execute(Arguments args) throws IOException {
+                try (BlobStore bs = openBlobStore()) {
+                    boolean skipDbUpdate = false;
+                    Scrubber scrubber = new Scrubber(bs);
+                    for (; !args.isEmpty(); args = args.rest()) {
+                        switch (args.first()) {
+                            case "-n":
+                                skipDbUpdate = true;
+                                break;
+                            case "-P":
+                                args = args.rest();
+                                scrubber.setThreads(Integer.parseInt(args.first()));
+                                break;
+                            default:
+                                throw new IllegalArgumentException("Unrecognised option: " + args.first());
+                        }
+                    }
+                    scrubber.run(skipDbUpdate);
                 }
             }
         },

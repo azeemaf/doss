@@ -37,9 +37,12 @@ public class ArchiverTest extends DOSSTest {
             tx.rollback();
         }
 
+        byte[] MORE_TEST_BYTES = new byte[TEST_BYTES.length * 2];
+        System.arraycopy(TEST_BYTES, 0, MORE_TEST_BYTES, 0, TEST_BYTES.length);
+        System.arraycopy(TEST_BYTES, 0, MORE_TEST_BYTES, TEST_BYTES.length, TEST_BYTES.length);
         try (BlobTx tx = blobStore.begin()) {
             blobId2 = tx.put(TEST_BYTES).id();
-            blobId3 = tx.put(TEST_BYTES).id();
+            blobId3 = tx.put(MORE_TEST_BYTES).id();
             tx.commit();
         }
         Archiver archiver = new Archiver(blobStore);
@@ -68,7 +71,7 @@ public class ArchiverTest extends DOSSTest {
 
             ContainerRecord c = db.findContainer(containerId);
             assertEquals(Database.CNT_OPEN, c.state());
-            assertEquals(TEST_BYTES.length * 3, c.size());
+            assertEquals(TEST_BYTES.length * 4, c.size());
         }
 
         int n = db.sealAllContainers();
@@ -89,6 +92,7 @@ public class ArchiverTest extends DOSSTest {
             assertEquals(40, db.getContainerDigest(containerId,blobStore.getPreferredAlgorithm()).length());
 
             assertEquals(40, db.getDigest(blob.id(),blobStore.getPreferredAlgorithm()).length());
+            assertEquals(40, db.getDigest(blobId3,blobStore.getPreferredAlgorithm()).length());
         }
 
         assertTrue(Files.exists(blobStore.stagingPath(blobId1)));
@@ -114,5 +118,10 @@ public class ArchiverTest extends DOSSTest {
         // ensure parent directory which should now be empty is gone too
         assertFalse(Files.exists(blobStore.stagingPath(blobId1).getParent()));
 
+        Scrubber scrubber = new Scrubber(blobStore);
+        scrubber.run(true);
+        assertEquals(true, db.getLastAuditResult(containerId));
+        assertEquals(false, db.getLastAuditResult(99999999));
+        assertNotNull(db.getLastAuditTime(containerId));
     }
 }

@@ -8,6 +8,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -392,4 +393,22 @@ abstract class Database implements Closeable, GetHandle,
     public abstract String getContainerDigest(@Bind("containerId") long containerId,
             @Bind("algorithm") String algorithm);
 
+    public Map<String, String> getContainerDigests(long containerId) {
+        HashMap<String, String> out = new HashMap<String, String>();
+        for (Map<String, Object> row : getHandle().select(
+            "SELECT algorithm, digest FROM container_digests WHERE container_id = ?", containerId)) {
+            out.put((String) row.get("algorithm"), (String) row.get("digest"));
+        }
+        return out;
+    }
+
+    @SqlQuery("SELECT result FROM digest_audits WHERE container_id = :containerId ORDER by time DESC LIMIT 1")
+    public abstract boolean getLastAuditResult(@Bind("containerId") long containerId);
+
+    @SqlQuery("SELECT time FROM digest_audits WHERE container_id = :containerId ORDER by time DESC LIMIT 1")
+    public abstract Timestamp getLastAuditTime(@Bind("containerId") long containerId);
+
+    @SqlUpdate("INSERT INTO digest_audits (container_id, algorithm, time, result) VALUES(:containerId, :algorithm, :time, :result)")
+    public abstract void insertAuditResult(@Bind("containerId") long containerId,
+            @Bind("algorithm") String algorithm, @Bind("time") Date time, @Bind("result") boolean result);
 }
