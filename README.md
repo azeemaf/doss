@@ -16,12 +16,12 @@ deleted.
 
 **Status**
 
-* [Java API](doc/java-api.md): unstable
-* Local backend: incomplete
-* Network backend: to be started
+* [Java API](doc/java-api.md): stable
+* Local backend: complete
+* Network backend: inprogress
 * [CLI frontend](https://github.com/nla/doss/issues/5): incomplete
-* [FUSE frontend](doc/native-interface.md): to be started
-* [Container support](doc/archive-formats.md): to be started
+* [FUSE frontend](doc/native-interface.md): complete
+* [Container support](doc/archive-formats.md): complete
 
 Feature Goals
 -------------
