@@ -56,7 +56,12 @@ public class Scrubber {
         } else {
             if (singleContainer >0) {
                 logger.info("Scrubber running in one shot mode (-i)");
-                if (db.findContainer(singleContainer) == null) {
+                try {
+                    if (db.findContainer(singleContainer).state() != Database.CNT_ARCHIVED) {
+                        System.out.println("Only ARCHIVED containers can be verified");
+                        throw new NoSuchContainerException(singleContainer);
+                    }
+                } catch (NullPointerException e) {
                     throw new NoSuchContainerException(singleContainer);
                 }
                 boolean result = verifyContainerAndContents(singleContainer);
