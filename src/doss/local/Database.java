@@ -268,14 +268,13 @@ abstract class Database implements Closeable, GetHandle,
 
     }
 
-    @SqlQuery("SELECT digest FROM digests WHERE blob_id = :blob_id AND algorithm = :algorithm")
-    public abstract String getDigest(@Bind("blob_id") long blobId,
+    @SqlQuery("SELECT digest FROM digests WHERE blob_id = :blobId AND algorithm = :algorithm")
+    public abstract String getDigest(@Bind("blobId") long blobId,
             @Bind("algorithm") String algorithm);
 
-    @SqlUpdate("INSERT INTO digests (blob_id, algorithm, digest) VALUES(:blob_id, :algorithm, :digest)")
-    public abstract void insertDigest(@Bind("blob_id") long blobId,
-            @Bind("algorithm") String algorithm,
-            @Bind("digest") String digest);
+    @SqlUpdate("INSERT INTO digests (blob_id, algorithm, digest) VALUES(:blobId, :algorithm, :digest)")
+    public abstract void insertDigest(@Bind("blobId") long blobId,
+            @Bind("algorithm") String algorithm, @Bind("digest") String digest);
 
     public Map<String, String> getDigests(long blobId) {
         HashMap<String, String> out = new HashMap<String, String>();

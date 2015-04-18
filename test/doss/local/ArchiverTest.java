@@ -1,6 +1,7 @@
 package doss.local;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -9,6 +10,8 @@ import static org.junit.Assert.assertTrue;
 import java.nio.file.Files;
 
 import org.junit.Test;
+
+import java.util.Date;
 
 import doss.Blob;
 import doss.BlobTx;
@@ -118,10 +121,25 @@ public class ArchiverTest extends DOSSTest {
         // ensure parent directory which should now be empty is gone too
         assertFalse(Files.exists(blobStore.stagingPath(blobId1).getParent()));
 
-        Scrubber scrubber = new Scrubber(blobStore);
-        scrubber.run(true);
+        {
+            Scrubber scrubber = new Scrubber(blobStore);
+            scrubber.run();
+        }
         assertEquals(true, db.getLastAuditResult(containerId));
         assertEquals(false, db.getLastAuditResult(99999999));
         assertNotNull(db.getLastAuditTime(containerId));
+        Date lastAuditTime = db.getLastAuditTime(containerId);
+        {
+            Scrubber scrubber = new Scrubber(blobStore);
+            scrubber.run();
+            assertEquals(lastAuditTime, db.getLastAuditTime(containerId));
+        }
+
+        {
+            Scrubber scrubber = new Scrubber(blobStore);
+            scrubber.setSingleContainer(containerId);
+            scrubber.run();
+            assertNotEquals(lastAuditTime, db.getLastAuditTime(containerId));
+        }
     }
 }

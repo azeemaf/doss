@@ -21,12 +21,14 @@ public class Scrubber {
     private final static Logger logger = Logger.getLogger(Scrubber.class.getName());
     private final LocalBlobStore blobStore;
     private final Database db;
-    private final long AuditCutoff = 86400000 * 120; // how often to audit a container and its contents
-    private boolean skipDbUpdate;
+    private final long DAY = 86400000;
+    private long auditCutoff = DAY * 120; // how often to audit a container and its contents
     private String preferredAlgorithm;
     private int threads = 0;
-    private boolean verifyOk;
-    private int containerLimit;
+    private int containerLimit = 1;
+    private long singleContainer = 0;
+    private boolean skipDbUpdate = false;
+    private long showLastAudit = 0;
 
     public Scrubber(BlobStore blobStore) {
         if (!(blobStore instanceof LocalBlobStore)) {
@@ -42,36 +44,58 @@ public class Scrubber {
         }
     }
 
-    public void run(boolean skipDbUpdate) throws IOException {
-        logger.info("Scrubber running..");
-        verifyPhase();
+    public void run() throws IOException {
+        if (showLastAudit > 0) {
+            if (db.getLastAuditTime(showLastAudit) == null) {
+                System.out.println("No audit result for Containter " + showLastAudit);
+            } else {
+                System.out.println("Last Audit for " + showLastAudit + " was " + db.getLastAuditTime(showLastAudit)
+                    + " and the result was " + db.getLastAuditResult(showLastAudit));
+                System.out.println("\tAlgorithm " + preferredAlgorithm + " Digest " + db.getContainerDigest(showLastAudit,preferredAlgorithm));
+            }
+        } else {
+            if (singleContainer >0) {
+                logger.info("Scrubber running in one shot mode (-i)");
+                if (db.findContainer(singleContainer) == null) {
+                    throw new NoSuchContainerException(singleContainer);
+                }
+                boolean result = verifyContainerAndContents(singleContainer);
+                if (!skipDbUpdate) {
+                    logger.info("Updating Audit Result for Container " + singleContainer + " to " + result);
+                    synchronized (db) {
+                        db.insertAuditResult(singleContainer,preferredAlgorithm,new java.util.Date(),result);
+                    }
+                }
+            } else { 
+                logger.info("Scrubber running in batch mode - " + containerLimit + " Container(s), " + auditCutoff/DAY + " days since last");
+                verifyContainers();
+            }
+        }
     }
 
         // * For each ARCHIVED Container in all masterroots:
         // * verify every blob against db entry	
         // * flag errors at container level
-    public void verifyPhase() throws IOException {
+    public void verifyContainers() throws IOException {
         List<Long> containerIds = db.findContainersByState(Database.CNT_ARCHIVED);
-        logger.info("Verify phase: found " + containerIds.size() + " containers to scrub");
+        logger.info("Verify phase: found " + containerIds.size() + " containers to scrub, verifying " + containerLimit);
         int loops = 0;
         for (long containerId : containerIds) {
-            Date cutoff = new Date(System.currentTimeMillis() - AuditCutoff);
+            Date cutoff = new Date(System.currentTimeMillis() - auditCutoff);
             Date lastAuditTime = db.getLastAuditTime(containerId);
-            if (lastAuditTime != null && lastAuditTime.before(cutoff)) {
-                logger.info("Container audited recently, skipping");
+            if (lastAuditTime != null && lastAuditTime.after(cutoff)) {
+                logger.info("Container " + containerId + " audited recently, skipping");
                 continue;
             }
-            verifyOk = true;
-            verifyContainerAndContents(containerId);
+            boolean result = verifyContainerAndContents(containerId);
             if (!skipDbUpdate) {
-                logger.info("Updating Audit Result for Container " + containerId + " to " + verifyOk);
                 synchronized (db) {
-                    db.insertAuditResult(containerId,preferredAlgorithm,new java.util.Date(),verifyOk);
+                    db.insertAuditResult(containerId,preferredAlgorithm,new java.util.Date(),result);
                 }
-           }
+            }
             loops++;
             if (loops >= containerLimit) {
-                break;
+                    break;
             } 
         }
     }
@@ -82,19 +106,22 @@ public class Scrubber {
         // * do it by container because once the offline one is staged,
         // * its best to continue with that container
         // * skip any blobs that have been checked recently
-    private void verifyContainerAndContents(long containerId) throws IOException {
+    private boolean verifyContainerAndContents(long containerId) throws IOException {
         for (Path fsRoot : this.blobStore.masterRoots) {
        	    Path tarPath =  blobStore.tarPath(fsRoot, containerId);
             if (Files.notExists(tarPath)) {
                 logger.info("Container " + containerId + " does not exist at " + tarPath);
-                continue;
+                return(false);
             }
-            logger.info("Checking container " + containerId + " @ " + tarPath);
+        }
+        for (Path fsRoot : this.blobStore.masterRoots) {
+       	    Path tarPath =  blobStore.tarPath(fsRoot, containerId);
+            logger.info("Verifying container " + containerId + " @ " + tarPath);
             // Do whole container verify first, streaming io/caching etc etc
             try (FileChannel tarChan = FileChannel.open(tarPath, READ)) {
                 String digest = db.getContainerDigest(containerId,preferredAlgorithm);
                 if (digest == null) {
-                    logger.info("No DB Digest for container " + containerId + ", adding it");
+                    logger.info("NEW digest for container " + containerId + " @ " + tarPath);
                     String containerDigest = Digests.calculate(preferredAlgorithm, tarChan);
                     digest = containerDigest;
                     if (!skipDbUpdate) {
@@ -104,16 +131,14 @@ public class Scrubber {
                     }
                     // no verify here, as digest has only just been created, it can be checked next time
                 } else {
-                    logger.info("Container " + containerId + " : algorithm " + preferredAlgorithm + " and DB digest " + digest);
-                    logger.info("Calculating " + preferredAlgorithm + " digest for container " + containerId + " at " + tarPath);
                     String containerDigest = Digests.calculate(preferredAlgorithm, tarChan);
                     if (!containerDigest.equals(digest)) {
-                        verifyOk = false;
-                        throw new IOException("verify failed for container " + containerId
+                        logger.info("Verify failed for Container " + containerId
                             + " at " + tarPath + " using " + preferredAlgorithm
                             + ", expected " + digest + " but got " + containerDigest);
+                        return(false);
                     } else {
-                        logger.info("Verify for Container " + containerId + " in " + fsRoot + " successful");
+                        logger.info("Verify passed for container " + containerId + " @ " + tarPath);
                     }
                 }
             } catch (NoSuchAlgorithmException e) {
@@ -122,13 +147,12 @@ public class Scrubber {
             // Now do each blob in the container
             try (TarContainer tar = new TarContainer(containerId, tarPath, FileChannel.open(
                 tarPath, READ))) {
-                logger.info("Scrubbing container at " + tarPath);
+                logger.info("Verifying blobs in container " + containerId + " @ " + tarPath);
                 Iterator<Blob> it = tar.iterator();
                 while(it.hasNext()) {
                     Blob tarBlob = it.next();
                     String digest = db.getDigest(tarBlob.id(),preferredAlgorithm);
                     if (digest == null) {
-                        logger.info("No DB Digest for " + tarBlob.id() + " using " + preferredAlgorithm + ", adding it");
                         String tarDigest = Digests.calculate(preferredAlgorithm, tarBlob);
                         if (!skipDbUpdate) {
                             synchronized (db) {
@@ -137,29 +161,45 @@ public class Scrubber {
                         }
                         // no need to verify, digest is newly created
                     } else {
-                        logger.info("Got DB Digest " + digest + " using " + preferredAlgorithm);
                         String tarDigest = Digests.calculate(preferredAlgorithm, tarBlob);
-                        logger.info("Got Tar Digest " + digest + " using " + preferredAlgorithm);
                         if (!digest.equals(tarDigest)) {
-                            verifyOk = false;
-                            throw new IOException("verify failed for blob " + tarBlob.id()
+                            logger.info("Verify failed for blob " + tarBlob.id()
                                 + " in container " + tarPath + " using " + preferredAlgorithm
                                 + ", expected " + digest + " but got " + tarDigest);
+                            return(false);
                         } else {
-                            logger.info("Verify for Blob " + tarBlob.id() + " in Container " + containerId + " successful");
+                            //logger.info("Verify for Blob " + tarBlob.id() + " in Container " + containerId + " successful");
                         }
                     }
                 }
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }
+            logger.info("Verify blobs finished for container " + containerId + " @ " + tarPath);
         }
+        return(true);
+    }
+    
+    public void setShowLastAudit(long containerId) {
+        this.showLastAudit = containerId;
+    }
+        
+    // slightly misleading, means skip audit table updates
+    public void setSkipDbUpdate(boolean skip) {
+        this.skipDbUpdate = skip;
     }
 
     public void setContainerLimit(int containers) {
         this.containerLimit = containers;
     }
 
+    public void setSingleContainer(long containerId) {
+        this.singleContainer = containerId;
+    }
+
+    public void setAuditCutoff(int days) {
+        this.auditCutoff = this.DAY * days;
+    }
         // multi threaded one day..
     public void setThreads(int threads) {
         this.threads = threads;

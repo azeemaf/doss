@@ -135,16 +135,23 @@ public class Main {
                 }
             }
         },
-        scrubber("[-n] [-c <# of containers>] [-P <threads>]", "Run the scrubber daemon") {
+        scrubber("[-i <containerId> [-n]] [[-c <# of containers>] [-m <days>] [-P <threads>] [-n]] [-L <containerId>]", "Run the Scrubber") {
             @Override
             void execute(Arguments args) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
-                    boolean skipDbUpdate = false;
                     Scrubber scrubber = new Scrubber(bs);
                     for (; !args.isEmpty(); args = args.rest()) {
                         switch (args.first()) {
                             case "-n":
-                                skipDbUpdate = true;
+                                scrubber.setSkipDbUpdate(true);
+                                break;
+                            case "-i":
+                                args = args.rest();
+                                scrubber.setSingleContainer(Long.parseLong(args.first()));
+                                break;
+                            case "-m":
+                                args = args.rest();
+                                scrubber.setAuditCutoff(Integer.parseInt(args.first()));
                                 break;
                             case "-c":
                                 args = args.rest();
@@ -154,11 +161,15 @@ public class Main {
                                 args = args.rest();
                                 scrubber.setThreads(Integer.parseInt(args.first()));
                                 break;
+                            case "-L":
+                                args = args.rest();
+                                scrubber.setShowLastAudit(Long.parseLong(args.first()));
+                                break;
                             default:
                                 throw new IllegalArgumentException("Unrecognised option: " + args.first());
                         }
                     }
-                    scrubber.run(skipDbUpdate);
+                    scrubber.run();
                 }
             }
         },
