@@ -135,7 +135,7 @@ public class Main {
                 }
             }
         },
-        scrubber("[-i <containerId> [-n]] [[-c <# of containers>] [-m <days>] [-P <threads>] [-n]] [-L <containerId>]", "Run the Scrubber") {
+        scrubber("[-i <containerId> [-n]] [-F] [[-c <# of containers>] [-m <days>] [-P <threads>] [-n]] [-L <containerId>]", "Run the Scrubber") {
             @Override
             void execute(Arguments args) throws IOException {
                 try (BlobStore bs = openBlobStore()) {
@@ -144,6 +144,9 @@ public class Main {
                         switch (args.first()) {
                             case "-n":
                                 scrubber.setSkipDbUpdate(true);
+                                break;
+                            case "-F":
+                                scrubber.setListFailedAudits(true);
                                 break;
                             case "-i":
                                 args = args.rest();

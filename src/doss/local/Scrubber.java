@@ -29,6 +29,7 @@ public class Scrubber {
     private long singleContainer = 0;
     private boolean skipDbUpdate = false;
     private long showLastAudit = 0;
+    private boolean listFailedAudits = false;
 
     public Scrubber(BlobStore blobStore) {
         if (!(blobStore instanceof LocalBlobStore)) {
@@ -51,33 +52,44 @@ public class Scrubber {
             } else {
                 System.out.println("Last Audit for " + showLastAudit + " was " + db.getLastAuditTime(showLastAudit)
                     + " and the result was " + db.getLastAuditResult(showLastAudit));
-                System.out.println("\tAlgorithm " + preferredAlgorithm + " Digest " + db.getContainerDigest(showLastAudit,preferredAlgorithm));
+                System.out.println("\tAlgorithm " + preferredAlgorithm + " Digest "
+                    + db.getContainerDigest(showLastAudit,preferredAlgorithm));
             }
-        } else {
-            if (singleContainer >0) {
-                logger.info("Scrubber running in one shot mode (-i)");
-                try {
-                    if (db.findContainer(singleContainer).state() != Database.CNT_ARCHIVED) {
-                        System.out.println("Only ARCHIVED containers can be verified");
-                        throw new NoSuchContainerException(singleContainer);
-                    }
-                } catch (NullPointerException e) {
+        } else if (listFailedAudits) {
+            List<Long> failedAuditList = db.getFailedAudits();
+            if (failedAuditList.size() > 0) {
+                System.out.println("There are " + failedAuditList.size() + " containers that failed last Audit");
+                Iterator<Long> fi = failedAuditList.iterator();
+                while(fi.hasNext()) {
+                    long containerId = fi.next();
+                    System.out.println("\t" + containerId + " " + db.getLastAuditTime(containerId) + " "
+                        +  db.getLastAuditResult(containerId));
+                }
+            } else {
+                System.out.println("No failed Audits");
+            }
+        } else if (singleContainer >0) {
+            logger.info("Scrubber running in one shot mode (-i)");
+            try {
+                if (db.findContainer(singleContainer).state() != Database.CNT_ARCHIVED) {
+                    System.out.println("Only ARCHIVED containers can be verified");
                     throw new NoSuchContainerException(singleContainer);
                 }
-                boolean result = verifyContainerAndContents(singleContainer);
-                if (!skipDbUpdate) {
-                    logger.info("Updating Audit Result for Container " + singleContainer + " to " + result);
-                    synchronized (db) {
-                        db.insertAuditResult(singleContainer,preferredAlgorithm,new java.util.Date(),result);
-                    }
-                } else {
-                    logger.info("not storing Audit Result " + result + " for container " + singleContainer);
-                }
-            
-            } else { 
-                logger.info("Scrubber running in batch mode - " + containerLimit + " Container(s), " + auditCutoff/DAY + " days since last");
-                verifyContainers();
+            } catch (NullPointerException e) {
+                throw new NoSuchContainerException(singleContainer);
             }
+            boolean result = verifyContainerAndContents(singleContainer);
+            if (!skipDbUpdate) {
+                logger.info("Updating Audit Result for Container " + singleContainer + " to " + result);
+                synchronized (db) {
+                    db.insertAuditResult(singleContainer,preferredAlgorithm,new java.util.Date(),result);
+                }
+            } else {
+                logger.info("not storing Audit Result " + result + " for container " + singleContainer);
+            }
+        } else { 
+            logger.info("Scrubber running in batch mode - " + containerLimit + " Container(s), " + auditCutoff/DAY + " days since last");
+            verifyContainers();
         }
     }
 
@@ -212,6 +224,11 @@ public class Scrubber {
     public void setAuditCutoff(int days) {
         this.auditCutoff = this.DAY * days;
     }
+
+    public void setListFailedAudits(boolean listfailed) {
+            this.listFailedAudits = listfailed;
+    }
+
         // multi threaded one day..
     public void setThreads(int threads) {
         this.threads = threads;

@@ -410,4 +410,7 @@ abstract class Database implements Closeable, GetHandle,
     @SqlUpdate("INSERT INTO digest_audits (container_id, algorithm, time, result) VALUES(:containerId, :algorithm, :time, :result)")
     public abstract void insertAuditResult(@Bind("containerId") long containerId,
             @Bind("algorithm") String algorithm, @Bind("time") Date time, @Bind("result") boolean result);
+
+    @SqlQuery("SELECT x.container_id FROM digest_audits x INNER JOIN ( SELECT container_id,MAX(time) mtime FROM digest_audits GROUP BY container_id) y ON x.container_id = y.container_id AND x.time = y.mtime AND result = false")
+    public abstract List<Long> getFailedAudits();
 }

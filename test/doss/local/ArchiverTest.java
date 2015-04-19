@@ -141,5 +141,11 @@ public class ArchiverTest extends DOSSTest {
             scrubber.run();
             assertNotEquals(lastAuditTime, db.getLastAuditTime(containerId));
         }
+        {
+            Scrubber scrubber = new Scrubber(blobStore);
+            scrubber.setListFailedAudits(true);
+            scrubber.run();
+        }
+    
     }
 }
