@@ -70,7 +70,10 @@ public class Scrubber {
                     synchronized (db) {
                         db.insertAuditResult(singleContainer,preferredAlgorithm,new java.util.Date(),result);
                     }
+                } else {
+                    logger.info("not storing Audit Result " + result + " for container " + singleContainer);
                 }
+            
             } else { 
                 logger.info("Scrubber running in batch mode - " + containerLimit + " Container(s), " + auditCutoff/DAY + " days since last");
                 verifyContainers();
@@ -97,6 +100,8 @@ public class Scrubber {
                 synchronized (db) {
                     db.insertAuditResult(containerId,preferredAlgorithm,new java.util.Date(),result);
                 }
+            } else {
+                logger.info("not storing " + preferredAlgorithm + " Audit Result " + result + " for container " + containerId);
             }
             loops++;
             if (loops >= containerLimit) {
@@ -133,6 +138,8 @@ public class Scrubber {
                         synchronized (db) {
                             db.insertContainerDigest(containerId,preferredAlgorithm,containerDigest);
                         }
+                    } else {
+                        logger.info("not storing NEW digest " + preferredAlgorithm + " " + containerDigest + " for container " + containerId + " @ " + tarPath);
                     }
                     // no verify here, as digest has only just been created, it can be checked next time
                 } else {
@@ -189,7 +196,7 @@ public class Scrubber {
         this.showLastAudit = containerId;
     }
         
-    // slightly misleading, means skip audit table updates
+    // skip any database changes
     public void setSkipDbUpdate(boolean skip) {
         this.skipDbUpdate = skip;
     }
