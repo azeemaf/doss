@@ -8,9 +8,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.nio.ByteBuffer;
+import java.nio.file.StandardOpenOption;
+import static java.nio.file.StandardOpenOption.WRITE;
+import static java.nio.file.StandardOpenOption.APPEND;
 
 import org.junit.Test;
 
+import java.util.EnumSet;
 import java.util.Date;
 
 import doss.Blob;
@@ -129,23 +136,38 @@ public class ArchiverTest extends DOSSTest {
         assertEquals(false, db.getLastAuditResult(99999999));
         assertNotNull(db.getLastAuditTime(containerId));
         Date lastAuditTime = db.getLastAuditTime(containerId);
+        // run again making sure it skips recently audited
         {
             Scrubber scrubber = new Scrubber(blobStore);
             scrubber.run();
             assertEquals(lastAuditTime, db.getLastAuditTime(containerId));
         }
-
+        // run single shot mode 
         {
             Scrubber scrubber = new Scrubber(blobStore);
             scrubber.setSingleContainer(containerId);
             scrubber.run();
             assertNotEquals(lastAuditTime, db.getLastAuditTime(containerId));
         }
+        // corrupt a container and run again
+        {
+            Path tarPath =  blobStore.tarPath(blobStore.masterRoots.get(0), containerId);
+            try (FileChannel tarChan = FileChannel.open(tarPath, EnumSet.of(StandardOpenOption.WRITE,StandardOpenOption.APPEND))) {
+                ByteBuffer buf = ByteBuffer.wrap(TEST_BYTES);
+                tarChan.write(buf,tarChan.size());
+                tarChan.force(false);
+                tarChan.close();
+            }
+            Scrubber scrubber = new Scrubber(blobStore);
+            scrubber.setSingleContainer(containerId);
+            scrubber.run();
+            assertEquals(false, db.getLastAuditResult(containerId));
+        }
+        // show failed audits
         {
             Scrubber scrubber = new Scrubber(blobStore);
             scrubber.setListFailedAudits(true);
             scrubber.run();
         }
-    
     }
 }
